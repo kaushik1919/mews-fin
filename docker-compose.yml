@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  mews-app:
+    build:
+      context: .
+      target: production
+    ports:
+      - "8501:8501"
+    environment:
+      - APP_NAME=MEWS
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+    env_file:
+      - .env
+    volumes:
+      - ./data:/home/mews/app/data
+      - ./models:/home/mews/app/models
+      - ./outputs:/home/mews/app/outputs
+      - ./logs:/home/mews/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  mews-dev:
+    build:
+      context: .
+      target: development
+    ports:
+      - "8502:8501"
+    environment:
+      - APP_NAME=MEWS-DEV
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+    env_file:
+      - .env
+    volumes:
+      - .:/home/mews/app
+    command: streamlit run streamlit_app.py --server.port=8501 --server.address=0.0.0.0 --server.runOnSave=true
+    profiles:
+      - dev
+
+  # Optional: Redis for caching (future enhancement)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    profiles:
+      - cache
+
+  # Optional: PostgreSQL for data storage (future enhancement)
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: mews
+      POSTGRES_USER: mews
+      POSTGRES_PASSWORD: mews_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    profiles:
+      - database
+
+volumes:
+  redis_data:
+  postgres_data:

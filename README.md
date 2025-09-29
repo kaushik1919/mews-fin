@@ -1,66 +1,90 @@
-# Market Risk Early Warning System
+# 📊 Market Risk Early Warning System (MEWS)
 
-A comprehensive machine learning system for predicting market risk using free data sources, designed for lightweight compute environments like Google Colab or local machines.
+A professional-grade machine learning system for predicting market risk using free data sources. Features GPU acceleration, real-time sentiment analysis, and an interactive web dashboard.
 
-## 🎯 Overview
+## ✨ Features
 
-This system provides early warnings for market risk by analyzing:
-- **Stock Market Data**: Price movements, technical indicators, trading volumes
-- **News Sentiment**: Headlines from multiple sources with sentiment analysis
-- **SEC Filings**: Risk factors and MD&A sections from 10-K/10-Q reports
-- **Market Indicators**: VIX, sector rotation, volatility patterns
+- 🤖 **4 ML Models**: Random Forest, XGBoost, SVM, and Logistic Regression with ensemble predictions
+- 🚀 **GPU Acceleration**: CUDA support for faster training (optional)
+- 📰 **Real-time Sentiment**: News sentiment analysis with GNews API integration
+- 📊 **Interactive Dashboard**: Professional Streamlit web interface
+- 🔄 **CI/CD Pipeline**: Automated testing, linting, and deployment
+- 🐳 **Docker Support**: Containerized deployment for easy scaling
+- 📈 **Risk Timeline**: Historical risk visualization with statistical analysis
 
 ## 🚀 Quick Start
 
-### 1. Installation
+### Option 1: Using Build Script (Recommended)
 
 ```bash
-# Clone the repository
-git clone <repository-url>
+# Clone repository
+git clone https://github.com/kaushik1919/mews-fin.git
 cd mews-fin
+
+# Set up development environment (includes testing tools)
+python build.py setup-dev
+
+# Run the web application
+streamlit run streamlit_app.py
+```
+
+### Option 2: Manual Setup
+
+```bash
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# or
+.\venv\Scripts\activate   # Windows
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Download required NLTK data
+# Download NLTK data
 python -c "import nltk; nltk.download('vader_lexicon'); nltk.download('punkt')"
+
+# Run application
+streamlit run streamlit_app.py
 ```
 
-### 2. Configuration
-
-Create a `.env` file in the project root:
-
-```env
-# Required: Alpha Vantage API (free tier available)
-ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
-
-# Optional: News APIs (free tiers available)
-GNEWS_API_KEY=your_gnews_key
-NEWS_API_KEY=your_newsapi_key
-
-# Optional: Financial data
-FRED_API_KEY=your_fred_key
-```
-
-**Get Free API Keys:**
-- [Alpha Vantage](https://www.alphavantage.co/support/#api-key): 5 calls/minute, 500 calls/day
-- [GNews API](https://gnews.io/): 100 requests/day
-- [News API](https://newsapi.org/): 1000 requests/day
-
-### 3. Run the System
+### Option 3: Docker Deployment
 
 ```bash
-# Run complete pipeline with default settings
-python main.py --full-pipeline
+# Build and run with Docker Compose
+docker-compose up -d mews-app
 
-# Analyze specific stocks with custom date range
-python main.py --full-pipeline --symbols AAPL MSFT GOOGL --start-date 2020-01-01 --end-date 2023-12-31
+# Access at http://localhost:8501
+```
 
-# Run backtesting only (requires existing data)
-python main.py --backtest-only
+## ⚙️ Configuration
 
-# Create visualizations only
-python main.py --visualize-only --symbols AAPL MSFT
+Copy `.env.example` to `.env` and configure your API keys:
+
+```bash
+cp .env.example .env
+```
+
+Required API keys (all have free tiers):
+- **GNews API** ([Get key](https://gnews.io/)): 100 requests/day
+- Optional: Alpha Vantage, News API, FRED API
+
+## 🧪 Development & Testing
+
+```bash
+# Install development dependencies
+python build.py setup-dev
+
+# Run tests with coverage
+python build.py test
+
+# Run code quality checks
+python build.py lint
+
+# Format code
+python build.py format
+
+# Run everything
+python build.py all
 ```
 
 ## 📊 System Architecture
