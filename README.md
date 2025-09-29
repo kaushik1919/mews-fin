@@ -247,4 +247,3 @@ For issues and questions:
 
 ---
 
-**Built with ❤️ for the open source community**
