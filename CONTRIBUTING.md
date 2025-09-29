@@ -274,7 +274,6 @@ For new features, provide:
 
 - **GitHub Issues**: For bugs and feature requests
 - **Discussions**: For general questions and ideas
-- **Email**: For security issues or private concerns
 
 ## 🎯 Good First Issues
 
@@ -283,12 +282,5 @@ Look for issues labeled:
 - `help wanted`: Community help needed
 - `documentation`: Documentation improvements
 - `testing`: Add or improve tests
-
-## 🏆 Recognition
-
-Contributors will be:
-- Added to CONTRIBUTORS.md
-- Mentioned in release notes
-- Recognized in project documentation
 
 Thank you for contributing to MEWS! 🎉
