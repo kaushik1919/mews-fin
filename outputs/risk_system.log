@@ -1,0 +1,1121 @@
+2025-09-29 19:58:25,016 - root - WARNING - Missing API keys: ['ALPHA_VANTAGE_API_KEY', 'GNEWS_API_KEY']. Some features may not work.
+2025-09-29 19:58:25,016 - __main__ - WARNING - Some API keys are missing - functionality will be limited
+2025-09-29 19:58:25,044 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
+2025-09-29 19:58:46,162 - huggingface_hub.file_download - WARNING - Xet Storage is enabled for this repo, but the 'hf_xet' package is not installed. Falling back to regular HTTP download. For better performance, install the package with: `pip install huggingface_hub[hf_xet]` or `pip install hf_xet`
+2025-09-29 19:59:06,141 - src.sentiment_analyzer - INFO - FinBERT model initialized
+2025-09-29 19:59:07,752 - huggingface_hub.file_download - WARNING - Xet Storage is enabled for this repo, but the 'hf_xet' package is not installed. Falling back to regular HTTP download. For better performance, install the package with: `pip install huggingface_hub[hf_xet]` or `pip install hf_xet`
+2025-09-29 19:59:10,817 - __main__ - INFO - Market Risk Early Warning System initialized
+2025-09-29 19:59:10,817 - __main__ - INFO - Starting full pipeline execution...
+2025-09-29 19:59:10,817 - __main__ - INFO - === Stage 1: Data Collection ===
+2025-09-29 19:59:10,817 - __main__ - INFO - Collecting stock market data...
+2025-09-29 19:59:10,818 - src.data_fetcher - INFO - Fetching Yahoo Finance data for 2 symbols
+2025-09-29 19:59:10,818 - src.data_fetcher - INFO - Fetching data for AAPL
+2025-09-29 19:59:14,449 - src.data_fetcher - INFO - Fetching data for MSFT
+2025-09-29 19:59:15,044 - src.data_fetcher - INFO - Saved data for 2 symbols to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 19:59:15,045 - __main__ - WARNING - No news API keys provided - skipping news collection
+2025-09-29 19:59:15,045 - __main__ - INFO - Collecting SEC filings data...
+2025-09-29 19:59:15,045 - src.sec_downloader - INFO - Processing filings for AAPL
+2025-09-29 19:59:16,659 - src.sec_downloader - INFO - Found CIK 0000320193 for AAPL
+2025-09-29 19:59:17,375 - src.sec_downloader - INFO - Found 43 filings for CIK 0000320193
+2025-09-29 19:59:17,375 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-08-01
+2025-09-29 19:59:19,459 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000073/0000320193-25-000073.txt
+2025-09-29 19:59:21,063 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 19:59:21,172 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-05-02
+2025-09-29 19:59:23,242 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000057/0000320193-25-000057.txt
+2025-09-29 19:59:24,792 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 19:59:24,893 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-01-31
+2025-09-29 19:59:25,721 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000008/0000320193-25-000008.txt
+2025-09-29 19:59:25,976 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 19:59:26,076 - src.sec_downloader - INFO - Processing filings for MSFT
+2025-09-29 19:59:26,537 - src.sec_downloader - INFO - Found CIK 0000789019 for MSFT
+2025-09-29 19:59:27,172 - src.sec_downloader - INFO - Found 25 filings for CIK 0000789019
+2025-09-29 19:59:27,173 - src.sec_downloader - INFO - Processing 10-K for MSFT dated 2025-07-30
+2025-09-29 19:59:28,917 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025100235/0000950170-25-100235.txt
+2025-09-29 19:59:38,768 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 19:59:38,870 - src.sec_downloader - INFO - Processing 10-Q for MSFT dated 2025-04-30
+2025-09-29 19:59:40,480 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025061046/0000950170-25-061046.txt
+2025-09-29 19:59:48,417 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 19:59:48,518 - src.sec_downloader - INFO - Processing 10-Q for MSFT dated 2025-01-29
+2025-09-29 19:59:50,072 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025010491/0000950170-25-010491.txt
+2025-09-29 19:59:57,635 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 19:59:57,739 - src.sec_downloader - INFO - Processed filings for 2 companies
+2025-09-29 19:59:57,744 - src.sec_downloader - INFO - Saved 6 filings to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 19:59:57,744 - __main__ - INFO - === Stage 2: Data Preprocessing ===
+2025-09-29 19:59:57,745 - src.data_preprocessor - INFO - Preprocessing stock data...
+2025-09-29 19:59:57,750 - __main__ - ERROR - Pipeline failed at stage 2: 'SeriesGroupBy' object has no attribute 'interpolate'
+2025-09-29 20:04:30,815 - root - WARNING - Missing API keys: ['ALPHA_VANTAGE_API_KEY', 'GNEWS_API_KEY']. Some features may not work.
+2025-09-29 20:04:30,815 - __main__ - WARNING - Some API keys are missing - functionality will be limited
+2025-09-29 20:04:30,821 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
+2025-09-29 20:04:35,578 - src.sentiment_analyzer - INFO - FinBERT model initialized
+2025-09-29 20:04:36,238 - __main__ - INFO - Market Risk Early Warning System initialized
+2025-09-29 20:04:36,238 - __main__ - INFO - Starting full pipeline execution...
+2025-09-29 20:04:36,238 - __main__ - INFO - === Stage 1: Data Collection ===
+2025-09-29 20:04:36,238 - __main__ - INFO - Collecting stock market data...
+2025-09-29 20:04:36,239 - src.data_fetcher - INFO - Fetching Yahoo Finance data for 2 symbols
+2025-09-29 20:04:36,239 - src.data_fetcher - INFO - Fetching data for AAPL
+2025-09-29 20:04:37,280 - src.data_fetcher - INFO - Fetching data for MSFT
+2025-09-29 20:04:37,676 - src.data_fetcher - INFO - Saved data for 2 symbols to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:04:37,677 - __main__ - WARNING - No news API keys provided - skipping news collection
+2025-09-29 20:04:37,677 - __main__ - INFO - Collecting SEC filings data...
+2025-09-29 20:04:37,677 - src.sec_downloader - INFO - Processing filings for AAPL
+2025-09-29 20:04:38,418 - src.sec_downloader - INFO - Found CIK 0000320193 for AAPL
+2025-09-29 20:04:39,091 - src.sec_downloader - INFO - Found 43 filings for CIK 0000320193
+2025-09-29 20:04:39,092 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-08-01
+2025-09-29 20:04:39,344 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000073/0000320193-25-000073.txt
+2025-09-29 20:04:40,930 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:04:41,031 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-05-02
+2025-09-29 20:04:41,288 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000057/0000320193-25-000057.txt
+2025-09-29 20:04:42,816 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:04:42,917 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-01-31
+2025-09-29 20:04:43,174 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000008/0000320193-25-000008.txt
+2025-09-29 20:04:43,433 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:04:43,534 - src.sec_downloader - INFO - Processing filings for MSFT
+2025-09-29 20:04:43,775 - src.sec_downloader - INFO - Found CIK 0000789019 for MSFT
+2025-09-29 20:04:44,461 - src.sec_downloader - INFO - Found 25 filings for CIK 0000789019
+2025-09-29 20:04:44,463 - src.sec_downloader - INFO - Processing 10-K for MSFT dated 2025-07-30
+2025-09-29 20:04:44,781 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025100235/0000950170-25-100235.txt
+2025-09-29 20:04:54,706 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:04:54,808 - src.sec_downloader - INFO - Processing 10-Q for MSFT dated 2025-04-30
+2025-09-29 20:04:55,145 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025061046/0000950170-25-061046.txt
+2025-09-29 20:05:03,129 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:05:03,230 - src.sec_downloader - INFO - Processing 10-Q for MSFT dated 2025-01-29
+2025-09-29 20:05:03,555 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025010491/0000950170-25-010491.txt
+2025-09-29 20:05:11,208 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:05:11,310 - src.sec_downloader - INFO - Processed filings for 2 companies
+2025-09-29 20:05:11,313 - src.sec_downloader - INFO - Saved 6 filings to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:05:11,314 - __main__ - INFO - === Stage 2: Data Preprocessing ===
+2025-09-29 20:05:11,314 - src.data_preprocessor - INFO - Preprocessing stock data...
+2025-09-29 20:05:11,320 - __main__ - ERROR - Pipeline failed at stage 2: incompatible index of inserted column with frame index
+2025-09-29 20:07:44,690 - root - WARNING - Missing API keys: ['ALPHA_VANTAGE_API_KEY', 'GNEWS_API_KEY']. Some features may not work.
+2025-09-29 20:07:44,690 - __main__ - WARNING - Some API keys are missing - functionality will be limited
+2025-09-29 20:07:44,696 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
+2025-09-29 20:07:49,260 - src.sentiment_analyzer - INFO - FinBERT model initialized
+2025-09-29 20:07:49,902 - __main__ - INFO - Market Risk Early Warning System initialized
+2025-09-29 20:07:49,902 - __main__ - INFO - Starting full pipeline execution...
+2025-09-29 20:07:49,902 - __main__ - INFO - === Stage 1: Data Collection ===
+2025-09-29 20:07:49,902 - __main__ - INFO - Collecting stock market data...
+2025-09-29 20:07:49,902 - src.data_fetcher - INFO - Fetching Yahoo Finance data for 2 symbols
+2025-09-29 20:07:49,902 - src.data_fetcher - INFO - Fetching data for AAPL
+2025-09-29 20:07:50,923 - src.data_fetcher - INFO - Fetching data for MSFT
+2025-09-29 20:07:51,377 - src.data_fetcher - INFO - Saved data for 2 symbols to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:07:51,377 - __main__ - WARNING - No news API keys provided - skipping news collection
+2025-09-29 20:07:51,377 - __main__ - INFO - Collecting SEC filings data...
+2025-09-29 20:07:51,377 - src.sec_downloader - INFO - Processing filings for AAPL
+2025-09-29 20:07:52,175 - src.sec_downloader - INFO - Found CIK 0000320193 for AAPL
+2025-09-29 20:07:52,818 - src.sec_downloader - INFO - Found 43 filings for CIK 0000320193
+2025-09-29 20:07:52,820 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-08-01
+2025-09-29 20:07:53,071 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000073/0000320193-25-000073.txt
+2025-09-29 20:07:54,640 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:07:54,741 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-05-02
+2025-09-29 20:07:55,002 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000057/0000320193-25-000057.txt
+2025-09-29 20:07:56,552 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:07:56,653 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-01-31
+2025-09-29 20:07:56,904 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000008/0000320193-25-000008.txt
+2025-09-29 20:07:57,156 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:07:57,257 - src.sec_downloader - INFO - Processing filings for MSFT
+2025-09-29 20:07:57,500 - src.sec_downloader - INFO - Found CIK 0000789019 for MSFT
+2025-09-29 20:07:58,111 - src.sec_downloader - INFO - Found 25 filings for CIK 0000789019
+2025-09-29 20:07:58,112 - src.sec_downloader - INFO - Processing 10-K for MSFT dated 2025-07-30
+2025-09-29 20:07:58,421 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025100235/0000950170-25-100235.txt
+2025-09-29 20:08:08,319 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:08:08,421 - src.sec_downloader - INFO - Processing 10-Q for MSFT dated 2025-04-30
+2025-09-29 20:08:08,743 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025061046/0000950170-25-061046.txt
+2025-09-29 20:08:16,741 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:08:16,842 - src.sec_downloader - INFO - Processing 10-Q for MSFT dated 2025-01-29
+2025-09-29 20:08:17,138 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025010491/0000950170-25-010491.txt
+2025-09-29 20:08:24,772 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:08:24,874 - src.sec_downloader - INFO - Processed filings for 2 companies
+2025-09-29 20:08:24,880 - src.sec_downloader - INFO - Saved 6 filings to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:08:24,881 - __main__ - INFO - === Stage 2: Data Preprocessing ===
+2025-09-29 20:08:24,882 - src.data_preprocessor - INFO - Preprocessing stock data...
+2025-09-29 20:08:24,885 - __main__ - ERROR - Pipeline failed at stage 2: incompatible index of inserted column with frame index
+2025-09-29 20:11:00,714 - root - WARNING - Missing API keys: ['ALPHA_VANTAGE_API_KEY', 'GNEWS_API_KEY']. Some features may not work.
+2025-09-29 20:11:00,714 - __main__ - WARNING - Some API keys are missing - functionality will be limited
+2025-09-29 20:11:00,719 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
+2025-09-29 20:11:05,215 - src.sentiment_analyzer - INFO - FinBERT model initialized
+2025-09-29 20:11:05,875 - __main__ - INFO - Market Risk Early Warning System initialized
+2025-09-29 20:11:05,876 - __main__ - INFO - Starting full pipeline execution...
+2025-09-29 20:11:05,877 - __main__ - INFO - === Stage 1: Data Collection ===
+2025-09-29 20:11:05,877 - __main__ - INFO - Collecting stock market data...
+2025-09-29 20:11:05,877 - src.data_fetcher - INFO - Fetching Yahoo Finance data for 2 symbols
+2025-09-29 20:11:05,877 - src.data_fetcher - INFO - Fetching data for AAPL
+2025-09-29 20:11:06,792 - src.data_fetcher - INFO - Fetching data for MSFT
+2025-09-29 20:11:07,189 - src.data_fetcher - INFO - Saved data for 2 symbols to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:11:07,189 - __main__ - WARNING - No news API keys provided - skipping news collection
+2025-09-29 20:11:07,189 - __main__ - INFO - Collecting SEC filings data...
+2025-09-29 20:11:07,189 - src.sec_downloader - INFO - Processing filings for AAPL
+2025-09-29 20:11:07,793 - src.sec_downloader - INFO - Found CIK 0000320193 for AAPL
+2025-09-29 20:11:08,476 - src.sec_downloader - INFO - Found 43 filings for CIK 0000320193
+2025-09-29 20:11:08,478 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-08-01
+2025-09-29 20:11:08,741 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000073/0000320193-25-000073.txt
+2025-09-29 20:11:10,344 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:11:10,444 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-05-02
+2025-09-29 20:11:10,699 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000057/0000320193-25-000057.txt
+2025-09-29 20:11:12,248 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:11:12,348 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-01-31
+2025-09-29 20:11:12,609 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000008/0000320193-25-000008.txt
+2025-09-29 20:11:12,871 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:11:12,972 - src.sec_downloader - INFO - Processing filings for MSFT
+2025-09-29 20:11:13,526 - src.sec_downloader - INFO - Found CIK 0000789019 for MSFT
+2025-09-29 20:11:14,140 - src.sec_downloader - INFO - Found 25 filings for CIK 0000789019
+2025-09-29 20:11:14,142 - src.sec_downloader - INFO - Processing 10-K for MSFT dated 2025-07-30
+2025-09-29 20:11:14,460 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025100235/0000950170-25-100235.txt
+2025-09-29 20:11:24,404 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:11:24,507 - src.sec_downloader - INFO - Processing 10-Q for MSFT dated 2025-04-30
+2025-09-29 20:11:24,832 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025061046/0000950170-25-061046.txt
+2025-09-29 20:11:33,142 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:11:33,244 - src.sec_downloader - INFO - Processing 10-Q for MSFT dated 2025-01-29
+2025-09-29 20:11:33,585 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025010491/0000950170-25-010491.txt
+2025-09-29 20:11:41,114 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:11:41,216 - src.sec_downloader - INFO - Processed filings for 2 companies
+2025-09-29 20:11:41,221 - src.sec_downloader - INFO - Saved 6 filings to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:11:41,221 - __main__ - INFO - === Stage 2: Data Preprocessing ===
+2025-09-29 20:11:41,223 - src.data_preprocessor - INFO - Preprocessing stock data...
+2025-09-29 20:11:41,226 - __main__ - ERROR - Pipeline failed at stage 2: incompatible index of inserted column with frame index
+2025-09-29 20:13:41,044 - root - WARNING - Missing API keys: ['ALPHA_VANTAGE_API_KEY', 'GNEWS_API_KEY']. Some features may not work.
+2025-09-29 20:13:41,044 - __main__ - WARNING - Some API keys are missing - functionality will be limited
+2025-09-29 20:13:41,050 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
+2025-09-29 20:13:45,426 - src.sentiment_analyzer - INFO - FinBERT model initialized
+2025-09-29 20:13:46,039 - __main__ - INFO - Market Risk Early Warning System initialized
+2025-09-29 20:13:46,040 - __main__ - INFO - Starting full pipeline execution...
+2025-09-29 20:13:46,040 - __main__ - INFO - === Stage 1: Data Collection ===
+2025-09-29 20:13:46,040 - __main__ - INFO - Collecting stock market data...
+2025-09-29 20:13:46,040 - src.data_fetcher - INFO - Fetching Yahoo Finance data for 2 symbols
+2025-09-29 20:13:46,040 - src.data_fetcher - INFO - Fetching data for AAPL
+2025-09-29 20:13:46,909 - src.data_fetcher - INFO - Fetching data for MSFT
+2025-09-29 20:13:47,367 - src.data_fetcher - INFO - Saved data for 2 symbols to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:13:47,367 - __main__ - WARNING - No news API keys provided - skipping news collection
+2025-09-29 20:13:47,367 - __main__ - INFO - Collecting SEC filings data...
+2025-09-29 20:13:47,367 - src.sec_downloader - INFO - Processing filings for AAPL
+2025-09-29 20:13:47,894 - src.sec_downloader - INFO - Found CIK 0000320193 for AAPL
+2025-09-29 20:13:48,584 - src.sec_downloader - INFO - Found 43 filings for CIK 0000320193
+2025-09-29 20:13:48,585 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-08-01
+2025-09-29 20:13:48,844 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000073/0000320193-25-000073.txt
+2025-09-29 20:13:50,387 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:13:50,487 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-05-02
+2025-09-29 20:13:50,760 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000057/0000320193-25-000057.txt
+2025-09-29 20:13:52,265 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:13:52,366 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-01-31
+2025-09-29 20:13:52,639 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000008/0000320193-25-000008.txt
+2025-09-29 20:13:52,893 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:13:52,993 - src.sec_downloader - INFO - Processing filings for MSFT
+2025-09-29 20:13:53,255 - src.sec_downloader - INFO - Found CIK 0000789019 for MSFT
+2025-09-29 20:13:53,875 - src.sec_downloader - INFO - Found 25 filings for CIK 0000789019
+2025-09-29 20:13:53,876 - src.sec_downloader - INFO - Processing 10-K for MSFT dated 2025-07-30
+2025-09-29 20:13:54,236 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025100235/0000950170-25-100235.txt
+2025-09-29 20:14:04,032 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:14:04,133 - src.sec_downloader - INFO - Processing 10-Q for MSFT dated 2025-04-30
+2025-09-29 20:14:04,448 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025061046/0000950170-25-061046.txt
+2025-09-29 20:14:12,416 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:14:12,517 - src.sec_downloader - INFO - Processing 10-Q for MSFT dated 2025-01-29
+2025-09-29 20:14:12,871 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025010491/0000950170-25-010491.txt
+2025-09-29 20:14:20,579 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:14:20,681 - src.sec_downloader - INFO - Processed filings for 2 companies
+2025-09-29 20:14:20,685 - src.sec_downloader - INFO - Saved 6 filings to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:14:20,686 - __main__ - INFO - === Stage 2: Data Preprocessing ===
+2025-09-29 20:14:20,687 - src.data_preprocessor - INFO - Preprocessing stock data...
+2025-09-29 20:14:20,690 - __main__ - ERROR - Pipeline failed at stage 2: incompatible index of inserted column with frame index
+2025-09-29 20:14:54,402 - root - WARNING - Missing API keys: ['ALPHA_VANTAGE_API_KEY', 'GNEWS_API_KEY']. Some features may not work.
+2025-09-29 20:14:54,403 - __main__ - WARNING - Some API keys are missing - functionality will be limited
+2025-09-29 20:14:54,408 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
+2025-09-29 20:14:58,869 - src.sentiment_analyzer - INFO - FinBERT model initialized
+2025-09-29 20:14:59,508 - __main__ - INFO - Market Risk Early Warning System initialized
+2025-09-29 20:14:59,525 - __main__ - INFO - Loaded existing stock data
+2025-09-29 20:14:59,537 - __main__ - INFO - Loaded existing SEC data
+2025-09-29 20:14:59,537 - src.data_preprocessor - INFO - Preprocessing stock data...
+2025-09-29 20:14:59,549 - root - ERROR - Detailed error information:
+Traceback (most recent call last):
+  File "C:\Users\I7\Projects\mews-fin\venv\Lib\site-packages\pandas\core\frame.py", line 12694, in _reindex_for_setitem
+    reindexed_value = value.reindex(index)._values
+                      ~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\I7\Projects\mews-fin\venv\Lib\site-packages\pandas\core\series.py", line 5164, in reindex
+    return super().reindex(
+           ~~~~~~~~~~~~~~~^
+        index=index,
+        ^^^^^^^^^^^^
+    ...<5 lines>...
+        tolerance=tolerance,
+        ^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\I7\Projects\mews-fin\venv\Lib\site-packages\pandas\core\generic.py", line 5629, in reindex
+    return self._reindex_axes(
+           ~~~~~~~~~~~~~~~~~~^
+        axes, level, limit, tolerance, method, fill_value, copy
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ).__finalize__(self, method="reindex")
+    ^
+  File "C:\Users\I7\Projects\mews-fin\venv\Lib\site-packages\pandas\core\generic.py", line 5652, in _reindex_axes
+    new_index, indexer = ax.reindex(
+                         ~~~~~~~~~~^
+        labels, level=level, limit=limit, tolerance=tolerance, method=method
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\I7\Projects\mews-fin\venv\Lib\site-packages\pandas\core\indexes\base.py", line 4440, in reindex
+    target = self._wrap_reindex_result(target, indexer, preserve_names)
+  File "C:\Users\I7\Projects\mews-fin\venv\Lib\site-packages\pandas\core\indexes\multi.py", line 2736, in _wrap_reindex_result
+    target = MultiIndex.from_tuples(target)
+  File "C:\Users\I7\Projects\mews-fin\venv\Lib\site-packages\pandas\core\indexes\multi.py", line 223, in new_meth
+    return meth(self_or_cls, *args, **kwargs)
+  File "C:\Users\I7\Projects\mews-fin\venv\Lib\site-packages\pandas\core\indexes\multi.py", line 618, in from_tuples
+    arrays = list(lib.tuples_to_object_array(tuples).T)
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "pandas/_libs/lib.pyx", line 3056, in pandas._libs.lib.tuples_to_object_array
+ValueError: Buffer dtype mismatch, expected 'Python object' but got 'long long'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\I7\Projects\mews-fin\main.py", line 669, in main
+    system.preprocess_all_data()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\I7\Projects\mews-fin\main.py", line 273, in preprocess_all_data
+    self.stock_data = self.preprocessor.preprocess_stock_data(combined_stock)
+                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\I7\Projects\mews-fin\src\data_preprocessor.py", line 61, in preprocess_stock_data
+    df[col] = df.groupby('Symbol')[col].apply(lambda x: x.interpolate())
+    ~~^^^^^
+  File "C:\Users\I7\Projects\mews-fin\venv\Lib\site-packages\pandas\core\frame.py", line 4316, in __setitem__
+    self._set_item(key, value)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "C:\Users\I7\Projects\mews-fin\venv\Lib\site-packages\pandas\core\frame.py", line 4529, in _set_item
+    value, refs = self._sanitize_column(value)
+                  ~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\I7\Projects\mews-fin\venv\Lib\site-packages\pandas\core\frame.py", line 5270, in _sanitize_column
+    return _reindex_for_setitem(value, self.index)
+  File "C:\Users\I7\Projects\mews-fin\venv\Lib\site-packages\pandas\core\frame.py", line 12701, in _reindex_for_setitem
+    raise TypeError(
+        "incompatible index of inserted column with frame index"
+    ) from err
+TypeError: incompatible index of inserted column with frame index
+2025-09-29 20:15:30,107 - root - WARNING - Missing API keys: ['ALPHA_VANTAGE_API_KEY', 'GNEWS_API_KEY']. Some features may not work.
+2025-09-29 20:15:30,107 - __main__ - WARNING - Some API keys are missing - functionality will be limited
+2025-09-29 20:15:30,113 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
+2025-09-29 20:15:34,451 - src.sentiment_analyzer - INFO - FinBERT model initialized
+2025-09-29 20:15:35,034 - __main__ - INFO - Market Risk Early Warning System initialized
+2025-09-29 20:15:35,037 - __main__ - INFO - Loaded existing stock data
+2025-09-29 20:15:35,038 - __main__ - INFO - Loaded existing SEC data
+2025-09-29 20:15:35,038 - src.data_preprocessor - INFO - Preprocessing stock data...
+2025-09-29 20:15:35,058 - root - ERROR - Detailed error information:
+Traceback (most recent call last):
+  File "C:\Users\I7\Projects\mews-fin\main.py", line 669, in main
+    system.preprocess_all_data()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\I7\Projects\mews-fin\main.py", line 273, in preprocess_all_data
+    self.stock_data = self.preprocessor.preprocess_stock_data(combined_stock)
+                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\I7\Projects\mews-fin\src\data_preprocessor.py", line 85, in preprocess_stock_data
+    df = self._calculate_technical_indicators(df)
+  File "C:\Users\I7\Projects\mews-fin\src\data_preprocessor.py", line 275, in _calculate_technical_indicators
+    bb_upper, bb_lower = zip(*df.groupby('Symbol')['Close'].transform(
+                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        lambda x: calculate_bollinger_bands(x)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ))
+    ^
+  File "C:\Users\I7\Projects\mews-fin\venv\Lib\site-packages\pandas\core\groupby\generic.py", line 517, in transform
+    return self._transform(
+           ~~~~~~~~~~~~~~~^
+        func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\I7\Projects\mews-fin\venv\Lib\site-packages\pandas\core\groupby\groupby.py", line 2027, in _transform
+    return self._transform_general(func, engine, engine_kwargs, *args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\I7\Projects\mews-fin\venv\Lib\site-packages\pandas\core\groupby\generic.py", line 559, in _transform_general
+    results.append(klass(res, index=group.index))
+                   ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\I7\Projects\mews-fin\venv\Lib\site-packages\pandas\core\series.py", line 575, in __init__
+    com.require_length_match(data, index)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\I7\Projects\mews-fin\venv\Lib\site-packages\pandas\core\common.py", line 573, in require_length_match
+    raise ValueError(
+    ...<4 lines>...
+    )
+ValueError: Length of values (2) does not match length of index (124)
+2025-09-29 20:20:18,755 - root - WARNING - Missing API keys: ['ALPHA_VANTAGE_API_KEY', 'GNEWS_API_KEY']. Some features may not work.
+2025-09-29 20:20:18,755 - __main__ - WARNING - Some API keys are missing - functionality will be limited
+2025-09-29 20:20:18,761 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
+2025-09-29 20:20:23,125 - src.sentiment_analyzer - INFO - FinBERT model initialized
+2025-09-29 20:20:23,742 - __main__ - INFO - Market Risk Early Warning System initialized
+2025-09-29 20:20:23,745 - __main__ - INFO - Loaded existing stock data
+2025-09-29 20:20:23,747 - __main__ - INFO - Loaded existing SEC data
+2025-09-29 20:20:23,747 - src.data_preprocessor - INFO - Preprocessing stock data...
+2025-09-29 20:20:23,802 - src.data_preprocessor - INFO - Processed stock data: 248 rows, 47 columns
+2025-09-29 20:20:23,802 - src.data_preprocessor - INFO - Preprocessing SEC filings data...
+2025-09-29 20:20:23,811 - src.data_preprocessor - INFO - Processed SEC data: 3 rows, 19 columns
+2025-09-29 20:20:23,811 - src.sentiment_analyzer - INFO - Analyzing SEC filings sentiment with FinBERT...
+2025-09-29 20:20:23,811 - src.sentiment_analyzer - INFO - Analyzing MD&A sentiment
+2025-09-29 20:20:23,968 - src.sentiment_analyzer - INFO - Analyzing Risk Factors sentiment
+2025-09-29 20:20:24,043 - src.sentiment_analyzer - INFO - Completed SEC sentiment analysis for 3 filings
+2025-09-29 20:20:24,043 - src.sentiment_analyzer - INFO - Aggregating sentiment by date...
+2025-09-29 20:20:24,043 - root - ERROR - Detailed error information:
+Traceback (most recent call last):
+  File "C:\Users\I7\Projects\mews-fin\main.py", line 670, in main
+    system.analyze_sentiment()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\I7\Projects\mews-fin\main.py", line 301, in analyze_sentiment
+    sentiment_aggregated = self.sentiment_analyzer.aggregate_sentiment_by_date(
+        self.news_data, self.sec_data
+    )
+  File "C:\Users\I7\Projects\mews-fin\src\sentiment_analyzer.py", line 350, in aggregate_sentiment_by_date
+    if not news_df.empty and 'published_date' in news_df.columns:
+           ^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'empty'
+2025-09-29 20:22:12,650 - root - WARNING - Missing API keys: ['ALPHA_VANTAGE_API_KEY', 'GNEWS_API_KEY']. Some features may not work.
+2025-09-29 20:22:12,651 - __main__ - WARNING - Some API keys are missing - functionality will be limited
+2025-09-29 20:22:12,657 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
+2025-09-29 20:22:17,034 - src.sentiment_analyzer - INFO - FinBERT model initialized
+2025-09-29 20:22:17,646 - __main__ - INFO - Market Risk Early Warning System initialized
+2025-09-29 20:22:17,649 - __main__ - INFO - Loaded existing stock data
+2025-09-29 20:22:17,651 - __main__ - INFO - Loaded existing SEC data
+2025-09-29 20:22:17,651 - src.data_preprocessor - INFO - Preprocessing stock data...
+2025-09-29 20:22:17,695 - src.data_preprocessor - INFO - Processed stock data: 248 rows, 47 columns
+2025-09-29 20:22:17,695 - src.data_preprocessor - INFO - Preprocessing SEC filings data...
+2025-09-29 20:22:17,703 - src.data_preprocessor - INFO - Processed SEC data: 3 rows, 19 columns
+2025-09-29 20:22:17,703 - src.sentiment_analyzer - INFO - Analyzing SEC filings sentiment with FinBERT...
+2025-09-29 20:22:17,704 - src.sentiment_analyzer - INFO - Analyzing MD&A sentiment
+2025-09-29 20:22:17,844 - src.sentiment_analyzer - INFO - Analyzing Risk Factors sentiment
+2025-09-29 20:22:17,914 - src.sentiment_analyzer - INFO - Completed SEC sentiment analysis for 3 filings
+2025-09-29 20:22:17,914 - src.sentiment_analyzer - INFO - Aggregating sentiment by date...
+2025-09-29 20:22:17,917 - src.sentiment_analyzer - INFO - Created sentiment aggregations for 3 symbol-date combinations
+2025-09-29 20:22:17,920 - src.sentiment_analyzer - INFO - Saved sentiment analysis results to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:22:17,920 - src.data_integrator - INFO - Starting data integration process...
+2025-09-29 20:22:17,920 - root - ERROR - Detailed error information:
+Traceback (most recent call last):
+  File "C:\Users\I7\Projects\mews-fin\main.py", line 671, in main
+    feature_groups = system.integrate_all_data()
+  File "C:\Users\I7\Projects\mews-fin\main.py", line 328, in integrate_all_data
+    self.integrated_data = self.data_integrator.integrate_all_data(
+                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self.stock_data,
+        ^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        sentiment_df
+        ^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\I7\Projects\mews-fin\src\data_integrator.py", line 45, in integrate_all_data
+    integrated_df = self._standardize_dates(integrated_df)
+  File "C:\Users\I7\Projects\mews-fin\src\data_integrator.py", line 80, in _standardize_dates
+    df['Date'] = pd.to_datetime(df['Date'])
+                 ~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "C:\Users\I7\Projects\mews-fin\venv\Lib\site-packages\pandas\core\tools\datetimes.py", line 1072, in to_datetime
+    values = convert_listlike(arg._values, format)
+  File "C:\Users\I7\Projects\mews-fin\venv\Lib\site-packages\pandas\core\tools\datetimes.py", line 437, in _convert_listlike_datetimes
+    result, tz_parsed = objects_to_datetime64(
+                        ~~~~~~~~~~~~~~~~~~~~~^
+        arg,
+        ^^^^
+    ...<4 lines>...
+        allow_object=True,
+        ^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\I7\Projects\mews-fin\venv\Lib\site-packages\pandas\core\arrays\datetimes.py", line 2415, in objects_to_datetime64
+    result, tz_parsed = tslib.array_to_datetime(
+                        ~~~~~~~~~~~~~~~~~~~~~~~^
+        data,
+        ^^^^^
+    ...<4 lines>...
+        creso=abbrev_to_npy_unit(out_unit),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "pandas/_libs/tslib.pyx", line 412, in pandas._libs.tslib.array_to_datetime
+  File "pandas/_libs/tslib.pyx", line 596, in pandas._libs.tslib.array_to_datetime
+  File "pandas/_libs/tslib.pyx", line 504, in pandas._libs.tslib.array_to_datetime
+  File "pandas/_libs/tslibs/strptime.pyx", line 285, in pandas._libs.tslibs.strptime.DatetimeParseState.process_datetime
+ValueError: Tz-aware datetime.datetime cannot be converted to datetime64 unless utc=True, at position 47
+2025-09-29 20:26:41,267 - root - WARNING - Missing API keys: ['ALPHA_VANTAGE_API_KEY', 'GNEWS_API_KEY']. Some features may not work.
+2025-09-29 20:26:41,268 - __main__ - WARNING - Some API keys are missing - functionality will be limited
+2025-09-29 20:26:41,273 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
+2025-09-29 20:26:45,597 - src.sentiment_analyzer - INFO - FinBERT model initialized
+2025-09-29 20:26:46,178 - __main__ - INFO - Market Risk Early Warning System initialized
+2025-09-29 20:26:46,180 - __main__ - INFO - Loaded existing stock data
+2025-09-29 20:26:46,182 - __main__ - INFO - Loaded existing SEC data
+2025-09-29 20:26:46,182 - src.data_preprocessor - INFO - Preprocessing stock data...
+2025-09-29 20:26:46,226 - src.data_preprocessor - INFO - Processed stock data: 248 rows, 47 columns
+2025-09-29 20:26:46,226 - src.data_preprocessor - INFO - Preprocessing SEC filings data...
+2025-09-29 20:26:46,233 - src.data_preprocessor - INFO - Processed SEC data: 3 rows, 19 columns
+2025-09-29 20:26:46,233 - src.sentiment_analyzer - INFO - Analyzing SEC filings sentiment with FinBERT...
+2025-09-29 20:26:46,233 - src.sentiment_analyzer - INFO - Analyzing MD&A sentiment
+2025-09-29 20:26:46,374 - src.sentiment_analyzer - INFO - Analyzing Risk Factors sentiment
+2025-09-29 20:26:46,441 - src.sentiment_analyzer - INFO - Completed SEC sentiment analysis for 3 filings
+2025-09-29 20:26:46,442 - src.sentiment_analyzer - INFO - Aggregating sentiment by date...
+2025-09-29 20:26:46,443 - src.sentiment_analyzer - INFO - Created sentiment aggregations for 3 symbol-date combinations
+2025-09-29 20:26:46,447 - src.sentiment_analyzer - INFO - Saved sentiment analysis results to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:26:46,447 - src.data_integrator - INFO - Starting data integration process...
+2025-09-29 20:26:46,450 - src.data_integrator - INFO - Merging sentiment data...
+2025-09-29 20:26:46,453 - src.data_integrator - INFO - Merged sentiment data: added 5 sentiment features
+2025-09-29 20:26:46,453 - src.data_integrator - INFO - Merging SEC features...
+2025-09-29 20:26:46,507 - src.data_integrator - INFO - Data integration completed: 248 rows, 92 columns
+2025-09-29 20:26:46,508 - src.data_integrator - INFO - price_features: 21 features
+2025-09-29 20:26:46,508 - src.data_integrator - INFO - volume_features: 11 features
+2025-09-29 20:26:46,508 - src.data_integrator - INFO - technical_indicators: 28 features
+2025-09-29 20:26:46,508 - src.data_integrator - INFO - fundamental_ratios: 15 features
+2025-09-29 20:26:46,508 - src.data_integrator - INFO - market_features: 4 features
+2025-09-29 20:26:46,508 - src.data_integrator - INFO - derived_features: 1 features
+2025-09-29 20:26:46,508 - src.data_integrator - INFO - date_features: 8 features
+2025-09-29 20:26:46,521 - src.data_integrator - INFO - Saved integrated dataset to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:26:46,521 - src.data_integrator - INFO - Dataset shape: (248, 92)
+2025-09-29 20:26:46,521 - src.visualizer - INFO - Creating risk dashboard...
+2025-09-29 20:26:47,707 - src.visualizer - INFO - Created interactive risk timeline: C:\Users\I7\Projects\mews-fin\outputs\risk_timeline_interactive.html
+2025-09-29 20:26:48,571 - src.visualizer - INFO - Created static risk timeline: C:\Users\I7\Projects\mews-fin\outputs\risk_timeline_static.png
+2025-09-29 20:26:48,952 - src.visualizer - INFO - Created sentiment analysis plot: C:\Users\I7\Projects\mews-fin\outputs\sentiment_analysis.png
+2025-09-29 20:26:50,031 - src.visualizer - INFO - Created risk correlations heatmap: C:\Users\I7\Projects\mews-fin\outputs\risk_correlations.png
+2025-09-29 20:26:50,031 - src.visualizer - ERROR - Error creating market regimes plot: "Column(s) ['Risk_Label', 'news_sentiment_mean'] do not exist"
+2025-09-29 20:26:50,031 - src.visualizer - INFO - Created 4 visualizations
+2025-09-29 20:26:50,032 - src.visualizer - INFO - Created summary report: C:\Users\I7\Projects\mews-fin\outputs\risk_analysis_report.html
+2025-09-29 20:45:18,954 - root - WARNING - Missing API keys: ['ALPHA_VANTAGE_API_KEY', 'GNEWS_API_KEY']. Some features may not work.
+2025-09-29 20:45:18,954 - __main__ - WARNING - Some API keys are missing - functionality will be limited
+2025-09-29 20:45:18,959 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
+2025-09-29 20:45:23,392 - src.sentiment_analyzer - INFO - FinBERT model initialized
+2025-09-29 20:45:23,956 - __main__ - INFO - Market Risk Early Warning System initialized
+2025-09-29 20:45:39,474 - root - WARNING - Missing API keys: ['ALPHA_VANTAGE_API_KEY', 'GNEWS_API_KEY']. Some features may not work.
+2025-09-29 20:45:39,474 - __main__ - WARNING - Some API keys are missing - functionality will be limited
+2025-09-29 20:45:39,480 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
+2025-09-29 20:45:43,769 - src.sentiment_analyzer - INFO - FinBERT model initialized
+2025-09-29 20:45:44,338 - __main__ - INFO - Market Risk Early Warning System initialized
+2025-09-29 20:45:44,338 - __main__ - INFO - Starting full pipeline execution...
+2025-09-29 20:45:44,338 - __main__ - INFO - === Stage 1: Data Collection ===
+2025-09-29 20:45:44,338 - __main__ - INFO - Collecting stock market data...
+2025-09-29 20:45:44,339 - src.data_fetcher - INFO - Fetching Yahoo Finance data for 20 symbols
+2025-09-29 20:45:44,339 - src.data_fetcher - INFO - Fetching data for AAPL
+2025-09-29 20:45:45,371 - src.data_fetcher - INFO - Fetching data for MSFT
+2025-09-29 20:45:45,881 - src.data_fetcher - INFO - Fetching data for GOOGL
+2025-09-29 20:45:46,384 - src.data_fetcher - INFO - Fetching data for AMZN
+2025-09-29 20:45:46,876 - src.data_fetcher - INFO - Fetching data for NVDA
+2025-09-29 20:45:47,408 - src.data_fetcher - INFO - Fetching data for TSLA
+2025-09-29 20:45:47,886 - src.data_fetcher - INFO - Fetching data for META
+2025-09-29 20:45:48,362 - src.data_fetcher - INFO - Fetching data for BRK-B
+2025-09-29 20:45:48,806 - src.data_fetcher - INFO - Fetching data for UNH
+2025-09-29 20:45:49,371 - src.data_fetcher - INFO - Fetching data for JNJ
+2025-09-29 20:45:50,051 - src.data_fetcher - INFO - Fetching data for JPM
+2025-09-29 20:45:50,643 - src.data_fetcher - INFO - Fetching data for V
+2025-09-29 20:45:51,146 - src.data_fetcher - INFO - Fetching data for PG
+2025-09-29 20:45:51,813 - src.data_fetcher - INFO - Fetching data for XOM
+2025-09-29 20:45:52,513 - src.data_fetcher - INFO - Fetching data for HD
+2025-09-29 20:45:53,089 - src.data_fetcher - INFO - Fetching data for CVX
+2025-09-29 20:45:53,772 - src.data_fetcher - INFO - Fetching data for MA
+2025-09-29 20:45:54,267 - src.data_fetcher - INFO - Fetching data for BAC
+2025-09-29 20:45:54,864 - src.data_fetcher - INFO - Fetching data for ABBV
+2025-09-29 20:45:55,325 - src.data_fetcher - INFO - Fetching data for PFE
+2025-09-29 20:45:56,516 - src.data_fetcher - INFO - Saved data for 20 symbols to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:45:56,517 - __main__ - WARNING - No news API keys provided - skipping news collection
+2025-09-29 20:45:56,517 - __main__ - INFO - Collecting SEC filings data...
+2025-09-29 20:45:56,517 - src.sec_downloader - INFO - Processing filings for AAPL
+2025-09-29 20:45:57,324 - src.sec_downloader - INFO - Found CIK 0000320193 for AAPL
+2025-09-29 20:45:57,955 - src.sec_downloader - INFO - Found 43 filings for CIK 0000320193
+2025-09-29 20:45:57,956 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-08-01
+2025-09-29 20:45:58,207 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000073/0000320193-25-000073.txt
+2025-09-29 20:45:59,723 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:45:59,823 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-05-02
+2025-09-29 20:46:00,095 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000057/0000320193-25-000057.txt
+2025-09-29 20:46:01,622 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:46:01,722 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-01-31
+2025-09-29 20:46:01,977 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000008/0000320193-25-000008.txt
+2025-09-29 20:46:02,237 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:46:02,338 - src.sec_downloader - INFO - Processing filings for MSFT
+2025-09-29 20:46:02,608 - src.sec_downloader - INFO - Found CIK 0000789019 for MSFT
+2025-09-29 20:46:03,190 - src.sec_downloader - INFO - Found 25 filings for CIK 0000789019
+2025-09-29 20:46:03,192 - src.sec_downloader - INFO - Processing 10-K for MSFT dated 2025-07-30
+2025-09-29 20:46:03,504 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025100235/0000950170-25-100235.txt
+2025-09-29 20:46:13,463 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:46:13,565 - src.sec_downloader - INFO - Processing 10-Q for MSFT dated 2025-04-30
+2025-09-29 20:46:13,884 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025061046/0000950170-25-061046.txt
+2025-09-29 20:46:21,833 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:46:21,934 - src.sec_downloader - INFO - Processing 10-Q for MSFT dated 2025-01-29
+2025-09-29 20:46:23,400 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025010491/0000950170-25-010491.txt
+2025-09-29 20:46:31,072 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:46:31,173 - src.sec_downloader - INFO - Processing filings for GOOGL
+2025-09-29 20:46:31,696 - src.sec_downloader - INFO - Found CIK 0001652044 for GOOGL
+2025-09-29 20:46:32,315 - src.sec_downloader - INFO - Found 14 filings for CIK 0001652044
+2025-09-29 20:46:32,317 - src.sec_downloader - INFO - Processing 10-Q for GOOGL dated 2025-07-24
+2025-09-29 20:46:33,345 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001652044/000165204425000062/0001652044-25-000062.txt
+2025-09-29 20:46:38,468 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:46:38,569 - src.sec_downloader - INFO - Processing 10-Q for GOOGL dated 2025-04-25
+2025-09-29 20:46:39,425 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001652044/000165204425000043/0001652044-25-000043.txt
+2025-09-29 20:46:42,974 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:46:43,075 - src.sec_downloader - INFO - Processing 10-K for GOOGL dated 2025-02-05
+2025-09-29 20:46:45,281 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001652044/000165204425000014/0001652044-25-000014.txt
+2025-09-29 20:46:46,059 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:46:46,160 - src.sec_downloader - INFO - Processing filings for AMZN
+2025-09-29 20:46:46,770 - src.sec_downloader - INFO - Found CIK 0001018724 for AMZN
+2025-09-29 20:46:47,380 - src.sec_downloader - INFO - Found 26 filings for CIK 0001018724
+2025-09-29 20:46:47,382 - src.sec_downloader - INFO - Processing 10-Q for AMZN dated 2025-08-01
+2025-09-29 20:46:48,354 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001018724/000101872425000086/0001018724-25-000086.txt
+2025-09-29 20:46:51,457 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:46:51,558 - src.sec_downloader - INFO - Processing 10-Q for AMZN dated 2025-05-02
+2025-09-29 20:46:53,290 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001018724/000101872425000036/0001018724-25-000036.txt
+2025-09-29 20:46:55,861 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:46:55,962 - src.sec_downloader - INFO - Processing 10-K for AMZN dated 2025-02-07
+2025-09-29 20:46:56,988 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001018724/000101872425000004/0001018724-25-000004.txt
+2025-09-29 20:47:01,858 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:47:01,959 - src.sec_downloader - INFO - Processing filings for NVDA
+2025-09-29 20:47:02,216 - src.sec_downloader - INFO - Found CIK 0001045810 for NVDA
+2025-09-29 20:47:02,865 - src.sec_downloader - INFO - Found 27 filings for CIK 0001045810
+2025-09-29 20:47:02,867 - src.sec_downloader - INFO - Processing 10-Q for NVDA dated 2025-08-27
+2025-09-29 20:47:03,464 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001045810/000104581025000209/0001045810-25-000209.txt
+2025-09-29 20:47:06,591 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:47:06,692 - src.sec_downloader - INFO - Processing 10-Q for NVDA dated 2025-05-28
+2025-09-29 20:47:07,851 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001045810/000104581025000116/0001045810-25-000116.txt
+2025-09-29 20:47:10,761 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:47:10,862 - src.sec_downloader - INFO - Processing 10-K for NVDA dated 2025-02-26
+2025-09-29 20:47:11,581 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001045810/000104581025000023/0001045810-25-000023.txt
+2025-09-29 20:47:12,033 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:47:12,135 - src.sec_downloader - INFO - Processing filings for TSLA
+2025-09-29 20:47:12,843 - src.sec_downloader - INFO - Found CIK 0001318605 for TSLA
+2025-09-29 20:47:13,452 - src.sec_downloader - INFO - Found 33 filings for CIK 0001318605
+2025-09-29 20:47:13,453 - src.sec_downloader - INFO - Processing 10-Q for TSLA dated 2025-07-24
+2025-09-29 20:47:14,027 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001318605/000162828025035806/0001628280-25-035806.txt
+2025-09-29 20:47:17,314 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:47:17,415 - src.sec_downloader - INFO - Processing 10-Q for TSLA dated 2025-04-23
+2025-09-29 20:47:18,014 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001318605/000162828025018911/0001628280-25-018911.txt
+2025-09-29 20:47:20,748 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:47:20,848 - src.sec_downloader - INFO - Processing 10-K for TSLA dated 2025-01-30
+2025-09-29 20:47:21,614 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001318605/000162828025003063/0001628280-25-003063.txt
+2025-09-29 20:47:22,193 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:47:22,295 - src.sec_downloader - INFO - Processing filings for META
+2025-09-29 20:47:22,543 - src.sec_downloader - INFO - Found CIK 0001326801 for META
+2025-09-29 20:47:23,147 - src.sec_downloader - INFO - Found 7 filings for CIK 0001326801
+2025-09-29 20:47:23,149 - src.sec_downloader - INFO - Processing 10-Q for META dated 2025-07-31
+2025-09-29 20:47:24,161 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001326801/000162828025036791/0001628280-25-036791.txt
+2025-09-29 20:47:24,754 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:47:24,855 - src.sec_downloader - INFO - Processing 10-Q for META dated 2025-05-01
+2025-09-29 20:47:25,694 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001326801/000132680125000054/0001326801-25-000054.txt
+2025-09-29 20:47:25,967 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:47:26,069 - src.sec_downloader - INFO - Processing 10-K for META dated 2025-01-30
+2025-09-29 20:47:26,795 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001326801/000132680125000017/0001326801-25-000017.txt
+2025-09-29 20:47:27,397 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:47:27,498 - src.sec_downloader - INFO - Processing filings for BRK-B
+2025-09-29 20:47:27,738 - src.sec_downloader - INFO - Found CIK 0001067983 for BRK-B
+2025-09-29 20:47:28,391 - src.sec_downloader - INFO - Found 39 filings for CIK 0001067983
+2025-09-29 20:47:28,392 - src.sec_downloader - INFO - Processing 10-Q for BRK-B dated 2025-08-04
+2025-09-29 20:47:29,273 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001067983/000095017025101578/0000950170-25-101578.txt
+2025-09-29 20:47:40,857 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:47:40,959 - src.sec_downloader - INFO - Processing 10-Q for BRK-B dated 2025-05-05
+2025-09-29 20:47:41,555 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001067983/000095017025063112/0000950170-25-063112.txt
+2025-09-29 20:47:50,386 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:47:50,487 - src.sec_downloader - INFO - Processing 10-K for BRK-B dated 2025-02-24
+2025-09-29 20:47:51,292 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001067983/000095017025025210/0000950170-25-025210.txt
+2025-09-29 20:47:53,923 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:47:54,026 - src.sec_downloader - INFO - Processing filings for UNH
+2025-09-29 20:47:54,560 - src.sec_downloader - INFO - Found CIK 0000731766 for UNH
+2025-09-29 20:47:55,182 - src.sec_downloader - INFO - Found 23 filings for CIK 0000731766
+2025-09-29 20:47:55,183 - src.sec_downloader - INFO - Processing 10-Q for UNH dated 2025-08-11
+2025-09-29 20:47:56,352 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000731766/000073176625000236/0000731766-25-000236.txt
+2025-09-29 20:47:59,502 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:47:59,603 - src.sec_downloader - INFO - Processing 10-Q for UNH dated 2025-05-07
+2025-09-29 20:48:00,109 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000731766/000073176625000131/0000731766-25-000131.txt
+2025-09-29 20:48:02,546 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:48:02,647 - src.sec_downloader - INFO - Processing 10-K for UNH dated 2025-02-27
+2025-09-29 20:48:04,214 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000731766/000073176625000063/0000731766-25-000063.txt
+2025-09-29 20:48:05,486 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:48:05,587 - src.sec_downloader - INFO - Processing filings for JNJ
+2025-09-29 20:48:06,147 - src.sec_downloader - INFO - Found CIK 0000200406 for JNJ
+2025-09-29 20:48:06,775 - src.sec_downloader - INFO - Found 35 filings for CIK 0000200406
+2025-09-29 20:48:06,777 - src.sec_downloader - INFO - Processing 10-Q for JNJ dated 2025-07-24
+2025-09-29 20:48:07,701 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000200406/000020040625000178/0000200406-25-000178.txt
+2025-09-29 20:48:09,299 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:48:09,400 - src.sec_downloader - INFO - Processing 10-Q for JNJ dated 2025-04-23
+2025-09-29 20:48:10,030 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000200406/000020040625000119/0000200406-25-000119.txt
+2025-09-29 20:48:11,346 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:48:11,449 - src.sec_downloader - INFO - Processing 10-K for JNJ dated 2025-02-13
+2025-09-29 20:48:12,401 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000200406/000020040625000038/0000200406-25-000038.txt
+2025-09-29 20:48:13,378 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:48:13,481 - src.sec_downloader - INFO - Processed filings for 10 companies
+2025-09-29 20:48:13,818 - src.sec_downloader - INFO - Saved 30 filings to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:48:13,818 - __main__ - INFO - === Stage 2: Data Preprocessing ===
+2025-09-29 20:48:13,827 - src.data_preprocessor - INFO - Preprocessing stock data...
+2025-09-29 20:48:13,991 - src.data_preprocessor - INFO - Processed stock data: 15060 rows, 47 columns
+2025-09-29 20:48:13,992 - src.data_preprocessor - INFO - Preprocessing SEC filings data...
+2025-09-29 20:48:15,086 - src.data_preprocessor - INFO - Processed SEC data: 8 rows, 19 columns
+2025-09-29 20:48:15,088 - __main__ - INFO - === Stage 3: Sentiment Analysis ===
+2025-09-29 20:48:15,088 - src.sentiment_analyzer - INFO - Analyzing SEC filings sentiment with FinBERT...
+2025-09-29 20:48:15,089 - src.sentiment_analyzer - INFO - Analyzing MD&A sentiment
+2025-09-29 20:48:15,440 - src.sentiment_analyzer - INFO - Analyzing Risk Factors sentiment
+2025-09-29 20:48:15,630 - src.sentiment_analyzer - INFO - Completed SEC sentiment analysis for 8 filings
+2025-09-29 20:48:15,630 - src.sentiment_analyzer - INFO - Aggregating sentiment by date...
+2025-09-29 20:48:15,632 - src.sentiment_analyzer - INFO - Created sentiment aggregations for 8 symbol-date combinations
+2025-09-29 20:48:15,636 - src.sentiment_analyzer - INFO - Saved sentiment analysis results to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:48:15,636 - __main__ - INFO - === Stage 4: Data Integration ===
+2025-09-29 20:48:15,637 - src.data_integrator - INFO - Starting data integration process...
+2025-09-29 20:48:15,667 - src.data_integrator - INFO - Merging sentiment data...
+2025-09-29 20:48:15,668 - __main__ - ERROR - Pipeline failed at stage 4: You are trying to merge on datetime64[ns, America/New_York] and datetime64[ns] columns for key 'Date'. If you wish to proceed you should use pd.concat
+2025-09-29 20:49:43,094 - root - WARNING - Missing API keys: ['ALPHA_VANTAGE_API_KEY', 'GNEWS_API_KEY']. Some features may not work.
+2025-09-29 20:49:43,094 - __main__ - WARNING - Some API keys are missing - functionality will be limited
+2025-09-29 20:49:43,099 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
+2025-09-29 20:49:47,431 - src.sentiment_analyzer - INFO - FinBERT model initialized
+2025-09-29 20:49:48,009 - __main__ - INFO - Market Risk Early Warning System initialized
+2025-09-29 20:49:48,009 - __main__ - INFO - Starting full pipeline execution...
+2025-09-29 20:49:48,009 - __main__ - INFO - === Stage 1: Data Collection ===
+2025-09-29 20:49:48,009 - __main__ - INFO - Collecting stock market data...
+2025-09-29 20:49:48,009 - src.data_fetcher - INFO - Fetching Yahoo Finance data for 20 symbols
+2025-09-29 20:49:48,009 - src.data_fetcher - INFO - Fetching data for AAPL
+2025-09-29 20:49:48,943 - src.data_fetcher - INFO - Fetching data for MSFT
+2025-09-29 20:49:49,367 - src.data_fetcher - INFO - Fetching data for GOOGL
+2025-09-29 20:49:49,770 - src.data_fetcher - INFO - Fetching data for AMZN
+2025-09-29 20:49:50,173 - src.data_fetcher - INFO - Fetching data for NVDA
+2025-09-29 20:49:50,597 - src.data_fetcher - INFO - Fetching data for TSLA
+2025-09-29 20:49:50,979 - src.data_fetcher - INFO - Fetching data for META
+2025-09-29 20:49:51,390 - src.data_fetcher - INFO - Fetching data for BRK-B
+2025-09-29 20:49:51,759 - src.data_fetcher - INFO - Fetching data for UNH
+2025-09-29 20:49:52,223 - src.data_fetcher - INFO - Fetching data for JNJ
+2025-09-29 20:49:52,721 - src.data_fetcher - INFO - Fetching data for JPM
+2025-09-29 20:49:53,181 - src.data_fetcher - INFO - Fetching data for V
+2025-09-29 20:49:53,563 - src.data_fetcher - INFO - Fetching data for PG
+2025-09-29 20:49:54,088 - src.data_fetcher - INFO - Fetching data for XOM
+2025-09-29 20:49:54,613 - src.data_fetcher - INFO - Fetching data for HD
+2025-09-29 20:49:55,029 - src.data_fetcher - INFO - Fetching data for CVX
+2025-09-29 20:49:55,532 - src.data_fetcher - INFO - Fetching data for MA
+2025-09-29 20:49:55,914 - src.data_fetcher - INFO - Fetching data for BAC
+2025-09-29 20:49:56,370 - src.data_fetcher - INFO - Fetching data for ABBV
+2025-09-29 20:49:56,775 - src.data_fetcher - INFO - Fetching data for PFE
+2025-09-29 20:49:57,741 - src.data_fetcher - INFO - Saved data for 20 symbols to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:49:57,741 - __main__ - WARNING - No news API keys provided - skipping news collection
+2025-09-29 20:49:57,742 - __main__ - INFO - Collecting SEC filings data...
+2025-09-29 20:49:57,742 - src.sec_downloader - INFO - Processing filings for AAPL
+2025-09-29 20:49:58,309 - src.sec_downloader - INFO - Found CIK 0000320193 for AAPL
+2025-09-29 20:49:58,943 - src.sec_downloader - INFO - Found 43 filings for CIK 0000320193
+2025-09-29 20:49:58,944 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-08-01
+2025-09-29 20:49:59,189 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000073/0000320193-25-000073.txt
+2025-09-29 20:50:00,735 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:50:00,836 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-05-02
+2025-09-29 20:50:01,531 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000057/0000320193-25-000057.txt
+2025-09-29 20:50:03,054 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:50:03,154 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-01-31
+2025-09-29 20:50:03,407 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000008/0000320193-25-000008.txt
+2025-09-29 20:50:03,662 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:50:03,763 - src.sec_downloader - INFO - Processing filings for MSFT
+2025-09-29 20:50:03,997 - src.sec_downloader - INFO - Found CIK 0000789019 for MSFT
+2025-09-29 20:50:04,576 - src.sec_downloader - INFO - Found 25 filings for CIK 0000789019
+2025-09-29 20:50:04,577 - src.sec_downloader - INFO - Processing 10-K for MSFT dated 2025-07-30
+2025-09-29 20:50:04,924 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025100235/0000950170-25-100235.txt
+2025-09-29 20:50:14,706 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:50:14,807 - src.sec_downloader - INFO - Processing 10-Q for MSFT dated 2025-04-30
+2025-09-29 20:50:15,206 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025061046/0000950170-25-061046.txt
+2025-09-29 20:50:23,046 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:50:23,148 - src.sec_downloader - INFO - Processing 10-Q for MSFT dated 2025-01-29
+2025-09-29 20:50:23,474 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025010491/0000950170-25-010491.txt
+2025-09-29 20:50:31,164 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:50:31,265 - src.sec_downloader - INFO - Processing filings for GOOGL
+2025-09-29 20:50:31,796 - src.sec_downloader - INFO - Found CIK 0001652044 for GOOGL
+2025-09-29 20:50:32,452 - src.sec_downloader - INFO - Found 14 filings for CIK 0001652044
+2025-09-29 20:50:32,454 - src.sec_downloader - INFO - Processing 10-Q for GOOGL dated 2025-07-24
+2025-09-29 20:50:33,524 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001652044/000165204425000062/0001652044-25-000062.txt
+2025-09-29 20:50:38,677 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:50:38,778 - src.sec_downloader - INFO - Processing 10-Q for GOOGL dated 2025-04-25
+2025-09-29 20:50:39,393 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001652044/000165204425000043/0001652044-25-000043.txt
+2025-09-29 20:50:42,917 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:50:43,018 - src.sec_downloader - INFO - Processing 10-K for GOOGL dated 2025-02-05
+2025-09-29 20:50:43,348 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001652044/000165204425000014/0001652044-25-000014.txt
+2025-09-29 20:50:44,134 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:50:44,236 - src.sec_downloader - INFO - Processing filings for AMZN
+2025-09-29 20:50:44,477 - src.sec_downloader - INFO - Found CIK 0001018724 for AMZN
+2025-09-29 20:50:45,090 - src.sec_downloader - INFO - Found 26 filings for CIK 0001018724
+2025-09-29 20:50:45,091 - src.sec_downloader - INFO - Processing 10-Q for AMZN dated 2025-08-01
+2025-09-29 20:50:45,362 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001018724/000101872425000086/0001018724-25-000086.txt
+2025-09-29 20:50:48,522 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:50:48,623 - src.sec_downloader - INFO - Processing 10-Q for AMZN dated 2025-05-02
+2025-09-29 20:50:48,899 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001018724/000101872425000036/0001018724-25-000036.txt
+2025-09-29 20:50:51,388 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:50:51,488 - src.sec_downloader - INFO - Processing 10-K for AMZN dated 2025-02-07
+2025-09-29 20:50:51,783 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001018724/000101872425000004/0001018724-25-000004.txt
+2025-09-29 20:50:56,598 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:50:56,699 - src.sec_downloader - INFO - Processing filings for NVDA
+2025-09-29 20:50:56,949 - src.sec_downloader - INFO - Found CIK 0001045810 for NVDA
+2025-09-29 20:50:57,588 - src.sec_downloader - INFO - Found 27 filings for CIK 0001045810
+2025-09-29 20:50:57,588 - src.sec_downloader - INFO - Processing 10-Q for NVDA dated 2025-08-27
+2025-09-29 20:50:57,858 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001045810/000104581025000209/0001045810-25-000209.txt
+2025-09-29 20:51:00,946 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:51:01,047 - src.sec_downloader - INFO - Processing 10-Q for NVDA dated 2025-05-28
+2025-09-29 20:51:01,691 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001045810/000104581025000116/0001045810-25-000116.txt
+2025-09-29 20:51:04,522 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:51:04,623 - src.sec_downloader - INFO - Processing 10-K for NVDA dated 2025-02-26
+2025-09-29 20:51:06,174 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001045810/000104581025000023/0001045810-25-000023.txt
+2025-09-29 20:51:06,628 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:51:06,729 - src.sec_downloader - INFO - Processing filings for TSLA
+2025-09-29 20:51:06,991 - src.sec_downloader - INFO - Found CIK 0001318605 for TSLA
+2025-09-29 20:51:07,610 - src.sec_downloader - INFO - Found 33 filings for CIK 0001318605
+2025-09-29 20:51:07,611 - src.sec_downloader - INFO - Processing 10-Q for TSLA dated 2025-07-24
+2025-09-29 20:51:08,466 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001318605/000162828025035806/0001628280-25-035806.txt
+2025-09-29 20:51:11,748 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:51:11,848 - src.sec_downloader - INFO - Processing 10-Q for TSLA dated 2025-04-23
+2025-09-29 20:51:12,481 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001318605/000162828025018911/0001628280-25-018911.txt
+2025-09-29 20:51:15,168 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:51:15,269 - src.sec_downloader - INFO - Processing 10-K for TSLA dated 2025-01-30
+2025-09-29 20:51:16,237 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001318605/000162828025003063/0001628280-25-003063.txt
+2025-09-29 20:51:16,826 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:51:16,927 - src.sec_downloader - INFO - Processing filings for META
+2025-09-29 20:51:17,178 - src.sec_downloader - INFO - Found CIK 0001326801 for META
+2025-09-29 20:51:19,746 - src.sec_downloader - INFO - Found 7 filings for CIK 0001326801
+2025-09-29 20:51:19,747 - src.sec_downloader - INFO - Processing 10-Q for META dated 2025-07-31
+2025-09-29 20:51:20,141 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001326801/000162828025036791/0001628280-25-036791.txt
+2025-09-29 20:51:20,746 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:51:20,848 - src.sec_downloader - INFO - Processing 10-Q for META dated 2025-05-01
+2025-09-29 20:51:21,734 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001326801/000132680125000054/0001326801-25-000054.txt
+2025-09-29 20:51:22,006 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:51:22,108 - src.sec_downloader - INFO - Processing 10-K for META dated 2025-01-30
+2025-09-29 20:51:22,454 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001326801/000132680125000017/0001326801-25-000017.txt
+2025-09-29 20:51:23,068 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:51:23,169 - src.sec_downloader - INFO - Processing filings for BRK-B
+2025-09-29 20:51:23,410 - src.sec_downloader - INFO - Found CIK 0001067983 for BRK-B
+2025-09-29 20:51:24,850 - src.sec_downloader - INFO - Found 39 filings for CIK 0001067983
+2025-09-29 20:51:24,851 - src.sec_downloader - INFO - Processing 10-Q for BRK-B dated 2025-08-04
+2025-09-29 20:51:25,939 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001067983/000095017025101578/0000950170-25-101578.txt
+2025-09-29 20:51:37,411 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:51:37,513 - src.sec_downloader - INFO - Processing 10-Q for BRK-B dated 2025-05-05
+2025-09-29 20:51:38,149 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001067983/000095017025063112/0000950170-25-063112.txt
+2025-09-29 20:51:46,922 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:51:47,024 - src.sec_downloader - INFO - Processing 10-K for BRK-B dated 2025-02-24
+2025-09-29 20:51:48,544 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001067983/000095017025025210/0000950170-25-025210.txt
+2025-09-29 20:51:51,246 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:51:51,349 - src.sec_downloader - INFO - Processing filings for UNH
+2025-09-29 20:51:51,607 - src.sec_downloader - INFO - Found CIK 0000731766 for UNH
+2025-09-29 20:51:53,050 - src.sec_downloader - INFO - Found 23 filings for CIK 0000731766
+2025-09-29 20:51:53,051 - src.sec_downloader - INFO - Processing 10-Q for UNH dated 2025-08-11
+2025-09-29 20:51:53,649 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000731766/000073176625000236/0000731766-25-000236.txt
+2025-09-29 20:51:56,746 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:51:56,846 - src.sec_downloader - INFO - Processing 10-Q for UNH dated 2025-05-07
+2025-09-29 20:51:57,390 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000731766/000073176625000131/0000731766-25-000131.txt
+2025-09-29 20:51:59,821 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:51:59,921 - src.sec_downloader - INFO - Processing 10-K for UNH dated 2025-02-27
+2025-09-29 20:52:00,266 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000731766/000073176625000063/0000731766-25-000063.txt
+2025-09-29 20:52:01,635 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:52:01,736 - src.sec_downloader - INFO - Processing filings for JNJ
+2025-09-29 20:52:01,997 - src.sec_downloader - INFO - Found CIK 0000200406 for JNJ
+2025-09-29 20:52:03,449 - src.sec_downloader - INFO - Found 35 filings for CIK 0000200406
+2025-09-29 20:52:03,451 - src.sec_downloader - INFO - Processing 10-Q for JNJ dated 2025-07-24
+2025-09-29 20:52:03,733 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000200406/000020040625000178/0000200406-25-000178.txt
+2025-09-29 20:52:05,330 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:52:05,431 - src.sec_downloader - INFO - Processing 10-Q for JNJ dated 2025-04-23
+2025-09-29 20:52:05,707 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000200406/000020040625000119/0000200406-25-000119.txt
+2025-09-29 20:52:07,012 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:52:07,114 - src.sec_downloader - INFO - Processing 10-K for JNJ dated 2025-02-13
+2025-09-29 20:52:07,615 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000200406/000020040625000038/0000200406-25-000038.txt
+2025-09-29 20:52:08,640 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:52:08,743 - src.sec_downloader - INFO - Processed filings for 10 companies
+2025-09-29 20:52:09,075 - src.sec_downloader - INFO - Saved 30 filings to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:52:09,075 - __main__ - INFO - === Stage 2: Data Preprocessing ===
+2025-09-29 20:52:09,084 - src.data_preprocessor - INFO - Preprocessing stock data...
+2025-09-29 20:52:09,255 - src.data_preprocessor - INFO - Processed stock data: 15060 rows, 47 columns
+2025-09-29 20:52:09,256 - src.data_preprocessor - INFO - Preprocessing SEC filings data...
+2025-09-29 20:52:10,388 - src.data_preprocessor - INFO - Processed SEC data: 8 rows, 19 columns
+2025-09-29 20:52:10,390 - __main__ - INFO - === Stage 3: Sentiment Analysis ===
+2025-09-29 20:52:10,390 - src.sentiment_analyzer - INFO - Analyzing SEC filings sentiment with FinBERT...
+2025-09-29 20:52:10,391 - src.sentiment_analyzer - INFO - Analyzing MD&A sentiment
+2025-09-29 20:52:10,819 - src.sentiment_analyzer - INFO - Analyzing Risk Factors sentiment
+2025-09-29 20:52:11,055 - src.sentiment_analyzer - INFO - Completed SEC sentiment analysis for 8 filings
+2025-09-29 20:52:11,055 - src.sentiment_analyzer - INFO - Aggregating sentiment by date...
+2025-09-29 20:52:11,057 - src.sentiment_analyzer - INFO - Created sentiment aggregations for 8 symbol-date combinations
+2025-09-29 20:52:11,061 - src.sentiment_analyzer - INFO - Saved sentiment analysis results to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:52:11,061 - __main__ - INFO - === Stage 4: Data Integration ===
+2025-09-29 20:52:11,062 - src.data_integrator - INFO - Starting data integration process...
+2025-09-29 20:52:11,099 - src.data_integrator - INFO - Merging sentiment data...
+2025-09-29 20:52:11,099 - __main__ - ERROR - Pipeline failed at stage 4: Cannot convert tz-naive timestamps, use tz_localize to localize
+2025-09-29 20:52:41,974 - root - WARNING - Missing API keys: ['ALPHA_VANTAGE_API_KEY', 'GNEWS_API_KEY']. Some features may not work.
+2025-09-29 20:52:41,975 - __main__ - WARNING - Some API keys are missing - functionality will be limited
+2025-09-29 20:52:41,980 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
+2025-09-29 20:52:46,750 - src.sentiment_analyzer - INFO - FinBERT model initialized
+2025-09-29 20:52:47,341 - __main__ - INFO - Market Risk Early Warning System initialized
+2025-09-29 20:52:47,341 - __main__ - INFO - Starting full pipeline execution...
+2025-09-29 20:52:47,341 - __main__ - INFO - === Stage 1: Data Collection ===
+2025-09-29 20:52:47,341 - __main__ - INFO - Collecting stock market data...
+2025-09-29 20:52:47,341 - src.data_fetcher - INFO - Fetching Yahoo Finance data for 20 symbols
+2025-09-29 20:52:47,342 - src.data_fetcher - INFO - Fetching data for AAPL
+2025-09-29 20:52:48,266 - src.data_fetcher - INFO - Fetching data for MSFT
+2025-09-29 20:52:48,744 - src.data_fetcher - INFO - Fetching data for GOOGL
+2025-09-29 20:52:49,184 - src.data_fetcher - INFO - Fetching data for AMZN
+2025-09-29 20:52:49,623 - src.data_fetcher - INFO - Fetching data for NVDA
+2025-09-29 20:52:50,099 - src.data_fetcher - INFO - Fetching data for TSLA
+2025-09-29 20:52:50,527 - src.data_fetcher - INFO - Fetching data for META
+2025-09-29 20:52:50,964 - src.data_fetcher - INFO - Fetching data for BRK-B
+2025-09-29 20:52:51,341 - src.data_fetcher - INFO - Fetching data for UNH
+2025-09-29 20:52:51,802 - src.data_fetcher - INFO - Fetching data for JNJ
+2025-09-29 20:52:52,345 - src.data_fetcher - INFO - Fetching data for JPM
+2025-09-29 20:52:52,802 - src.data_fetcher - INFO - Fetching data for V
+2025-09-29 20:52:53,249 - src.data_fetcher - INFO - Fetching data for PG
+2025-09-29 20:52:53,841 - src.data_fetcher - INFO - Fetching data for XOM
+2025-09-29 20:52:54,357 - src.data_fetcher - INFO - Fetching data for HD
+2025-09-29 20:52:54,840 - src.data_fetcher - INFO - Fetching data for CVX
+2025-09-29 20:52:55,389 - src.data_fetcher - INFO - Fetching data for MA
+2025-09-29 20:52:55,814 - src.data_fetcher - INFO - Fetching data for BAC
+2025-09-29 20:52:56,303 - src.data_fetcher - INFO - Fetching data for ABBV
+2025-09-29 20:52:56,695 - src.data_fetcher - INFO - Fetching data for PFE
+2025-09-29 20:52:57,636 - src.data_fetcher - INFO - Saved data for 20 symbols to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:52:57,637 - __main__ - WARNING - No news API keys provided - skipping news collection
+2025-09-29 20:52:57,637 - __main__ - INFO - Collecting SEC filings data...
+2025-09-29 20:52:57,637 - src.sec_downloader - INFO - Processing filings for AAPL
+2025-09-29 20:52:58,264 - src.sec_downloader - INFO - Found CIK 0000320193 for AAPL
+2025-09-29 20:52:59,936 - src.sec_downloader - INFO - Found 43 filings for CIK 0000320193
+2025-09-29 20:52:59,937 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-08-01
+2025-09-29 20:53:00,193 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000073/0000320193-25-000073.txt
+2025-09-29 20:53:01,842 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:53:01,942 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-05-02
+2025-09-29 20:53:02,214 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000057/0000320193-25-000057.txt
+2025-09-29 20:53:03,733 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:53:03,834 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-01-31
+2025-09-29 20:53:04,086 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000008/0000320193-25-000008.txt
+2025-09-29 20:53:04,340 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:53:04,441 - src.sec_downloader - INFO - Processing filings for MSFT
+2025-09-29 20:53:04,686 - src.sec_downloader - INFO - Found CIK 0000789019 for MSFT
+2025-09-29 20:53:06,310 - src.sec_downloader - INFO - Found 25 filings for CIK 0000789019
+2025-09-29 20:53:06,312 - src.sec_downloader - INFO - Processing 10-K for MSFT dated 2025-07-30
+2025-09-29 20:53:06,626 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025100235/0000950170-25-100235.txt
+2025-09-29 20:53:16,572 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:53:16,674 - src.sec_downloader - INFO - Processing 10-Q for MSFT dated 2025-04-30
+2025-09-29 20:53:16,990 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025061046/0000950170-25-061046.txt
+2025-09-29 20:53:24,979 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:53:25,081 - src.sec_downloader - INFO - Processing 10-Q for MSFT dated 2025-01-29
+2025-09-29 20:53:25,399 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025010491/0000950170-25-010491.txt
+2025-09-29 20:53:33,376 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:53:33,477 - src.sec_downloader - INFO - Processing filings for GOOGL
+2025-09-29 20:53:34,043 - src.sec_downloader - INFO - Found CIK 0001652044 for GOOGL
+2025-09-29 20:53:34,671 - src.sec_downloader - INFO - Found 14 filings for CIK 0001652044
+2025-09-29 20:53:34,672 - src.sec_downloader - INFO - Processing 10-Q for GOOGL dated 2025-07-24
+2025-09-29 20:53:34,939 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001652044/000165204425000062/0001652044-25-000062.txt
+2025-09-29 20:53:40,362 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:53:40,463 - src.sec_downloader - INFO - Processing 10-Q for GOOGL dated 2025-04-25
+2025-09-29 20:53:40,740 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001652044/000165204425000043/0001652044-25-000043.txt
+2025-09-29 20:53:44,404 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:53:44,505 - src.sec_downloader - INFO - Processing 10-K for GOOGL dated 2025-02-05
+2025-09-29 20:53:44,849 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001652044/000165204425000014/0001652044-25-000014.txt
+2025-09-29 20:53:45,644 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:53:45,745 - src.sec_downloader - INFO - Processing filings for AMZN
+2025-09-29 20:53:46,307 - src.sec_downloader - INFO - Found CIK 0001018724 for AMZN
+2025-09-29 20:53:46,922 - src.sec_downloader - INFO - Found 26 filings for CIK 0001018724
+2025-09-29 20:53:46,923 - src.sec_downloader - INFO - Processing 10-Q for AMZN dated 2025-08-01
+2025-09-29 20:53:47,456 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001018724/000101872425000086/0001018724-25-000086.txt
+2025-09-29 20:53:50,566 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:53:50,666 - src.sec_downloader - INFO - Processing 10-Q for AMZN dated 2025-05-02
+2025-09-29 20:53:51,760 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001018724/000101872425000036/0001018724-25-000036.txt
+2025-09-29 20:53:54,280 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:53:54,380 - src.sec_downloader - INFO - Processing 10-K for AMZN dated 2025-02-07
+2025-09-29 20:53:54,964 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001018724/000101872425000004/0001018724-25-000004.txt
+2025-09-29 20:53:59,767 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:53:59,868 - src.sec_downloader - INFO - Processing filings for NVDA
+2025-09-29 20:54:00,322 - src.sec_downloader - INFO - Found CIK 0001045810 for NVDA
+2025-09-29 20:54:00,864 - src.sec_downloader - INFO - Found 27 filings for CIK 0001045810
+2025-09-29 20:54:00,866 - src.sec_downloader - INFO - Processing 10-Q for NVDA dated 2025-08-27
+2025-09-29 20:54:01,689 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001045810/000104581025000209/0001045810-25-000209.txt
+2025-09-29 20:54:04,777 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:54:04,878 - src.sec_downloader - INFO - Processing 10-Q for NVDA dated 2025-05-28
+2025-09-29 20:54:05,131 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001045810/000104581025000116/0001045810-25-000116.txt
+2025-09-29 20:54:07,941 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:54:08,042 - src.sec_downloader - INFO - Processing 10-K for NVDA dated 2025-02-26
+2025-09-29 20:54:08,372 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001045810/000104581025000023/0001045810-25-000023.txt
+2025-09-29 20:54:08,818 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:54:08,919 - src.sec_downloader - INFO - Processing filings for TSLA
+2025-09-29 20:54:09,152 - src.sec_downloader - INFO - Found CIK 0001318605 for TSLA
+2025-09-29 20:54:09,655 - src.sec_downloader - INFO - Found 33 filings for CIK 0001318605
+2025-09-29 20:54:09,656 - src.sec_downloader - INFO - Processing 10-Q for TSLA dated 2025-07-24
+2025-09-29 20:54:09,909 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001318605/000162828025035806/0001628280-25-035806.txt
+2025-09-29 20:54:13,252 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:54:13,353 - src.sec_downloader - INFO - Processing 10-Q for TSLA dated 2025-04-23
+2025-09-29 20:54:13,640 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001318605/000162828025018911/0001628280-25-018911.txt
+2025-09-29 20:54:16,325 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:54:16,426 - src.sec_downloader - INFO - Processing 10-K for TSLA dated 2025-01-30
+2025-09-29 20:54:16,734 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001318605/000162828025003063/0001628280-25-003063.txt
+2025-09-29 20:54:17,315 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:54:17,416 - src.sec_downloader - INFO - Processing filings for META
+2025-09-29 20:54:17,668 - src.sec_downloader - INFO - Found CIK 0001326801 for META
+2025-09-29 20:54:18,182 - src.sec_downloader - INFO - Found 7 filings for CIK 0001326801
+2025-09-29 20:54:18,183 - src.sec_downloader - INFO - Processing 10-Q for META dated 2025-07-31
+2025-09-29 20:54:18,514 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001326801/000162828025036791/0001628280-25-036791.txt
+2025-09-29 20:54:19,168 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:54:19,270 - src.sec_downloader - INFO - Processing 10-Q for META dated 2025-05-01
+2025-09-29 20:54:19,610 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001326801/000132680125000054/0001326801-25-000054.txt
+2025-09-29 20:54:19,888 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:54:19,990 - src.sec_downloader - INFO - Processing 10-K for META dated 2025-01-30
+2025-09-29 20:54:20,358 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001326801/000132680125000017/0001326801-25-000017.txt
+2025-09-29 20:54:21,009 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:54:21,111 - src.sec_downloader - INFO - Processing filings for BRK-B
+2025-09-29 20:54:21,371 - src.sec_downloader - INFO - Found CIK 0001067983 for BRK-B
+2025-09-29 20:54:21,986 - src.sec_downloader - INFO - Found 39 filings for CIK 0001067983
+2025-09-29 20:54:21,987 - src.sec_downloader - INFO - Processing 10-Q for BRK-B dated 2025-08-04
+2025-09-29 20:54:22,330 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001067983/000095017025101578/0000950170-25-101578.txt
+2025-09-29 20:54:34,321 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:54:34,423 - src.sec_downloader - INFO - Processing 10-Q for BRK-B dated 2025-05-05
+2025-09-29 20:54:34,746 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001067983/000095017025063112/0000950170-25-063112.txt
+2025-09-29 20:54:43,695 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:54:43,796 - src.sec_downloader - INFO - Processing 10-K for BRK-B dated 2025-02-24
+2025-09-29 20:54:44,203 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001067983/000095017025025210/0000950170-25-025210.txt
+2025-09-29 20:54:47,093 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:54:47,197 - src.sec_downloader - INFO - Processing filings for UNH
+2025-09-29 20:54:47,736 - src.sec_downloader - INFO - Found CIK 0000731766 for UNH
+2025-09-29 20:54:48,269 - src.sec_downloader - INFO - Found 23 filings for CIK 0000731766
+2025-09-29 20:54:48,271 - src.sec_downloader - INFO - Processing 10-Q for UNH dated 2025-08-11
+2025-09-29 20:54:48,795 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000731766/000073176625000236/0000731766-25-000236.txt
+2025-09-29 20:54:51,846 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:54:51,946 - src.sec_downloader - INFO - Processing 10-Q for UNH dated 2025-05-07
+2025-09-29 20:54:52,217 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000731766/000073176625000131/0000731766-25-000131.txt
+2025-09-29 20:54:54,640 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:54:54,740 - src.sec_downloader - INFO - Processing 10-K for UNH dated 2025-02-27
+2025-09-29 20:54:55,045 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000731766/000073176625000063/0000731766-25-000063.txt
+2025-09-29 20:54:56,287 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:54:56,388 - src.sec_downloader - INFO - Processing filings for JNJ
+2025-09-29 20:54:56,955 - src.sec_downloader - INFO - Found CIK 0000200406 for JNJ
+2025-09-29 20:54:57,555 - src.sec_downloader - INFO - Found 35 filings for CIK 0000200406
+2025-09-29 20:54:57,557 - src.sec_downloader - INFO - Processing 10-Q for JNJ dated 2025-07-24
+2025-09-29 20:54:59,262 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000200406/000020040625000178/0000200406-25-000178.txt
+2025-09-29 20:55:00,888 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:55:00,989 - src.sec_downloader - INFO - Processing 10-Q for JNJ dated 2025-04-23
+2025-09-29 20:55:02,532 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000200406/000020040625000119/0000200406-25-000119.txt
+2025-09-29 20:55:03,823 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 20:55:03,925 - src.sec_downloader - INFO - Processing 10-K for JNJ dated 2025-02-13
+2025-09-29 20:55:04,309 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000200406/000020040625000038/0000200406-25-000038.txt
+2025-09-29 20:55:05,264 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 20:55:05,366 - src.sec_downloader - INFO - Processed filings for 10 companies
+2025-09-29 20:55:05,704 - src.sec_downloader - INFO - Saved 30 filings to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:55:05,704 - __main__ - INFO - === Stage 2: Data Preprocessing ===
+2025-09-29 20:55:05,713 - src.data_preprocessor - INFO - Preprocessing stock data...
+2025-09-29 20:55:05,877 - src.data_preprocessor - INFO - Processed stock data: 15060 rows, 47 columns
+2025-09-29 20:55:05,878 - src.data_preprocessor - INFO - Preprocessing SEC filings data...
+2025-09-29 20:55:06,981 - src.data_preprocessor - INFO - Processed SEC data: 8 rows, 19 columns
+2025-09-29 20:55:06,983 - __main__ - INFO - === Stage 3: Sentiment Analysis ===
+2025-09-29 20:55:06,983 - src.sentiment_analyzer - INFO - Analyzing SEC filings sentiment with FinBERT...
+2025-09-29 20:55:06,984 - src.sentiment_analyzer - INFO - Analyzing MD&A sentiment
+2025-09-29 20:55:07,406 - src.sentiment_analyzer - INFO - Analyzing Risk Factors sentiment
+2025-09-29 20:55:07,645 - src.sentiment_analyzer - INFO - Completed SEC sentiment analysis for 8 filings
+2025-09-29 20:55:07,645 - src.sentiment_analyzer - INFO - Aggregating sentiment by date...
+2025-09-29 20:55:07,647 - src.sentiment_analyzer - INFO - Created sentiment aggregations for 8 symbol-date combinations
+2025-09-29 20:55:07,654 - src.sentiment_analyzer - INFO - Saved sentiment analysis results to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:55:07,654 - __main__ - INFO - === Stage 4: Data Integration ===
+2025-09-29 20:55:07,654 - src.data_integrator - INFO - Starting data integration process...
+2025-09-29 20:55:07,689 - src.data_integrator - INFO - Merging sentiment data...
+2025-09-29 20:55:07,696 - src.data_integrator - INFO - Merged sentiment data: added 5 sentiment features
+2025-09-29 20:55:07,696 - src.data_integrator - INFO - Merging SEC features...
+2025-09-29 20:55:07,845 - src.data_integrator - INFO - Data integration completed: 15060 rows, 95 columns
+2025-09-29 20:55:07,845 - src.data_integrator - INFO - price_features: 22 features
+2025-09-29 20:55:07,845 - src.data_integrator - INFO - volume_features: 11 features
+2025-09-29 20:55:07,845 - src.data_integrator - INFO - technical_indicators: 30 features
+2025-09-29 20:55:07,845 - src.data_integrator - INFO - fundamental_ratios: 15 features
+2025-09-29 20:55:07,846 - src.data_integrator - INFO - market_features: 4 features
+2025-09-29 20:55:07,846 - src.data_integrator - INFO - derived_features: 1 features
+2025-09-29 20:55:07,846 - src.data_integrator - INFO - date_features: 8 features
+2025-09-29 20:55:08,563 - src.data_integrator - INFO - Saved integrated dataset to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 20:55:08,563 - src.data_integrator - INFO - Dataset shape: (15060, 95)
+2025-09-29 20:55:08,563 - __main__ - INFO - === Stage 5: Model Training ===
+2025-09-29 20:55:08,563 - src.ml_models - INFO - Preparing data for modeling...
+2025-09-29 20:55:08,565 - src.ml_models - INFO - Creating target variable 'Risk_Label'
+2025-09-29 20:55:08,565 - src.ml_models - INFO - Creating risk labels...
+2025-09-29 20:55:08,633 - src.ml_models - INFO - Created risk labels: 3931/15060 (26.10%) high-risk periods
+2025-09-29 20:55:08,635 - src.ml_models - INFO - Selected 87 features for modeling
+2025-09-29 20:55:08,677 - src.ml_models - INFO - Final dataset: 15060 samples, 87 features
+2025-09-29 20:55:08,678 - src.ml_models - INFO - Target distribution: [11129  3931]
+2025-09-29 20:55:08,678 - src.ml_models - INFO - Training machine learning models...
+2025-09-29 20:55:09,949 - src.ml_models - WARNING - XGBoost not available - will skip XGBoost model
+2025-09-29 20:55:09,958 - src.ml_models - INFO - Training set: 12048 samples
+2025-09-29 20:55:09,958 - src.ml_models - INFO - Test set: 3012 samples
+2025-09-29 20:55:09,958 - src.ml_models - INFO - Training Random Forest model...
+2025-09-29 20:59:35,580 - src.ml_models - INFO - Random Forest - Test AUC: 0.9316, Accuracy: 0.8689
+2025-09-29 20:59:35,589 - src.ml_models - INFO - Training Logistic Regression model...
+2025-09-29 21:00:21,462 - src.ml_models - INFO - Logistic Regression - Test AUC: 0.8312, Accuracy: 0.7703
+2025-09-29 21:00:21,462 - src.ml_models - INFO - Training SVM model...
+2025-09-29 21:37:41,484 - root - WARNING - Missing API keys: ['ALPHA_VANTAGE_API_KEY', 'GNEWS_API_KEY']. Some features may not work.
+2025-09-29 21:37:41,485 - __main__ - WARNING - Some API keys are missing - functionality will be limited
+2025-09-29 21:37:41,509 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
+2025-09-29 21:37:58,102 - src.sentiment_analyzer - INFO - FinBERT model initialized
+2025-09-29 21:38:01,843 - __main__ - INFO - Market Risk Early Warning System initialized
+2025-09-29 21:38:01,844 - __main__ - INFO - Starting full pipeline execution...
+2025-09-29 21:38:01,844 - __main__ - INFO - === Stage 1: Data Collection ===
+2025-09-29 21:38:01,844 - __main__ - INFO - Collecting stock market data...
+2025-09-29 21:38:01,844 - src.data_fetcher - INFO - Fetching Yahoo Finance data for 3 symbols
+2025-09-29 21:38:01,844 - src.data_fetcher - INFO - Fetching data for AAPL
+2025-09-29 21:38:03,139 - src.data_fetcher - INFO - Fetching data for MSFT
+2025-09-29 21:38:03,583 - src.data_fetcher - INFO - Fetching data for GOOGL
+2025-09-29 21:38:04,085 - src.data_fetcher - INFO - Saved data for 3 symbols to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 21:38:04,086 - __main__ - WARNING - No news API keys provided - skipping news collection
+2025-09-29 21:38:04,086 - __main__ - INFO - Collecting SEC filings data...
+2025-09-29 21:38:04,086 - src.sec_downloader - INFO - Processing filings for AAPL
+2025-09-29 21:38:05,942 - src.sec_downloader - INFO - Found CIK 0000320193 for AAPL
+2025-09-29 21:38:06,558 - src.sec_downloader - INFO - Found 43 filings for CIK 0000320193
+2025-09-29 21:38:06,559 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-08-01
+2025-09-29 21:38:06,807 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000073/0000320193-25-000073.txt
+2025-09-29 21:38:08,402 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 21:38:08,502 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-05-02
+2025-09-29 21:38:08,752 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000057/0000320193-25-000057.txt
+2025-09-29 21:38:10,251 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 21:38:10,352 - src.sec_downloader - INFO - Processing 10-Q for AAPL dated 2025-01-31
+2025-09-29 21:38:10,617 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000320193/000032019325000008/0000320193-25-000008.txt
+2025-09-29 21:38:10,878 - src.sec_downloader - INFO - Extracted 1 sections from filing
+2025-09-29 21:38:10,979 - src.sec_downloader - INFO - Processing filings for MSFT
+2025-09-29 21:38:11,239 - src.sec_downloader - INFO - Found CIK 0000789019 for MSFT
+2025-09-29 21:38:11,839 - src.sec_downloader - INFO - Found 25 filings for CIK 0000789019
+2025-09-29 21:38:11,841 - src.sec_downloader - INFO - Processing 10-K for MSFT dated 2025-07-30
+2025-09-29 21:38:12,166 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025100235/0000950170-25-100235.txt
+2025-09-29 21:38:21,956 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 21:38:22,059 - src.sec_downloader - INFO - Processing 10-Q for MSFT dated 2025-04-30
+2025-09-29 21:38:22,350 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025061046/0000950170-25-061046.txt
+2025-09-29 21:38:30,042 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 21:38:30,144 - src.sec_downloader - INFO - Processing 10-Q for MSFT dated 2025-01-29
+2025-09-29 21:38:30,484 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0000789019/000095017025010491/0000950170-25-010491.txt
+2025-09-29 21:38:38,024 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 21:38:38,126 - src.sec_downloader - INFO - Processing filings for GOOGL
+2025-09-29 21:38:38,740 - src.sec_downloader - INFO - Found CIK 0001652044 for GOOGL
+2025-09-29 21:38:39,358 - src.sec_downloader - INFO - Found 14 filings for CIK 0001652044
+2025-09-29 21:38:39,360 - src.sec_downloader - INFO - Processing 10-Q for GOOGL dated 2025-07-24
+2025-09-29 21:38:39,665 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001652044/000165204425000062/0001652044-25-000062.txt
+2025-09-29 21:38:44,712 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 21:38:44,813 - src.sec_downloader - INFO - Processing 10-Q for GOOGL dated 2025-04-25
+2025-09-29 21:38:45,115 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001652044/000165204425000043/0001652044-25-000043.txt
+2025-09-29 21:38:48,754 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 21:38:48,855 - src.sec_downloader - INFO - Processing 10-K for GOOGL dated 2025-02-05
+2025-09-29 21:38:49,170 - src.sec_downloader - INFO - Downloaded filing from https://www.sec.gov/Archives/edgar/data/0001652044/000165204425000014/0001652044-25-000014.txt
+2025-09-29 21:38:49,732 - src.sec_downloader - INFO - Extracted 2 sections from filing
+2025-09-29 21:38:49,835 - src.sec_downloader - INFO - Processed filings for 3 companies
+2025-09-29 21:38:49,845 - src.sec_downloader - INFO - Saved 9 filings to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 21:38:49,845 - __main__ - INFO - === Stage 2: Data Preprocessing ===
+2025-09-29 21:38:49,847 - src.data_preprocessor - INFO - Preprocessing stock data...
+2025-09-29 21:38:49,935 - src.data_preprocessor - INFO - Processed stock data: 2259 rows, 47 columns
+2025-09-29 21:38:49,935 - src.data_preprocessor - INFO - Preprocessing SEC filings data...
+2025-09-29 21:38:49,946 - src.data_preprocessor - INFO - Processed SEC data: 4 rows, 19 columns
+2025-09-29 21:38:49,947 - __main__ - INFO - === Stage 3: Sentiment Analysis ===
+2025-09-29 21:38:49,947 - src.sentiment_analyzer - INFO - Analyzing SEC filings sentiment with FinBERT...
+2025-09-29 21:38:49,947 - src.sentiment_analyzer - INFO - Analyzing MD&A sentiment
+2025-09-29 21:38:50,138 - src.sentiment_analyzer - INFO - Analyzing Risk Factors sentiment
+2025-09-29 21:38:50,228 - src.sentiment_analyzer - INFO - Completed SEC sentiment analysis for 4 filings
+2025-09-29 21:38:50,228 - src.sentiment_analyzer - INFO - Aggregating sentiment by date...
+2025-09-29 21:38:50,230 - src.sentiment_analyzer - INFO - Created sentiment aggregations for 4 symbol-date combinations
+2025-09-29 21:38:50,233 - src.sentiment_analyzer - INFO - Saved sentiment analysis results to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 21:38:50,233 - __main__ - INFO - === Stage 4: Data Integration ===
+2025-09-29 21:38:50,233 - src.data_integrator - INFO - Starting data integration process...
+2025-09-29 21:38:50,237 - src.data_integrator - INFO - Merging sentiment data...
+2025-09-29 21:38:50,241 - src.data_integrator - INFO - Merged sentiment data: added 5 sentiment features
+2025-09-29 21:38:50,241 - src.data_integrator - INFO - Merging SEC features...
+2025-09-29 21:38:50,308 - src.data_integrator - INFO - Data integration completed: 2259 rows, 95 columns
+2025-09-29 21:38:50,308 - src.data_integrator - INFO - price_features: 22 features
+2025-09-29 21:38:50,308 - src.data_integrator - INFO - volume_features: 11 features
+2025-09-29 21:38:50,309 - src.data_integrator - INFO - technical_indicators: 30 features
+2025-09-29 21:38:50,309 - src.data_integrator - INFO - fundamental_ratios: 15 features
+2025-09-29 21:38:50,309 - src.data_integrator - INFO - market_features: 4 features
+2025-09-29 21:38:50,309 - src.data_integrator - INFO - derived_features: 1 features
+2025-09-29 21:38:50,309 - src.data_integrator - INFO - date_features: 8 features
+2025-09-29 21:38:50,415 - src.data_integrator - INFO - Saved integrated dataset to C:\Users\I7\Projects\mews-fin\data
+2025-09-29 21:38:50,415 - src.data_integrator - INFO - Dataset shape: (2259, 95)
+2025-09-29 21:38:50,415 - __main__ - INFO - === Stage 5: Model Training ===
+2025-09-29 21:38:50,415 - src.ml_models - INFO - Preparing data for modeling...
+2025-09-29 21:38:50,415 - src.ml_models - INFO - Creating target variable 'Risk_Label'
+2025-09-29 21:38:50,415 - src.ml_models - INFO - Creating risk labels...
+2025-09-29 21:38:50,426 - src.ml_models - INFO - Created risk labels: 627/2259 (27.76%) high-risk periods
+2025-09-29 21:38:50,427 - src.ml_models - INFO - Selected 87 features for modeling
+2025-09-29 21:38:50,442 - src.ml_models - INFO - Final dataset: 2259 samples, 87 features
+2025-09-29 21:38:50,442 - src.ml_models - INFO - Target distribution: [1632  627]
+2025-09-29 21:38:50,442 - src.ml_models - INFO - Training machine learning models...
+2025-09-29 21:38:52,059 - src.ml_models - INFO - Training set: 1807 samples
+2025-09-29 21:38:52,059 - src.ml_models - INFO - Test set: 452 samples
+2025-09-29 21:38:52,059 - src.ml_models - INFO - Training Random Forest model...
+2025-09-29 21:38:52,059 - src.ml_models - INFO - Using GPU acceleration where possible: NVIDIA GeForce RTX 5060
+2025-09-29 21:40:02,401 - src.ml_models - INFO - Random Forest - Test AUC: 0.9223, Accuracy: 0.8385
+2025-09-29 21:40:02,404 - src.ml_models - INFO - Training Logistic Regression model...
+2025-09-29 21:40:08,184 - src.ml_models - INFO - Logistic Regression - Test AUC: 0.8241, Accuracy: 0.7854
+2025-09-29 21:40:08,184 - src.ml_models - INFO - Training XGBoost model...
+2025-09-29 21:40:08,190 - src.ml_models - INFO - XGBoost configured for GPU acceleration
+2025-09-29 21:47:50,509 - root - WARNING - Missing API keys: ['ALPHA_VANTAGE_API_KEY', 'GNEWS_API_KEY']. Some features may not work.
+2025-09-29 21:47:50,510 - __main__ - WARNING - Some API keys are missing - functionality will be limited
+2025-09-29 21:47:50,516 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
+2025-09-29 21:47:56,785 - src.sentiment_analyzer - INFO - FinBERT model initialized
+2025-09-29 21:47:57,664 - __main__ - INFO - Market Risk Early Warning System initialized
