@@ -53,19 +53,19 @@ class EnhancedRiskAnalyzer:
 
     def _create_sentiment_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """Create advanced sentiment-based features"""
-        
+
         # Find available sentiment columns
-        sentiment_cols = [col for col in df.columns if 'sentiment' in col.lower()]
+        sentiment_cols = [col for col in df.columns if "sentiment" in col.lower()]
         news_sentiment_col = None
         sec_sentiment_col = None
-        
+
         # Try to identify news and SEC sentiment columns
         for col in sentiment_cols:
-            if 'news' in col.lower() or 'title' in col.lower():
+            if "news" in col.lower() or "title" in col.lower():
                 news_sentiment_col = col
-            elif 'sec' in col.lower() or 'filing' in col.lower():
+            elif "sec" in col.lower() or "filing" in col.lower():
                 sec_sentiment_col = col
-        
+
         # If no specific columns found, use any sentiment column
         if not news_sentiment_col and sentiment_cols:
             news_sentiment_col = sentiment_cols[0]
@@ -259,20 +259,24 @@ class EnhancedRiskAnalyzer:
 
     def _create_cross_asset_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """Create features based on cross-asset relationships"""
-        
+
         # Find available sentiment columns again
-        sentiment_cols = [col for col in df.columns if 'sentiment' in col.lower()]
+        sentiment_cols = [col for col in df.columns if "sentiment" in col.lower()]
         news_sentiment_col = None
-        
+
         for col in sentiment_cols:
-            if 'news' in col.lower() or 'title' in col.lower():
+            if "news" in col.lower() or "title" in col.lower():
                 news_sentiment_col = col
                 break
-        
+
         if not news_sentiment_col and sentiment_cols:
             news_sentiment_col = sentiment_cols[0]
 
-        if "Symbol" in df.columns and len(df["Symbol"].unique()) > 1 and news_sentiment_col:
+        if (
+            "Symbol" in df.columns
+            and len(df["Symbol"].unique()) > 1
+            and news_sentiment_col
+        ):
             # Market-wide sentiment average
             market_sentiment = (
                 df.groupby("Date")[news_sentiment_col].mean().reset_index()
@@ -298,11 +302,11 @@ class EnhancedRiskAnalyzer:
             try:
                 # Ensure Date column is datetime
                 if not pd.api.types.is_datetime64_any_dtype(df["Date"]):
-                    df["Date"] = pd.to_datetime(df["Date"], errors='coerce')
-                
+                    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+
                 # Remove any rows with invalid dates
                 df = df.dropna(subset=["Date"])
-                
+
                 if df.empty:
                     return df
 
@@ -320,9 +324,11 @@ class EnhancedRiskAnalyzer:
                 df["earnings_season"] = df["month"].isin([1, 4, 7, 10]).astype(int)
 
                 # Days to month end
-                df["days_to_month_end"] = df["Date"].dt.days_in_month - df["Date"].dt.day
+                df["days_to_month_end"] = (
+                    df["Date"].dt.days_in_month - df["Date"].dt.day
+                )
                 df["end_of_month"] = (df["days_to_month_end"] <= 3).astype(int)
-                
+
             except Exception as e:
                 print(f"Warning: Could not create time-based features: {str(e)}")
                 # Continue without time-based features

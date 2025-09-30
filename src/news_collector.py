@@ -20,7 +20,9 @@ import requests
 class NewsDataCollector:
     """Collects news data from various free APIs"""
 
-    def __init__(self, gnews_api_key: Optional[str] = None, news_api_key: Optional[str] = None):
+    def __init__(
+        self, gnews_api_key: Optional[str] = None, news_api_key: Optional[str] = None
+    ):
         self.gnews_api_key = gnews_api_key
         self.news_api_key = news_api_key
         self.logger = logging.getLogger(__name__)

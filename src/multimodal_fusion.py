@@ -57,7 +57,9 @@ class MultiModalFeatureFusion:
         device: Optional[str] = None,
     ) -> None:
         self.embedding_model_name = embedding_model_name
-        self.device = device or ("cuda" if torch and torch.cuda.is_available() else "cpu")
+        self.device = device or (
+            "cuda" if torch and torch.cuda.is_available() else "cpu"
+        )
         self._tokenizer = None
         self._model = None
         self.embedding_dim = None
@@ -157,15 +159,15 @@ class MultiModalFeatureFusion:
             embeddings.append(sentence_embedding.cpu().numpy()[0])
 
         embedding_matrix = np.vstack(embeddings)
-        embedding_cols = [f"news_embedding_{i}" for i in range(embedding_matrix.shape[1])]
-        news_clean = news_clean.assign(**{
-            col: embedding_matrix[:, idx] for idx, col in enumerate(embedding_cols)
-        })
+        embedding_cols = [
+            f"news_embedding_{i}" for i in range(embedding_matrix.shape[1])
+        ]
+        news_clean = news_clean.assign(
+            **{col: embedding_matrix[:, idx] for idx, col in enumerate(embedding_cols)}
+        )
 
         aggregated = (
-            news_clean.groupby(["Symbol", "Date"])[embedding_cols]
-            .mean()
-            .reset_index()
+            news_clean.groupby(["Symbol", "Date"])[embedding_cols].mean().reset_index()
         )
         aggregated["news_article_count"] = (
             news_clean.groupby(["Symbol", "Date"])[text_column].count().values
@@ -211,7 +213,10 @@ class MultiModalFeatureFusion:
         feature_rows = []
         for date in returns_wide.index:
             window_slice = returns_wide.loc[:date].tail(window)
-            if window_slice.shape[0] < max(10, window // 2) or window_slice.shape[1] < 3:
+            if (
+                window_slice.shape[0] < max(10, window // 2)
+                or window_slice.shape[1] < 3
+            ):
                 continue
 
             corr_matrix = window_slice.corr().fillna(0)
@@ -242,10 +247,14 @@ class MultiModalFeatureFusion:
     # ------------------------------------------------------------------
     # Utilities
     # ------------------------------------------------------------------
-    def _merge_features(self, base_df: pd.DataFrame, features_df: pd.DataFrame) -> pd.DataFrame:
+    def _merge_features(
+        self, base_df: pd.DataFrame, features_df: pd.DataFrame
+    ) -> pd.DataFrame:
         merge_cols = [col for col in ["Symbol", "Date"] if col in features_df.columns]
         if not merge_cols:
-            LOGGER.warning("Feature dataframe missing merge keys: %s", features_df.columns)
+            LOGGER.warning(
+                "Feature dataframe missing merge keys: %s", features_df.columns
+            )
             return base_df
 
         merged = base_df.merge(features_df, on=merge_cols, how="left")

@@ -57,9 +57,12 @@ def _format_dataframe_for_display(
             series = formatted[column]
             if pd.api.types.is_datetime64_any_dtype(series):
                 inferred.append(column)
-            elif series.dtype == object and series.apply(
-                lambda val: isinstance(val, (pd.Timestamp, datetime))
-            ).any():
+            elif (
+                series.dtype == object
+                and series.apply(
+                    lambda val: isinstance(val, (pd.Timestamp, datetime))
+                ).any()
+            ):
                 inferred.append(column)
         candidate_columns = tuple(inferred)
     else:
@@ -74,9 +77,11 @@ def _format_dataframe_for_display(
             formatted[column] = series.dt.strftime("%Y-%m-%d")
         else:
             formatted[column] = series.apply(
-                lambda val: val.strftime("%Y-%m-%d")
-                if isinstance(val, (pd.Timestamp, datetime))
-                else val
+                lambda val: (
+                    val.strftime("%Y-%m-%d")
+                    if isinstance(val, (pd.Timestamp, datetime))
+                    else val
+                )
             )
 
     return formatted
@@ -97,6 +102,7 @@ from src.xai_utils import (
 # Import enhanced features
 try:
     from enhanced_integration import integrate_enhanced_risk_system
+
     ENHANCED_FEATURES_AVAILABLE = True
 except ImportError:
     ENHANCED_FEATURES_AVAILABLE = False
@@ -489,6 +495,7 @@ def create_feature_importance_chart(results):
 
     return fig
 
+
 @st.cache_resource(show_spinner=False)
 def load_latest_model(model_name: str = "random_forest") -> Optional[object]:
     """Load the most recent trained model artifact from the models directory."""
@@ -532,7 +539,9 @@ def prepare_feature_matrix(
     return ordered
 
 
-def get_test_predictions(results: Dict[str, Any]) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+def get_test_predictions(
+    results: Dict[str, Any],
+) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
     """Extract ground-truth labels and ensemble probabilities from stored results."""
 
     test_data = results.get("test_data")
@@ -880,7 +889,9 @@ def main():
         comparison_fig = create_model_comparison_chart(results)
         if comparison_fig:
             st.plotly_chart(
-                comparison_fig, use_container_width=True, config={"displayModeBar": False}
+                comparison_fig,
+                use_container_width=True,
+                config={"displayModeBar": False},
             )
 
         st.subheader("Detailed Model Results")
@@ -893,9 +904,11 @@ def main():
                     "Model": model_name.replace("_", " ").title(),
                     "Accuracy": f"{metrics.get('test_accuracy', 0):.4f}",
                     "AUC Score": f"{metrics.get('auc_score', 0):.4f}",
-                    "Models Used": ", ".join(metrics.get("models_used", []))
-                    if isinstance(metrics.get("models_used"), list)
-                    else "-",
+                    "Models Used": (
+                        ", ".join(metrics.get("models_used", []))
+                        if isinstance(metrics.get("models_used"), list)
+                        else "-"
+                    ),
                 }
             )
 
@@ -920,13 +933,15 @@ def main():
                     avg_prob = prediction_perf.get("avg_risk_probability")
                     event_rows.append(
                         {
-                            "Event": analysis.get("description", event_key.replace("_", " ").title()),
+                            "Event": analysis.get(
+                                "description", event_key.replace("_", " ").title()
+                            ),
                             "Period": analysis.get("period", "N/A"),
                             "Risk Rate": f"{risk_signals.get('risk_rate', 0):.2%}",
                             "Early Warning": f"{analysis.get('early_warning_score', 0.0):+.2f}",
-                            "Avg Predicted Risk": "N/A"
-                            if avg_prob is None
-                            else f"{avg_prob:.2f}",
+                            "Avg Predicted Risk": (
+                                "N/A" if avg_prob is None else f"{avg_prob:.2f}"
+                            ),
                         }
                     )
 
@@ -966,9 +981,7 @@ def main():
                 if isinstance(importance, dict):
                     feature_order = list(importance.keys())
 
-        feature_matrix = prepare_feature_matrix(
-            df, feature_order=feature_order
-        )
+        feature_matrix = prepare_feature_matrix(df, feature_order=feature_order)
 
         if model is None:
             st.warning(
@@ -1129,7 +1142,9 @@ def main():
                     "LIME perturbs the original row to learn a tiny linear model around it. Positive weights (green) argue for the risk class, negative weights (red) argue for the stable class. Compare them with the SHAP bars: if both methods agree on the top signals, the explanation is more trustworthy."
                 )
             else:
-                st.info("LIME explanation unavailable—install the `lime` package to enable this view.")
+                st.info(
+                    "LIME explanation unavailable—install the `lime` package to enable this view."
+                )
 
     with tab_multimodal:
         st.subheader("Multimodal Fusion & CEWS Insights")
@@ -1170,13 +1185,19 @@ def main():
         graph_keywords = ["centrality", "pagerank", "graph", "community"]
 
         tabular_cols = [
-            col for col in df.columns if any(key in col.lower() for key in tabular_keywords)
+            col
+            for col in df.columns
+            if any(key in col.lower() for key in tabular_keywords)
         ][:10]
         news_cols = [
-            col for col in df.columns if any(key in col.lower() for key in news_keywords)
+            col
+            for col in df.columns
+            if any(key in col.lower() for key in news_keywords)
         ][:10]
         graph_cols = [
-            col for col in df.columns if any(key in col.lower() for key in graph_keywords)
+            col
+            for col in df.columns
+            if any(key in col.lower() for key in graph_keywords)
         ][:10]
 
         _preview_columns("Tabular Signals", tabular_cols)
@@ -1380,57 +1401,91 @@ def main():
         if ENHANCED_FEATURES_AVAILABLE:
             st.markdown("---")
             st.subheader("🚀 Enhanced Risk Timeline (New!)")
-            
+
             if st.button("🎯 Generate Enhanced Risk Analysis", type="primary"):
                 with st.spinner("🔄 Creating enhanced risk features and timeline..."):
                     try:
                         # Get selected symbols from sidebar
-                        available_symbols = df['Symbol'].unique() if 'Symbol' in df.columns else []
-                        selected_symbols = st.sidebar.multiselect(
-                            "Select symbols for enhanced analysis:", 
-                            available_symbols, 
-                            default=available_symbols[:3] if len(available_symbols) >= 3 else available_symbols
+                        available_symbols = (
+                            df["Symbol"].unique() if "Symbol" in df.columns else []
                         )
-                        
+                        selected_symbols = st.sidebar.multiselect(
+                            "Select symbols for enhanced analysis:",
+                            available_symbols,
+                            default=(
+                                available_symbols[:3]
+                                if len(available_symbols) >= 3
+                                else available_symbols
+                            ),
+                        )
+
                         if selected_symbols:
                             # Run enhanced analysis
-                            enhanced_results = integrate_enhanced_risk_system(df, selected_symbols)
-                            
-                            if 'enhanced_dataset' in enhanced_results:
-                                st.success(f"✅ Enhanced analysis complete! Added {enhanced_results.get('feature_count', 0)} new features")
-                                
+                            enhanced_results = integrate_enhanced_risk_system(
+                                df, selected_symbols
+                            )
+
+                            if "enhanced_dataset" in enhanced_results:
+                                st.success(
+                                    f"✅ Enhanced analysis complete! Added {enhanced_results.get('feature_count', 0)} new features"
+                                )
+
                                 # Show enhanced timeline link
-                                if enhanced_results.get('timeline_path'):
-                                    st.markdown(f"📊 **Enhanced Interactive Timeline**: [View Enhanced Dashboard]({enhanced_results['timeline_path']})")
-                                
-                                # Show summary dashboard link  
-                                if enhanced_results.get('summary_dashboard_path'):
-                                    st.markdown(f"📋 **Risk Summary Dashboard**: [View Summary]({enhanced_results['summary_dashboard_path']})")
-                                
+                                if enhanced_results.get("timeline_path"):
+                                    st.markdown(
+                                        f"📊 **Enhanced Interactive Timeline**: [View Enhanced Dashboard]({enhanced_results['timeline_path']})"
+                                    )
+
+                                # Show summary dashboard link
+                                if enhanced_results.get("summary_dashboard_path"):
+                                    st.markdown(
+                                        f"📋 **Risk Summary Dashboard**: [View Summary]({enhanced_results['summary_dashboard_path']})"
+                                    )
+
                                 # Show key metrics
-                                enhanced_df = enhanced_results['enhanced_dataset']
-                                if 'composite_risk_score' in enhanced_df.columns:
-                                    avg_risk = enhanced_df['composite_risk_score'].mean()
-                                    max_risk = enhanced_df['composite_risk_score'].max()
-                                    
+                                enhanced_df = enhanced_results["enhanced_dataset"]
+                                if "composite_risk_score" in enhanced_df.columns:
+                                    avg_risk = enhanced_df[
+                                        "composite_risk_score"
+                                    ].mean()
+                                    max_risk = enhanced_df["composite_risk_score"].max()
+
                                     col1, col2, col3 = st.columns(3)
                                     with col1:
-                                        st.metric("Average Risk Score", f"{avg_risk:.3f}")
+                                        st.metric(
+                                            "Average Risk Score", f"{avg_risk:.3f}"
+                                        )
                                     with col2:
-                                        st.metric("Maximum Risk Score", f"{max_risk:.3f}")
+                                        st.metric(
+                                            "Maximum Risk Score", f"{max_risk:.3f}"
+                                        )
                                     with col3:
-                                        risk_level = "🟢 LOW" if avg_risk < 0.3 else "🟡 MEDIUM" if avg_risk < 0.7 else "🔴 HIGH"
+                                        risk_level = (
+                                            "🟢 LOW"
+                                            if avg_risk < 0.3
+                                            else (
+                                                "🟡 MEDIUM"
+                                                if avg_risk < 0.7
+                                                else "🔴 HIGH"
+                                            )
+                                        )
                                         st.metric("Risk Level", risk_level)
                             else:
-                                st.error("❌ Enhanced analysis failed. Check the logs for details.")
+                                st.error(
+                                    "❌ Enhanced analysis failed. Check the logs for details."
+                                )
                         else:
-                            st.warning("Please select at least one symbol for enhanced analysis.")
-                            
+                            st.warning(
+                                "Please select at least one symbol for enhanced analysis."
+                            )
+
                     except Exception as e:
                         st.error(f"❌ Enhanced analysis error: {str(e)}")
-            
-            st.info("💡 **Enhanced Features Include**: Advanced sentiment analysis, market regime detection, volatility scoring, and composite risk indicators!")
-        
+
+            st.info(
+                "💡 **Enhanced Features Include**: Advanced sentiment analysis, market regime detection, volatility scoring, and composite risk indicators!"
+            )
+
         # Risk distribution and insights
         if "Risk_Label" in df.columns:
             col1, col2 = st.columns(2)
@@ -1635,7 +1690,9 @@ def main():
                                 news_with_sentiment, df
                             )
                             if sentiment_chart:
-                                st.plotly_chart(sentiment_chart, use_container_width=True)
+                                st.plotly_chart(
+                                    sentiment_chart, use_container_width=True
+                                )
 
                             # Sentiment by symbol with explanations
                             st.subheader("📊 Sentiment Breakdown by Company")
@@ -1677,7 +1734,9 @@ def main():
                                 "Avg_Sentiment"
                             ].apply(interpret_sentiment)
 
-                            _render_dataframe(symbol_sentiment, use_container_width=True)
+                            _render_dataframe(
+                                symbol_sentiment, use_container_width=True
+                            )
 
                             # Investment implications
                             st.subheader("💡 What This Means for Your Investments")

@@ -155,7 +155,10 @@ class RiskVisualizer:
         return visualization_paths
 
     def plot_risk_timeline_interactive(
-        self, df: pd.DataFrame, symbols: List[str], predictions_df: Optional[pd.DataFrame] = None
+        self,
+        df: pd.DataFrame,
+        symbols: List[str],
+        predictions_df: Optional[pd.DataFrame] = None,
     ) -> Optional[str]:
         """Create interactive risk timeline using Plotly"""
 
@@ -311,7 +314,10 @@ class RiskVisualizer:
             return None
 
     def plot_risk_timeline_static(
-        self, df: pd.DataFrame, symbols: List[str], predictions_df: Optional[pd.DataFrame] = None
+        self,
+        df: pd.DataFrame,
+        symbols: List[str],
+        predictions_df: Optional[pd.DataFrame] = None,
     ) -> Optional[str]:
         """Create static risk timeline using matplotlib"""
 
@@ -336,7 +342,7 @@ class RiskVisualizer:
                 "Market Risk Timeline Dashboard", fontsize=16, fontweight="bold"
             )
 
-            colors = plt.cm.get_cmap('tab10')(np.linspace(0, 1, len(symbols)))
+            colors = plt.cm.get_cmap("tab10")(np.linspace(0, 1, len(symbols)))
 
             for i, symbol in enumerate(symbols[:10]):
                 symbol_df = symbol_data[symbol_data["Symbol"] == symbol]
@@ -1285,9 +1291,7 @@ class RiskVisualizer:
                     alpha=0.85,
                 )
                 ax.axvline(0, color="#333", linewidth=1)
-                ax.set_title(
-                    "Local SHAP Contributions", fontsize=14, fontweight="bold"
-                )
+                ax.set_title("Local SHAP Contributions", fontsize=14, fontweight="bold")
                 ax.set_xlabel("Impact on predicted risk")
                 ax.set_ylabel("Feature")
                 fig.tight_layout()
@@ -1309,9 +1313,7 @@ class RiskVisualizer:
                 model, feature_df, sample_index, class_names=class_names
             )
         except Exception as exc:  # pragma: no cover - defensive
-            self.logger.error(
-                f"Error computing LIME explanation: {exc}", exc_info=True
-            )
+            self.logger.error(f"Error computing LIME explanation: {exc}", exc_info=True)
             lime_explanation = None
 
         if lime_explanation is not None and not lime_explanation.empty:
@@ -1330,15 +1332,11 @@ class RiskVisualizer:
                     alpha=0.85,
                 )
                 ax.axvline(0, color="#333", linewidth=1)
-                ax.set_title(
-                    "LIME Local Explanation", fontsize=14, fontweight="bold"
-                )
+                ax.set_title("LIME Local Explanation", fontsize=14, fontweight="bold")
                 ax.set_xlabel("Weight toward predicted class")
                 ax.set_ylabel("Feature")
                 fig.tight_layout()
-                lime_path = os.path.join(
-                    self.output_dir, "explainability_lime.png"
-                )
+                lime_path = os.path.join(self.output_dir, "explainability_lime.png")
                 fig.savefig(lime_path, dpi=300, bbox_inches="tight")
                 plt_module.close(fig)
             else:
@@ -1354,8 +1352,6 @@ class RiskVisualizer:
                 "Explainability artifacts could not be generated; check optional dependencies"
             )
         else:
-            self.logger.info(
-                "Created %s explainability artifacts", len(outputs)
-            )
+            self.logger.info("Created %s explainability artifacts", len(outputs))
 
         return outputs

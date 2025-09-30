@@ -327,7 +327,9 @@ class RiskPredictor:
         try:
             from sklearn.metrics import fbeta_score
         except ImportError as exc:
-            raise ImportError("scikit-learn is required for threshold optimization") from exc
+            raise ImportError(
+                "scikit-learn is required for threshold optimization"
+            ) from exc
 
         thresholds = np.linspace(0.05, 0.95, 181)
         best_threshold = 0.5
@@ -671,9 +673,7 @@ class RiskPredictor:
             self.feature_importance["svm"] = {}
 
         # Evaluate SVM with optimized threshold
-        svm_train_probabilities = self.models["svm"].predict_proba(X_train_scaled)[
-            :, 1
-        ]
+        svm_train_probabilities = self.models["svm"].predict_proba(X_train_scaled)[:, 1]
         svm_probabilities = self.models["svm"].predict_proba(X_test_scaled)[:, 1]
         svm_threshold, svm_fbeta = self._optimize_threshold(y_test, svm_probabilities)
         self.thresholds["svm"] = svm_threshold
@@ -750,7 +750,9 @@ class RiskPredictor:
         )
         normalized_weights = weight_values / weight_values.sum()
 
-        stacked_probabilities = np.vstack([component[2] for component in ensemble_components])
+        stacked_probabilities = np.vstack(
+            [component[2] for component in ensemble_components]
+        )
         ensemble_probabilities = np.average(
             stacked_probabilities, axis=0, weights=normalized_weights
         )
@@ -907,7 +909,9 @@ class RiskPredictor:
                     and "logistic_regression" in self.models
                 ):
                     if logistic_scaled is None:
-                        logistic_scaled = self.scalers["logistic_regression"].transform(X)
+                        logistic_scaled = self.scalers["logistic_regression"].transform(
+                            X
+                        )
                     prob = self.models["logistic_regression"].predict_proba(
                         logistic_scaled
                     )[:, 1]

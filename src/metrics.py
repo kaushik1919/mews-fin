@@ -98,21 +98,15 @@ def compute_cews_score(
     working_df["detected_event"] = working_df["event"] & (
         working_df["alert_rolling"] == 1
     )
-    working_df["false_alarm"] = working_df["alert"] & (
-        working_df["future_event"] == 0
-    )
+    working_df["false_alarm"] = working_df["alert"] & (working_df["future_event"] == 0)
 
     total_events = float(working_df["event"].sum())
     detected_events = float(working_df["detected_event"].sum())
     positive_alerts = float(working_df["alert"].sum())
     false_alarms = float(working_df["false_alarm"].sum())
 
-    early_detection_reward = (
-        detected_events / total_events if total_events > 0 else 0.0
-    )
-    false_alarm_penalty = (
-        false_alarms / positive_alerts if positive_alerts > 0 else 0.0
-    )
+    early_detection_reward = detected_events / total_events if total_events > 0 else 0.0
+    false_alarm_penalty = false_alarms / positive_alerts if positive_alerts > 0 else 0.0
 
     raw_score = early_detection_reward - false_alarm_penalty
     score = float(np.clip(raw_score, 0.0, 1.0))
