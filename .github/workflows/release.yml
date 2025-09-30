@@ -13,7 +13,7 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
     
@@ -25,32 +25,23 @@ jobs:
     - name: Build package
       run: python -m build
     
+    - name: Archive distribution files
+      run: |
+        cd dist && zip -r ../mews-fin-dist.zip .
+    
     - name: Create GitHub Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
+        name: Release ${{ github.ref_name }}
         body: |
           Changes in this Release
           - Bug fixes and improvements
           - Enhanced CI/CD pipeline
           - Updated dependencies
+        files: |
+          mews-fin-dist.zip
+          dist/*
         draft: false
         prerelease: false
-    
-    - name: Archive distribution files
-      run: |
-        cd dist && zip -r ../mews-fin-dist.zip .
-    
-    - name: Upload Release Assets
-      uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./mews-fin-dist.zip
-        asset_name: mews-fin-dist.zip
-        asset_content_type: application/zip
