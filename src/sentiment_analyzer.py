@@ -372,7 +372,7 @@ class SentimentAnalyzer:
         return df
 
     def aggregate_sentiment_by_date(
-        self, news_df: pd.DataFrame, sec_df: pd.DataFrame = None
+        self, news_df: pd.DataFrame, sec_df: Optional[pd.DataFrame] = None
     ) -> pd.DataFrame:
         """
         Aggregate sentiment scores by date and symbol

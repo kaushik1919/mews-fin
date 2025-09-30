@@ -20,7 +20,7 @@ import requests
 class NewsDataCollector:
     """Collects news data from various free APIs"""
 
-    def __init__(self, gnews_api_key: str = None, news_api_key: str = None):
+    def __init__(self, gnews_api_key: Optional[str] = None, news_api_key: Optional[str] = None):
         self.gnews_api_key = gnews_api_key
         self.news_api_key = news_api_key
         self.logger = logging.getLogger(__name__)
@@ -240,7 +240,7 @@ class NewsDataCollector:
         return articles
 
     def fetch_reddit_mentions(
-        self, symbol: str, company_name: str, subreddits: List[str] = None
+        self, symbol: str, company_name: str, subreddits: Optional[List[str]] = None
     ) -> List[Dict]:
         """
         Fetch Reddit mentions (using free Reddit API)

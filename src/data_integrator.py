@@ -24,9 +24,9 @@ class DataIntegrator:
     def integrate_all_data(
         self,
         stock_df: pd.DataFrame,
-        news_df: pd.DataFrame = None,
-        sec_df: pd.DataFrame = None,
-        sentiment_df: pd.DataFrame = None,
+        news_df: Optional[pd.DataFrame] = None,
+        sec_df: Optional[pd.DataFrame] = None,
+        sentiment_df: Optional[pd.DataFrame] = None,
     ) -> pd.DataFrame:
         """
         Integrate all data sources into a unified dataset
@@ -505,7 +505,7 @@ class DataIntegrator:
         Returns:
             Dictionary with feature groups
         """
-        feature_groups = {
+        feature_groups: Dict[str, List[str]] = {
             "price_features": [],
             "volume_features": [],
             "technical_indicators": [],

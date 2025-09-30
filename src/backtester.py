@@ -54,7 +54,7 @@ class RiskBacktester:
     def run_comprehensive_backtest(
         self,
         df: pd.DataFrame,
-        predictions_df: pd.DataFrame = None,
+        predictions_df: Optional[pd.DataFrame] = None,
         start_date: str = "2019-01-01",
         end_date: str = "2023-12-31",
     ) -> Dict[str, Any]:
@@ -206,7 +206,7 @@ class RiskBacktester:
         return summary
 
     def _analyze_market_events(
-        self, df: pd.DataFrame, predictions_df: pd.DataFrame = None
+        self, df: pd.DataFrame, predictions_df: Optional[pd.DataFrame] = None
     ) -> Dict[str, Any]:
         """Analyze system performance during major market events"""
 

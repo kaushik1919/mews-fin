@@ -19,7 +19,7 @@ import yfinance as yf
 class StockDataFetcher:
     """Fetches stock data from Yahoo Finance and Alpha Vantage"""
 
-    def __init__(self, alpha_vantage_key: str = None):
+    def __init__(self, alpha_vantage_key: Optional[str] = None):
         self.alpha_vantage_key = alpha_vantage_key
         self.logger = logging.getLogger(__name__)
         self.rate_limit_delay = (

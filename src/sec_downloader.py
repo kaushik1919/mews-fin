@@ -169,7 +169,7 @@ class SECFilingsDownloader:
             return None
 
     def extract_sections(
-        self, filing_content: str, sections: List[str] = None
+        self, filing_content: str, sections: Optional[List[str]] = None
     ) -> Dict[str, str]:
         """
         Extract specific sections from SEC filing
@@ -232,7 +232,7 @@ class SECFilingsDownloader:
             if not extracted:
                 lines = text.split("\n")
                 current_section = None
-                section_content = []
+                section_content: List[str] = []
 
                 for line in lines:
                     line = line.strip()

@@ -18,7 +18,7 @@ warnings.filterwarnings("ignore")
 class RiskVisualizer:
     """Creates visualizations for market risk analysis"""
 
-    def __init__(self, output_dir: str = None):
+    def __init__(self, output_dir: Optional[str] = None):
         self.logger = logging.getLogger(__name__)
         self.output_dir = output_dir or "outputs/visualizations"
         os.makedirs(self.output_dir, exist_ok=True)
@@ -55,8 +55,8 @@ class RiskVisualizer:
     def create_risk_dashboard(
         self,
         df: pd.DataFrame,
-        symbols: List[str] = None,
-        predictions_df: pd.DataFrame = None,
+        symbols: Optional[List[str]] = None,
+        predictions_df: Optional[pd.DataFrame] = None,
     ) -> Dict[str, str]:
         """
         Create comprehensive risk dashboard
@@ -126,7 +126,7 @@ class RiskVisualizer:
         return visualization_paths
 
     def plot_risk_timeline_interactive(
-        self, df: pd.DataFrame, symbols: List[str], predictions_df: pd.DataFrame = None
+        self, df: pd.DataFrame, symbols: List[str], predictions_df: Optional[pd.DataFrame] = None
     ) -> Optional[str]:
         """Create interactive risk timeline using Plotly"""
 
@@ -282,7 +282,7 @@ class RiskVisualizer:
             return None
 
     def plot_risk_timeline_static(
-        self, df: pd.DataFrame, symbols: List[str], predictions_df: pd.DataFrame = None
+        self, df: pd.DataFrame, symbols: List[str], predictions_df: Optional[pd.DataFrame] = None
     ) -> Optional[str]:
         """Create static risk timeline using matplotlib"""
 
@@ -307,7 +307,7 @@ class RiskVisualizer:
                 "Market Risk Timeline Dashboard", fontsize=16, fontweight="bold"
             )
 
-            colors = plt.cm.tab10(np.linspace(0, 1, len(symbols)))
+            colors = plt.cm.get_cmap('tab10')(np.linspace(0, 1, len(symbols)))
 
             for i, symbol in enumerate(symbols[:10]):
                 symbol_df = symbol_data[symbol_data["Symbol"] == symbol]
@@ -527,7 +527,7 @@ class RiskVisualizer:
             return None
 
     def plot_feature_importance(
-        self, df: pd.DataFrame, feature_importance: Dict[str, float] = None
+        self, df: pd.DataFrame, feature_importance: Optional[Dict[str, float]] = None
     ) -> Optional[str]:
         """Plot feature importance from models"""
 

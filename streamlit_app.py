@@ -678,7 +678,8 @@ def main():
         # Model comparison chart
         comparison_fig = create_model_comparison_chart(results)
         if comparison_fig:
-            st.plotly_chart(comparison_fig, width="stretch")
+            config = {'displayModeBar': False}
+            st.plotly_chart(comparison_fig, width='stretch', config=config)
 
         # Model details table
         st.subheader("Detailed Model Results")
@@ -696,7 +697,7 @@ def main():
                 )
 
         if model_data:
-            st.dataframe(pd.DataFrame(model_data), width="stretch")
+            st.dataframe(pd.DataFrame(model_data), width='stretch')
 
     with tab2:
         st.subheader("📈 What Drives Market Risk? (Plain English)")
@@ -708,7 +709,8 @@ def main():
         # Feature importance chart
         importance_fig = create_feature_importance_chart(results)
         if importance_fig:
-            st.plotly_chart(importance_fig, width="stretch")
+            config = {'displayModeBar': False}
+            st.plotly_chart(importance_fig, width='stretch', config=config)
 
             # Add explanations
             st.subheader("🧠 What Do These Factors Mean?")
@@ -760,7 +762,7 @@ def main():
 
             fig.update_layout(title="🔗 Market Factor Relationships", height=600)
 
-            st.plotly_chart(fig, width="stretch")
+            st.plotly_chart(fig, width='stretch')
 
             with st.expander("❓ How to Read This Chart"):
                 st.write("• **Dark Red (+1.0)**: Factors move perfectly together")
@@ -781,7 +783,9 @@ def main():
         # Risk timeline
         timeline_fig = create_risk_timeline(df)
         if timeline_fig:
-            st.plotly_chart(timeline_fig, width="stretch")
+            # Configure plotly for better display
+            config = {'displayModeBar': False}
+            st.plotly_chart(timeline_fig, width='stretch', config=config)
 
             # Add explanations
             with st.expander("🧠 How to Read This Chart"):
@@ -887,7 +891,7 @@ def main():
                         "Risky Days 🔴": "#dc3545",
                     },
                 )
-                st.plotly_chart(fig, width="stretch")
+                st.plotly_chart(fig, width='stretch')
 
             with col2:
                 st.subheader("📊 Risk Statistics")
@@ -1071,7 +1075,7 @@ def main():
                                 news_with_sentiment, df
                             )
                             if sentiment_chart:
-                                st.plotly_chart(sentiment_chart, width="stretch")
+                                st.plotly_chart(sentiment_chart, width='stretch')
 
                             # Sentiment by symbol with explanations
                             st.subheader("📊 Sentiment Breakdown by Company")
@@ -1113,7 +1117,7 @@ def main():
                                 "Avg_Sentiment"
                             ].apply(interpret_sentiment)
 
-                            st.dataframe(symbol_sentiment, width="stretch")
+                            st.dataframe(symbol_sentiment, width='stretch')
 
                             # Investment implications
                             st.subheader("💡 What This Means for Your Investments")
@@ -1223,11 +1227,11 @@ def main():
 
         # Data preview
         st.subheader("Dataset Preview")
-        st.dataframe(df.head(100), width="stretch")
+        st.dataframe(df.head(100), width='stretch')
 
         # Data statistics
         st.subheader("Statistical Summary")
-        st.dataframe(df.describe(), width="stretch")
+        st.dataframe(df.describe(), width='stretch')
 
     with tab6:
         st.subheader("Model Configuration Details")
@@ -1245,7 +1249,7 @@ def main():
                     report_df = pd.DataFrame(
                         metrics["classification_report"]
                     ).transpose()
-                    st.dataframe(report_df, width="stretch")
+                    st.dataframe(report_df, width='stretch')
 
                 st.divider()
 

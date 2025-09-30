@@ -53,28 +53,44 @@ class EnhancedRiskAnalyzer:
 
     def _create_sentiment_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """Create advanced sentiment-based features"""
+        
+        # Find available sentiment columns
+        sentiment_cols = [col for col in df.columns if 'sentiment' in col.lower()]
+        news_sentiment_col = None
+        sec_sentiment_col = None
+        
+        # Try to identify news and SEC sentiment columns
+        for col in sentiment_cols:
+            if 'news' in col.lower() or 'title' in col.lower():
+                news_sentiment_col = col
+            elif 'sec' in col.lower() or 'filing' in col.lower():
+                sec_sentiment_col = col
+        
+        # If no specific columns found, use any sentiment column
+        if not news_sentiment_col and sentiment_cols:
+            news_sentiment_col = sentiment_cols[0]
 
         # Sentiment momentum (rate of change)
-        if "news_sentiment_mean" in df.columns:
+        if news_sentiment_col and news_sentiment_col in df.columns:
             df["sentiment_momentum_1d"] = df.groupby("Symbol")[
-                "news_sentiment_mean"
+                news_sentiment_col
             ].pct_change(1)
             df["sentiment_momentum_3d"] = df.groupby("Symbol")[
-                "news_sentiment_mean"
+                news_sentiment_col
             ].pct_change(3)
             df["sentiment_momentum_7d"] = df.groupby("Symbol")[
-                "news_sentiment_mean"
+                news_sentiment_col
             ].pct_change(7)
 
             # Sentiment volatility
             df["sentiment_volatility_7d"] = (
-                df.groupby("Symbol")["news_sentiment_mean"]
+                df.groupby("Symbol")[news_sentiment_col]
                 .rolling(7)
                 .std()
                 .reset_index(0, drop=True)
             )
             df["sentiment_volatility_30d"] = (
-                df.groupby("Symbol")["news_sentiment_mean"]
+                df.groupby("Symbol")[news_sentiment_col]
                 .rolling(30)
                 .std()
                 .reset_index(0, drop=True)
@@ -82,24 +98,24 @@ class EnhancedRiskAnalyzer:
 
             # Sentiment extremes
             df["sentiment_extreme_positive"] = (
-                df["news_sentiment_mean"]
-                > df.groupby("Symbol")["news_sentiment_mean"]
+                df[news_sentiment_col]
+                > df.groupby("Symbol")[news_sentiment_col]
                 .rolling(30)
                 .quantile(0.9)
                 .reset_index(0, drop=True)
             ).astype(int)
             df["sentiment_extreme_negative"] = (
-                df["news_sentiment_mean"]
-                < df.groupby("Symbol")["news_sentiment_mean"]
+                df[news_sentiment_col]
+                < df.groupby("Symbol")[news_sentiment_col]
                 .rolling(30)
                 .quantile(0.1)
                 .reset_index(0, drop=True)
             ).astype(int)
 
         # SEC filing sentiment features
-        if "sec_sentiment_mean" in df.columns:
+        if sec_sentiment_col and sec_sentiment_col in df.columns:
             df["sec_sentiment_trend_30d"] = (
-                df.groupby("Symbol")["sec_sentiment_mean"]
+                df.groupby("Symbol")[sec_sentiment_col]
                 .rolling(30)
                 .apply(
                     lambda x: np.polyfit(range(len(x)), x, 1)[0] if len(x) > 1 else 0
@@ -108,14 +124,14 @@ class EnhancedRiskAnalyzer:
             )
 
             # Combined sentiment score with weighting
-            if "news_sentiment_mean" in df.columns:
+            if news_sentiment_col and news_sentiment_col in df.columns:
                 df["combined_sentiment_weighted"] = (
-                    0.7 * df["news_sentiment_mean"] + 0.3 * df["sec_sentiment_mean"]
+                    0.7 * df[news_sentiment_col] + 0.3 * df[sec_sentiment_col]
                 )
 
                 # Sentiment divergence (when news and SEC sentiment disagree)
                 df["sentiment_divergence"] = abs(
-                    df["news_sentiment_mean"] - df["sec_sentiment_mean"]
+                    df[news_sentiment_col] - df[sec_sentiment_col]
                 )
 
         return df
@@ -243,11 +259,23 @@ class EnhancedRiskAnalyzer:
 
     def _create_cross_asset_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """Create features based on cross-asset relationships"""
+        
+        # Find available sentiment columns again
+        sentiment_cols = [col for col in df.columns if 'sentiment' in col.lower()]
+        news_sentiment_col = None
+        
+        for col in sentiment_cols:
+            if 'news' in col.lower() or 'title' in col.lower():
+                news_sentiment_col = col
+                break
+        
+        if not news_sentiment_col and sentiment_cols:
+            news_sentiment_col = sentiment_cols[0]
 
-        if "Symbol" in df.columns and len(df["Symbol"].unique()) > 1:
+        if "Symbol" in df.columns and len(df["Symbol"].unique()) > 1 and news_sentiment_col:
             # Market-wide sentiment average
             market_sentiment = (
-                df.groupby("Date")["news_sentiment_mean"].mean().reset_index()
+                df.groupby("Date")[news_sentiment_col].mean().reset_index()
             )
             market_sentiment.columns = ["Date", "market_sentiment_avg"]
             df = df.merge(market_sentiment, on="Date", how="left")
@@ -255,7 +283,7 @@ class EnhancedRiskAnalyzer:
             # Relative sentiment (vs market)
             if "market_sentiment_avg" in df.columns:
                 df["relative_sentiment"] = (
-                    df["news_sentiment_mean"] - df["market_sentiment_avg"]
+                    df[news_sentiment_col] - df["market_sentiment_avg"]
                 )
 
             # Sector-specific features (if sector info available)
@@ -267,24 +295,37 @@ class EnhancedRiskAnalyzer:
         """Create time-based features"""
 
         if "Date" in df.columns:
-            df["Date"] = pd.to_datetime(df["Date"])
+            try:
+                # Ensure Date column is datetime
+                if not pd.api.types.is_datetime64_any_dtype(df["Date"]):
+                    df["Date"] = pd.to_datetime(df["Date"], errors='coerce')
+                
+                # Remove any rows with invalid dates
+                df = df.dropna(subset=["Date"])
+                
+                if df.empty:
+                    return df
 
-            # Day of week effect
-            df["day_of_week"] = df["Date"].dt.dayofweek
-            df["is_monday"] = (df["day_of_week"] == 0).astype(int)
-            df["is_friday"] = (df["day_of_week"] == 4).astype(int)
+                # Day of week effect
+                df["day_of_week"] = df["Date"].dt.dayofweek
+                df["is_monday"] = (df["day_of_week"] == 0).astype(int)
+                df["is_friday"] = (df["day_of_week"] == 4).astype(int)
 
-            # Month effect
-            df["month"] = df["Date"].dt.month
-            df["is_january"] = (df["month"] == 1).astype(int)
-            df["is_december"] = (df["month"] == 12).astype(int)
+                # Month effect
+                df["month"] = df["Date"].dt.month
+                df["is_january"] = (df["month"] == 1).astype(int)
+                df["is_december"] = (df["month"] == 12).astype(int)
 
-            # Earnings season approximation (rough quarters)
-            df["earnings_season"] = df["month"].isin([1, 4, 7, 10]).astype(int)
+                # Earnings season approximation (rough quarters)
+                df["earnings_season"] = df["month"].isin([1, 4, 7, 10]).astype(int)
 
-            # Days to month end
-            df["days_to_month_end"] = df["Date"].dt.days_in_month - df["Date"].dt.day
-            df["end_of_month"] = (df["days_to_month_end"] <= 3).astype(int)
+                # Days to month end
+                df["days_to_month_end"] = df["Date"].dt.days_in_month - df["Date"].dt.day
+                df["end_of_month"] = (df["days_to_month_end"] <= 3).astype(int)
+                
+            except Exception as e:
+                print(f"Warning: Could not create time-based features: {str(e)}")
+                # Continue without time-based features
 
         return df
 

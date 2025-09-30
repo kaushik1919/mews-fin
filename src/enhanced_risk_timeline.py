@@ -18,7 +18,7 @@ warnings.filterwarnings("ignore")
 class EnhancedRiskTimelineVisualizer:
     """Creates optimized interactive risk timeline visualizations"""
 
-    def __init__(self, output_dir: str = None):
+    def __init__(self, output_dir: Optional[str] = None):
         self.logger = logging.getLogger(__name__)
         self.output_dir = output_dir or "outputs"
         os.makedirs(self.output_dir, exist_ok=True)
@@ -42,8 +42,8 @@ class EnhancedRiskTimelineVisualizer:
     def create_enhanced_risk_timeline(
         self,
         df: pd.DataFrame,
-        symbols: List[str] = None,
-        predictions_df: pd.DataFrame = None,
+        symbols: Optional[List[str]] = None,
+        predictions_df: Optional[pd.DataFrame] = None,
         show_confidence_bands: bool = True,
         show_regime_changes: bool = True,
     ) -> Optional[str]:
@@ -510,7 +510,7 @@ class EnhancedRiskTimelineVisualizer:
         )
 
     def create_risk_summary_dashboard(
-        self, df: pd.DataFrame, symbols: List[str] = None
+        self, df: pd.DataFrame, symbols: Optional[List[str]] = None
     ) -> Optional[str]:
         """
         Create a summary dashboard with key risk metrics

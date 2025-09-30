@@ -54,7 +54,7 @@ class RiskPredictor:
     def prepare_modeling_data(
         self,
         df: pd.DataFrame,
-        feature_groups: Dict[str, List[str]] = None,
+        feature_groups: Optional[Dict[str, List[str]]] = None,
         target_col: str = "Risk_Label",
     ) -> Tuple[pd.DataFrame, np.ndarray, List[str]]:
         """
@@ -529,7 +529,7 @@ class RiskPredictor:
             results_file = os.path.join("data", "model_results.json")
 
             # Convert numpy arrays to lists for JSON serialization
-            json_results = {}
+            json_results: Dict[str, Any] = {}
             for model_name, metrics in results.items():
                 if isinstance(metrics, dict):
                     json_results[model_name] = {}
@@ -653,7 +653,7 @@ class RiskPredictor:
                 f"Unknown model type: {model_type}. Available: {list(self.models.keys())}"
             )
 
-    def save_models(self, timestamp: str = None) -> str:
+    def save_models(self, timestamp: Optional[str] = None) -> str:
         """Save trained models, scalers, and results to disk"""
         if timestamp is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -675,7 +675,7 @@ class RiskPredictor:
 
         # Save feature importance (convert numpy types to native Python types)
         importance_file = os.path.join(save_dir, "feature_importance.json")
-        importance_serializable = {}
+        importance_serializable: Dict[str, Any] = {}
         for model_name, importance_dict in self.feature_importance.items():
             importance_serializable[model_name] = {}
             for feature, value in importance_dict.items():
@@ -828,70 +828,3 @@ class RiskPredictor:
         )
 
         return data
-
-    def load_models(self, model_dir: str):
-        """Load trained models and metadata"""
-
-        # Load models
-        model_files = {
-            "random_forest": "random_forest_model.pkl",
-            "logistic_regression": "logistic_regression_model.pkl",
-        }
-
-        for model_name, filename in model_files.items():
-            model_path = os.path.join(model_dir, filename)
-            if os.path.exists(model_path):
-                with open(model_path, "rb") as f:
-                    self.models[model_name] = pickle.load(f)
-                self.logger.info(f"Loaded {model_name} model")
-
-        # Load scalers
-        scaler_files = {"logistic_regression": "logistic_regression_scaler.pkl"}
-
-        for scaler_name, filename in scaler_files.items():
-            scaler_path = os.path.join(model_dir, filename)
-            if os.path.exists(scaler_path):
-                with open(scaler_path, "rb") as f:
-                    self.scalers[scaler_name] = pickle.load(f)
-                self.logger.info(f"Loaded {scaler_name} scaler")
-
-        # Load feature importance
-        importance_path = os.path.join(model_dir, "feature_importance.json")
-        if os.path.exists(importance_path):
-            with open(importance_path, "r") as f:
-                self.feature_importance = json.load(f)
-
-        # Load model metrics
-        metrics_path = os.path.join(model_dir, "model_metrics.json")
-        if os.path.exists(metrics_path):
-            with open(metrics_path, "r") as f:
-                self.model_metrics = json.load(f)
-
-        self.logger.info(f"Loaded models from {model_dir}")
-
-    def get_model_summary(self) -> Dict[str, Any]:
-        """Get summary of trained models"""
-
-        summary = {
-            "models_trained": list(self.models.keys()),
-            "scalers_available": list(self.scalers.keys()),
-            "performance_metrics": {},
-        }
-
-        for model_name in self.models.keys():
-            if model_name in self.model_metrics:
-                metrics = self.model_metrics[model_name]
-                summary["performance_metrics"][model_name] = {
-                    "test_accuracy": metrics.get("test_accuracy", 0),
-                    "auc_score": metrics.get("auc_score", 0),
-                }
-
-        # Add ensemble metrics if available
-        if "ensemble" in self.model_metrics:
-            ensemble_metrics = self.model_metrics["ensemble"]
-            summary["performance_metrics"]["ensemble"] = {
-                "test_accuracy": ensemble_metrics.get("test_accuracy", 0),
-                "auc_score": ensemble_metrics.get("auc_score", 0),
-            }
-
-        return summary
