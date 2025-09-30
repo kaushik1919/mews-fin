@@ -45,7 +45,23 @@ def compute_global_shap_importance(
 
     explainer = shap.Explainer(model.predict_proba, X, feature_names=X.columns)
     shap_values = explainer(X)
-    importance = np.abs(shap_values.values).mean(axis=0)
+    values = shap_values.values
+
+    feature_count = X.shape[1]
+
+    if values.ndim == 3:
+        if values.shape[1] == feature_count:  # (samples, features, outputs)
+            importance = np.abs(values).mean(axis=(0, 2))
+        elif values.shape[2] == feature_count:  # (samples, outputs, features)
+            importance = np.abs(values).mean(axis=(0, 1))
+        else:
+            reshaped = values.reshape(values.shape[0], -1, feature_count)
+            importance = np.abs(reshaped).mean(axis=(0, 1))
+    else:
+        importance = np.abs(values).mean(axis=0)
+
+    if importance.ndim > 1:
+        importance = importance.reshape(-1)
     summary = (
         pd.DataFrame({"feature": X.columns, "importance": importance})
         .sort_values("importance", ascending=False)
@@ -72,12 +88,30 @@ def compute_local_shap_explanation(
     explainer = shap.Explainer(model.predict_proba, X, feature_names=X.columns)
     shap_values = explainer(X.iloc[[index]])
     values = shap_values.values[0]
+
+    feature_count = X.shape[1]
+
+    if values.ndim == 2:
+        if values.shape[0] == feature_count:
+            values = values.mean(axis=1)
+        elif values.shape[1] == feature_count:
+            values = values.mean(axis=0)
+        else:
+            values = values.reshape(-1, feature_count).mean(axis=0)
+
+    if values.ndim > 1:
+        values = values.reshape(-1)
+
+    base = shap_values.base_values[0]
+    if np.ndim(base) > 0:
+        base = float(np.array(base).mean())
+
     contribution = pd.DataFrame(
         {
             "feature": X.columns,
             "shap_value": values,
             "abs_shap": np.abs(values),
-            "base_value": shap_values.base_values[0],
+            "base_value": base,
         }
     ).sort_values("abs_shap", ascending=False)
     return contribution

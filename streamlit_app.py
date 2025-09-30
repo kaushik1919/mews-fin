@@ -9,7 +9,7 @@ import pickle
 import warnings
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Iterable, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -512,14 +512,24 @@ def load_latest_model(model_name: str = "random_forest") -> Optional[object]:
 
 @st.cache_data(show_spinner=False)
 def prepare_feature_matrix(
-    df: pd.DataFrame, target_column: str = "Risk_Label"
+    df: pd.DataFrame,
+    target_column: str = "Risk_Label",
+    feature_order: Optional[Iterable[str]] = None,
 ) -> pd.DataFrame:
-    """Prepare numeric feature matrix for explainability analyses."""
+    """Prepare numeric feature matrix aligned to the trained model's features."""
 
-    features = df.select_dtypes(include=[np.number]).copy()
-    if target_column in features.columns:
-        features = features.drop(columns=[target_column])
-    return features.fillna(0)
+    numeric_features = df.select_dtypes(include=[np.number]).copy()
+    if target_column in numeric_features.columns:
+        numeric_features = numeric_features.drop(columns=[target_column])
+
+    numeric_features = numeric_features.fillna(0)
+
+    if feature_order is None:
+        return numeric_features
+
+    ordered_columns = list(feature_order)
+    ordered = numeric_features.reindex(columns=ordered_columns, fill_value=0.0)
+    return ordered
 
 
 def get_test_predictions(results: Dict[str, Any]) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
@@ -938,8 +948,27 @@ def main():
 
     with tab_explainability:
         st.subheader("Explainability Studio (SHAP & LIME)")
+        st.info(
+            "This area breaks down WHY the model thinks conditions are risky. "
+            "The big blue chart summarizes the top ingredients driving the model across your sample, "
+            "while the two smaller bar charts explain a single day for a single ticker—showing which signals pushed the call toward risk (blue/green) or toward stability (red). "
+            "Use the sample-size slider to choose how much history to summarize: larger samples smooth noise, smaller ones highlight the latest moves."
+        )
         model = load_latest_model()
-        feature_matrix = prepare_feature_matrix(df)
+
+        feature_order: Optional[Iterable[str]] = None
+        if model is not None:
+            feature_names_attr = getattr(model, "feature_names_in_", None)
+            if feature_names_attr is not None:
+                feature_order = list(feature_names_attr)
+            elif isinstance(results.get("random_forest"), dict):
+                importance = results["random_forest"].get("feature_importance")
+                if isinstance(importance, dict):
+                    feature_order = list(importance.keys())
+
+        feature_matrix = prepare_feature_matrix(
+            df, feature_order=feature_order
+        )
 
         if model is None:
             st.warning(
@@ -1086,6 +1115,16 @@ def main():
         st.info(
             "This view highlights fused tabular, news, and graph features alongside the Crisis Early Warning Score (CEWS)."
         )
+        st.markdown(
+            """
+            **In plain terms:** we blend classic market stats, news mood, and network-style signals into a single early-warning dashboard.
+
+            • **CEWS Score (0→1)** – your headline risk gauge; values above ~0.7 mean “high alert.”  
+            • **Early Detection Reward** – higher is better; shows how often we caught danger before it hit.  
+            • **False Alarm Penalty** – lower is better; tells you if we’re crying wolf.  
+            • Watch the three lines on the timeline: when the blue CEWS line climbs and stays above the green reward line while the red penalty line remains low, the system is confident about rising risk.
+            """
+        )
 
         def _preview_columns(title: str, candidates: list[str]) -> None:
             subset = [col for col in candidates if col in df.columns]
@@ -1210,8 +1249,8 @@ def main():
         # Feature importance chart
         importance_fig = create_feature_importance_chart(results)
         if importance_fig:
-            config = {'displayModeBar': False}
-            st.plotly_chart(importance_fig, width='stretch', config=config)
+            config = {"displayModeBar": False}
+            st.plotly_chart(importance_fig, use_container_width=True, config=config)
 
             # Add explanations
             st.subheader("🧠 What Do These Factors Mean?")
@@ -1263,7 +1302,7 @@ def main():
 
             fig.update_layout(title="🔗 Market Factor Relationships", height=600)
 
-            st.plotly_chart(fig, width='stretch')
+            st.plotly_chart(fig, use_container_width=True)
 
             with st.expander("❓ How to Read This Chart"):
                 st.write("• **Dark Red (+1.0)**: Factors move perfectly together")
@@ -1285,8 +1324,8 @@ def main():
         timeline_fig = create_risk_timeline(df)
         if timeline_fig:
             # Configure plotly for better display
-            config = {'displayModeBar': False}
-            st.plotly_chart(timeline_fig, width='stretch', config=config)
+            config = {"displayModeBar": False}
+            st.plotly_chart(timeline_fig, use_container_width=True, config=config)
 
             # Add explanations
             with st.expander("🧠 How to Read This Chart"):
@@ -1392,7 +1431,7 @@ def main():
                         "Risky Days 🔴": "#dc3545",
                     },
                 )
-                st.plotly_chart(fig, width='stretch')
+                st.plotly_chart(fig, use_container_width=True)
 
             with col2:
                 st.subheader("📊 Risk Statistics")
@@ -1575,7 +1614,7 @@ def main():
                                 news_with_sentiment, df
                             )
                             if sentiment_chart:
-                                st.plotly_chart(sentiment_chart, width='stretch')
+                                st.plotly_chart(sentiment_chart, use_container_width=True)
 
                             # Sentiment by symbol with explanations
                             st.subheader("📊 Sentiment Breakdown by Company")
@@ -1617,7 +1656,7 @@ def main():
                                 "Avg_Sentiment"
                             ].apply(interpret_sentiment)
 
-                            _render_dataframe(symbol_sentiment, width='stretch')
+                            _render_dataframe(symbol_sentiment, use_container_width=True)
 
                             # Investment implications
                             st.subheader("💡 What This Means for Your Investments")
@@ -1729,11 +1768,11 @@ def main():
 
         # Data preview
         st.subheader("Dataset Preview")
-        _render_dataframe(df.head(100), width="stretch")
+        _render_dataframe(df.head(100), use_container_width=True)
 
         # Data statistics
         st.subheader("Statistical Summary")
-        _render_dataframe(df.describe(), width="stretch")
+        _render_dataframe(df.describe(), use_container_width=True)
 
     with tab_model_details:
         st.subheader("Model Configuration Details")
@@ -1751,7 +1790,7 @@ def main():
                     report_df = pd.DataFrame(
                         metrics["classification_report"]
                     ).transpose()
-                    _render_dataframe(report_df, width='stretch')
+                    _render_dataframe(report_df, use_container_width=True)
 
                 st.divider()
 

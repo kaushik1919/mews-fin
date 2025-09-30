@@ -30,6 +30,10 @@ seaborn>=0.11.0
 # Web interface
 streamlit>=1.25.0
 
+# Explainability
+shap>=0.48.0
+lime>=0.2.0
+
 # Data processing
 openpyxl>=3.0.10
 python-dateutil>=2.8.2
