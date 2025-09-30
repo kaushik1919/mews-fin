@@ -9,7 +9,7 @@ import os
 import pickle
 import warnings
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -38,6 +38,168 @@ def detect_gpu():
     return gpu_info
 
 
+class MLModelTrainer:
+    """Lightweight trainer used in unit tests for rapid model experimentation."""
+
+    def __init__(self, random_state: int = 42):
+        self.random_state = random_state
+        self.logger = logging.getLogger(__name__)
+        self.models: Dict[str, Any] = {}
+        self.feature_names: List[str] = []
+
+    def prepare_features(
+        self, df: pd.DataFrame, target_column: str = "risk_label"
+    ) -> Tuple[pd.DataFrame, pd.Series]:
+        """Create numeric feature matrix and aligned target series.
+
+        Args:
+            df: Input DataFrame containing features and target.
+            target_column: Name of the binary risk label column.
+
+        Returns:
+            Tuple of (features DataFrame, target Series).
+        """
+
+        if target_column not in df.columns:
+            raise ValueError(f"Target column '{target_column}' not found in dataframe")
+
+        features = df.drop(columns=[target_column])
+        numeric_features = features.select_dtypes(include=[np.number]).copy()
+        numeric_features = numeric_features.fillna(numeric_features.median())
+
+        self.feature_names = list(numeric_features.columns)
+        target = df[target_column].astype(int)
+
+        return numeric_features, target
+
+    def _evaluate_classifier(
+        self, model: Any, X_test: pd.DataFrame, y_test: pd.Series
+    ) -> Dict[str, float]:
+        from sklearn.metrics import precision_score, recall_score, roc_auc_score
+
+        probabilities = model.predict_proba(X_test)[:, 1]
+        predictions = (probabilities >= 0.5).astype(int)
+
+        metrics = {
+            "auc": float(roc_auc_score(y_test, probabilities)),
+            "precision": float(precision_score(y_test, predictions, zero_division=0)),
+            "recall": float(recall_score(y_test, predictions, zero_division=0)),
+        }
+        return metrics
+
+    def train_models(
+        self,
+        X: pd.DataFrame,
+        y: Iterable[int],
+        test_size: float = 0.2,
+        random_state: Optional[int] = None,
+    ) -> Dict[str, Dict[str, float]]:
+        """Train fast baseline classifiers for risk prediction."""
+
+        from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.model_selection import train_test_split
+        from sklearn.pipeline import Pipeline
+        from sklearn.preprocessing import StandardScaler
+
+        if random_state is None:
+            random_state = self.random_state
+
+        y_array = np.array(list(y))
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X,
+            y_array,
+            test_size=test_size,
+            random_state=random_state,
+            stratify=y_array,
+        )
+
+        results: Dict[str, Dict[str, float]] = {}
+
+        rf_model = RandomForestClassifier(
+            n_estimators=100,
+            max_depth=None,
+            random_state=random_state,
+            n_jobs=-1,
+        )
+        rf_model.fit(X_train, y_train)
+        self.models["Random Forest"] = rf_model
+        results["Random Forest"] = self._evaluate_classifier(rf_model, X_test, y_test)
+
+        lr_pipeline = Pipeline(
+            steps=[
+                ("scaler", StandardScaler()),
+                (
+                    "logistic",
+                    LogisticRegression(
+                        max_iter=500,
+                        random_state=random_state,
+                        class_weight="balanced",
+                    ),
+                ),
+            ]
+        )
+        lr_pipeline.fit(X_train, y_train)
+        self.models["Logistic Regression"] = lr_pipeline
+        results["Logistic Regression"] = self._evaluate_classifier(
+            lr_pipeline, X_test, y_test
+        )
+
+        try:
+            from xgboost import XGBClassifier
+
+            xgb_model = XGBClassifier(
+                n_estimators=150,
+                learning_rate=0.1,
+                max_depth=3,
+                subsample=0.9,
+                colsample_bytree=0.9,
+                random_state=random_state,
+                eval_metric="logloss",
+                use_label_encoder=False,
+            )
+            xgb_model.fit(X_train, y_train)
+            model_label = "XGBoost"
+        except ImportError:
+            xgb_model = GradientBoostingClassifier(random_state=random_state)
+            xgb_model.fit(X_train, y_train)
+            self.logger.warning(
+                "XGBoost not installed; using GradientBoostingClassifier fallback"
+            )
+
+        model_label = "XGBoost"
+        self.models[model_label] = xgb_model
+        results[model_label] = self._evaluate_classifier(xgb_model, X_test, y_test)
+
+        return results
+
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
+        """Return averaged probability estimates across trained models."""
+
+        if not self.models:
+            raise ValueError("Models have not been trained yet")
+
+        probabilities = []
+        for model in self.models.values():
+            proba = model.predict_proba(X)[:, 1]
+            probabilities.append(proba)
+
+        avg_probabilities = np.mean(probabilities, axis=0)
+        return avg_probabilities
+
+
+class ModelEnsemble:
+    """Utility for combining predictions from multiple estimators."""
+
+    def average_predictions(self, predictions: Dict[str, np.ndarray]) -> np.ndarray:
+        if not predictions:
+            raise ValueError("No predictions supplied to ensemble")
+
+        stacked = np.vstack(list(predictions.values()))
+        return stacked.mean(axis=0)
+
+
 class RiskPredictor:
     """Machine Learning models for market risk prediction"""
 
@@ -49,6 +211,9 @@ class RiskPredictor:
         self.model_metrics = {}
         self.gpu_info = detect_gpu()
         self.model_dir = "models"
+        self.thresholds: Dict[str, float] = {}
+        self.ensemble_threshold: float = 0.5
+        self.ensemble_weights: List[Dict[str, float]] = []
         os.makedirs(self.model_dir, exist_ok=True)
 
     def prepare_modeling_data(
@@ -151,6 +316,32 @@ class RiskPredictor:
 
         return features_df, target, list(features_df.columns)
 
+    def _optimize_threshold(
+        self,
+        y_true: np.ndarray,
+        probabilities: np.ndarray,
+        beta: float = 1.0,
+    ) -> Tuple[float, float]:
+        """Find probability threshold maximizing F-beta score."""
+
+        try:
+            from sklearn.metrics import fbeta_score
+        except ImportError as exc:
+            raise ImportError("scikit-learn is required for threshold optimization") from exc
+
+        thresholds = np.linspace(0.05, 0.95, 181)
+        best_threshold = 0.5
+        best_score = -1.0
+
+        for threshold in thresholds:
+            predictions = (probabilities >= threshold).astype(int)
+            score = fbeta_score(y_true, predictions, beta=beta, zero_division=0)
+            if score > best_score:
+                best_score = float(score)
+                best_threshold = float(threshold)
+
+        return best_threshold, best_score
+
     def train_models(
         self,
         X: pd.DataFrame,
@@ -174,6 +365,11 @@ class RiskPredictor:
         """
         self.logger.info("Training machine learning models...")
 
+        # Reset adaptive parameters before each training run
+        self.thresholds = {}
+        self.ensemble_weights = []
+        self.ensemble_threshold = 0.5
+
         try:
             import joblib
             from sklearn.ensemble import RandomForestClassifier
@@ -181,8 +377,8 @@ class RiskPredictor:
             from sklearn.metrics import (
                 classification_report,
                 confusion_matrix,
+                accuracy_score,
                 roc_auc_score,
-                roc_curve,
             )
             from sklearn.model_selection import (
                 GridSearchCV,
@@ -250,12 +446,19 @@ class RiskPredictor:
             zip(feature_names, self.models["random_forest"].feature_importances_)
         )
 
-        # Evaluate Random Forest
-        rf_train_score = self.models["random_forest"].score(X_train, y_train)
-        rf_test_score = self.models["random_forest"].score(X_test, y_test)
-        rf_predictions = self.models["random_forest"].predict(X_test)
+        # Evaluate Random Forest with optimized threshold
+        rf_train_probabilities = self.models["random_forest"].predict_proba(X_train)[
+            :, 1
+        ]
         rf_probabilities = self.models["random_forest"].predict_proba(X_test)[:, 1]
+        rf_threshold, rf_fbeta = self._optimize_threshold(y_test, rf_probabilities)
+        self.thresholds["random_forest"] = rf_threshold
 
+        rf_train_predictions = (rf_train_probabilities >= rf_threshold).astype(int)
+        rf_predictions = (rf_probabilities >= rf_threshold).astype(int)
+
+        rf_train_score = accuracy_score(y_train, rf_train_predictions)
+        rf_test_score = accuracy_score(y_test, rf_predictions)
         rf_auc = roc_auc_score(y_test, rf_probabilities)
 
         results["random_forest"] = {
@@ -263,6 +466,8 @@ class RiskPredictor:
             "test_accuracy": rf_test_score,
             "auc_score": rf_auc,
             "best_params": rf_grid.best_params_,
+            "optimal_threshold": rf_threshold,
+            "fbeta_score": rf_fbeta,
             "classification_report": classification_report(
                 y_test, rf_predictions, output_dict=True
             ),
@@ -270,7 +475,10 @@ class RiskPredictor:
         }
 
         self.logger.info(
-            f"Random Forest - Test AUC: {rf_auc:.4f}, Accuracy: {rf_test_score:.4f}"
+            "Random Forest - Test AUC: %.4f, Accuracy@%.2f: %.4f",
+            rf_auc,
+            rf_threshold,
+            rf_test_score,
         )
 
         # 2. Logistic Regression Model
@@ -304,16 +512,20 @@ class RiskPredictor:
             zip(feature_names, abs(self.models["logistic_regression"].coef_[0]))
         )
 
-        # Evaluate Logistic Regression
-        lr_train_score = self.models["logistic_regression"].score(
-            X_train_scaled, y_train
-        )
-        lr_test_score = self.models["logistic_regression"].score(X_test_scaled, y_test)
-        lr_predictions = self.models["logistic_regression"].predict(X_test_scaled)
+        # Evaluate Logistic Regression with optimized threshold
+        lr_train_probabilities = self.models["logistic_regression"].predict_proba(
+            X_train_scaled
+        )[:, 1]
         lr_probabilities = self.models["logistic_regression"].predict_proba(
             X_test_scaled
         )[:, 1]
+        lr_threshold, lr_fbeta = self._optimize_threshold(y_test, lr_probabilities)
+        self.thresholds["logistic_regression"] = lr_threshold
 
+        lr_train_predictions = (lr_train_probabilities >= lr_threshold).astype(int)
+        lr_predictions = (lr_probabilities >= lr_threshold).astype(int)
+        lr_train_score = accuracy_score(y_train, lr_train_predictions)
+        lr_test_score = accuracy_score(y_test, lr_predictions)
         lr_auc = roc_auc_score(y_test, lr_probabilities)
 
         results["logistic_regression"] = {
@@ -321,6 +533,8 @@ class RiskPredictor:
             "test_accuracy": lr_test_score,
             "auc_score": lr_auc,
             "best_params": lr_grid.best_params_,
+            "optimal_threshold": lr_threshold,
+            "fbeta_score": lr_fbeta,
             "classification_report": classification_report(
                 y_test, lr_predictions, output_dict=True
             ),
@@ -328,7 +542,10 @@ class RiskPredictor:
         }
 
         self.logger.info(
-            f"Logistic Regression - Test AUC: {lr_auc:.4f}, Accuracy: {lr_test_score:.4f}"
+            "Logistic Regression - Test AUC: %.4f, Accuracy@%.2f: %.4f",
+            lr_auc,
+            lr_threshold,
+            lr_test_score,
         )
 
         # 3. XGBoost Model (if available)
@@ -378,12 +595,23 @@ class RiskPredictor:
                 zip(feature_names, self.models["xgboost"].feature_importances_)
             )
 
-            # Evaluate XGBoost
-            xgb_train_score = self.models["xgboost"].score(X_train, y_train)
-            xgb_test_score = self.models["xgboost"].score(X_test, y_test)
-            xgb_predictions = self.models["xgboost"].predict(X_test)
+            # Evaluate XGBoost with optimized threshold
+            xgb_train_probabilities = self.models["xgboost"].predict_proba(X_train)[
+                :, 1
+            ]
             xgb_probabilities = self.models["xgboost"].predict_proba(X_test)[:, 1]
+            xgb_threshold, xgb_fbeta = self._optimize_threshold(
+                y_test, xgb_probabilities
+            )
+            self.thresholds["xgboost"] = xgb_threshold
 
+            xgb_train_predictions = (xgb_train_probabilities >= xgb_threshold).astype(
+                int
+            )
+            xgb_predictions = (xgb_probabilities >= xgb_threshold).astype(int)
+
+            xgb_train_score = accuracy_score(y_train, xgb_train_predictions)
+            xgb_test_score = accuracy_score(y_test, xgb_predictions)
             xgb_auc = roc_auc_score(y_test, xgb_probabilities)
 
             results["xgboost"] = {
@@ -391,6 +619,8 @@ class RiskPredictor:
                 "test_accuracy": xgb_test_score,
                 "auc_score": xgb_auc,
                 "best_params": xgb_grid.best_params_,
+                "optimal_threshold": xgb_threshold,
+                "fbeta_score": xgb_fbeta,
                 "classification_report": classification_report(
                     y_test, xgb_predictions, output_dict=True
                 ),
@@ -398,7 +628,10 @@ class RiskPredictor:
             }
 
             self.logger.info(
-                f"XGBoost - Test AUC: {xgb_auc:.4f}, Accuracy: {xgb_test_score:.4f}"
+                "XGBoost - Test AUC: %.4f, Accuracy@%.2f: %.4f",
+                xgb_auc,
+                xgb_threshold,
+                xgb_test_score,
             )
 
         # 4. Support Vector Machine
@@ -437,12 +670,18 @@ class RiskPredictor:
         except ImportError:
             self.feature_importance["svm"] = {}
 
-        # Evaluate SVM
-        svm_train_score = self.models["svm"].score(X_train_scaled, y_train)
-        svm_test_score = self.models["svm"].score(X_test_scaled, y_test)
-        svm_predictions = self.models["svm"].predict(X_test_scaled)
+        # Evaluate SVM with optimized threshold
+        svm_train_probabilities = self.models["svm"].predict_proba(X_train_scaled)[
+            :, 1
+        ]
         svm_probabilities = self.models["svm"].predict_proba(X_test_scaled)[:, 1]
+        svm_threshold, svm_fbeta = self._optimize_threshold(y_test, svm_probabilities)
+        self.thresholds["svm"] = svm_threshold
 
+        svm_train_predictions = (svm_train_probabilities >= svm_threshold).astype(int)
+        svm_predictions = (svm_probabilities >= svm_threshold).astype(int)
+        svm_train_score = accuracy_score(y_train, svm_train_predictions)
+        svm_test_score = accuracy_score(y_test, svm_predictions)
         svm_auc = roc_auc_score(y_test, svm_probabilities)
 
         results["svm"] = {
@@ -450,6 +689,8 @@ class RiskPredictor:
             "test_accuracy": svm_test_score,
             "auc_score": svm_auc,
             "best_params": svm_grid.best_params_,
+            "optimal_threshold": svm_threshold,
+            "fbeta_score": svm_fbeta,
             "classification_report": classification_report(
                 y_test, svm_predictions, output_dict=True
             ),
@@ -457,53 +698,107 @@ class RiskPredictor:
         }
 
         self.logger.info(
-            f"SVM - Test AUC: {svm_auc:.4f}, Accuracy: {svm_test_score:.4f}"
+            "SVM - Test AUC: %.4f, Accuracy@%.2f: %.4f",
+            svm_auc,
+            svm_threshold,
+            svm_test_score,
         )
 
-        # 5. Ensemble Model (Simple averaging)
+        # 5. Ensemble Model (Weighted averaging with optimized threshold)
         self.logger.info("Creating ensemble model...")
 
-        # Get predictions from all available models
-        rf_probabilities = self.models["random_forest"].predict_proba(X_test)[:, 1]
-        lr_probabilities = self.models["logistic_regression"].predict_proba(X_test)[
-            :, 1
+        ensemble_components: List[Tuple[str, str, np.ndarray, float]] = [
+            (
+                "random_forest",
+                "rf",
+                rf_probabilities,
+                results["random_forest"]["auc_score"],
+            ),
+            (
+                "logistic_regression",
+                "lr",
+                lr_probabilities,
+                results["logistic_regression"]["auc_score"],
+            ),
         ]
 
-        model_probs = [rf_probabilities, lr_probabilities]
-        model_names = ["rf", "lr"]
-
         if xgb_available and "xgboost" in self.models:
-            xgb_probabilities = self.models["xgboost"].predict_proba(X_test)[:, 1]
-            model_probs.append(xgb_probabilities)
-            model_names.append("xgb")
+            ensemble_components.append(
+                (
+                    "xgboost",
+                    "xgb",
+                    xgb_probabilities,
+                    results["xgboost"]["auc_score"],
+                )
+            )
+        else:
+            xgb_probabilities = None
 
         if "svm" in self.models:
-            svm_probabilities = self.models["svm"].predict_proba(X_test_scaled)[:, 1]
-            model_probs.append(svm_probabilities)
-            model_names.append("svm")
+            ensemble_components.append(
+                (
+                    "svm",
+                    "svm",
+                    svm_probabilities,
+                    results["svm"]["auc_score"],
+                )
+            )
 
-        # Simple ensemble averaging
-        ensemble_probabilities = sum(model_probs) / len(model_probs)
-        ensemble_predictions = (ensemble_probabilities > 0.5).astype(int)
+        weight_values = np.array(
+            [max(component[3], 1e-3) for component in ensemble_components],
+            dtype=float,
+        )
+        normalized_weights = weight_values / weight_values.sum()
+
+        stacked_probabilities = np.vstack([component[2] for component in ensemble_components])
+        ensemble_probabilities = np.average(
+            stacked_probabilities, axis=0, weights=normalized_weights
+        )
+        ensemble_threshold, ensemble_fbeta = self._optimize_threshold(
+            y_test, ensemble_probabilities
+        )
+        ensemble_predictions = (ensemble_probabilities >= ensemble_threshold).astype(
+            int
+        )
         ensemble_auc = roc_auc_score(y_test, ensemble_probabilities)
-        ensemble_accuracy = (ensemble_predictions == y_test).mean()
+        ensemble_accuracy = accuracy_score(y_test, ensemble_predictions)
+
+        self.ensemble_threshold = ensemble_threshold
+        self.ensemble_weights = [
+            {"model": component[0], "weight": float(weight)}
+            for component, weight in zip(ensemble_components, normalized_weights)
+        ]
 
         results["ensemble"] = {
             "test_accuracy": ensemble_accuracy,
             "auc_score": ensemble_auc,
+            "optimal_threshold": ensemble_threshold,
+            "fbeta_score": ensemble_fbeta,
             "classification_report": classification_report(
                 y_test, ensemble_predictions, output_dict=True
             ),
             "confusion_matrix": confusion_matrix(y_test, ensemble_predictions).tolist(),
-            "model_count": len(model_probs),
-            "models_used": model_names,
+            "model_count": len(ensemble_components),
+            "models_used": [component[1] for component in ensemble_components],
+            "weights": {
+                component[1]: float(weight)
+                for component, weight in zip(ensemble_components, normalized_weights)
+            },
         }
 
         self.logger.info(
-            f"Ensemble Model - Test AUC: {ensemble_auc:.4f}, Accuracy: {ensemble_accuracy:.4f}"
+            "Ensemble Model - Test AUC: %.4f, Accuracy@%.2f: %.4f",
+            ensemble_auc,
+            ensemble_threshold,
+            ensemble_accuracy,
         )
         self.logger.info(
-            f"Ensemble includes {len(model_probs)} models: {', '.join(model_names)}"
+            "Ensemble includes %d models weighted by AUC: %s",
+            len(ensemble_components),
+            ", ".join(
+                f"{component[1]}={weight:.2f}"
+                for component, weight in zip(ensemble_components, normalized_weights)
+            ),
         )
 
         # Store test data for further analysis
@@ -512,9 +807,14 @@ class RiskPredictor:
             "rf_probabilities": rf_probabilities.tolist(),
             "lr_probabilities": lr_probabilities.tolist(),
             "ensemble_probabilities": ensemble_probabilities.tolist(),
+            "ensemble_threshold": ensemble_threshold,
+            "optimized_thresholds": {
+                key: float(value) for key, value in self.thresholds.items()
+            },
+            "ensemble_weights": self.ensemble_weights,
         }
 
-        if xgb_available and "xgboost" in self.models:
+        if xgb_probabilities is not None:
             test_data["xgb_probabilities"] = xgb_probabilities.tolist()
 
         if "svm" in self.models:
@@ -576,35 +876,67 @@ class RiskPredictor:
             if not self.models:
                 raise ValueError("No models have been trained")
 
-            model_probs = []
+            probability_vectors = []
+            weights = []
 
-            # Random Forest predictions
-            if "random_forest" in self.models:
-                rf_proba = self.models["random_forest"].predict_proba(X)[:, 1]
-                model_probs.append(rf_proba)
+            logistic_scaled = None
+            svm_scaled = None
 
-            # Logistic Regression predictions (need to scale features)
-            if "logistic_regression" in self.models:
-                X_scaled = self.scalers["logistic_regression"].transform(X)
-                lr_proba = self.models["logistic_regression"].predict_proba(X_scaled)[
-                    :, 1
+            ensemble_entries = (
+                self.ensemble_weights
+                if self.ensemble_weights
+                else [
+                    {"model": key, "weight": 1.0}
+                    for key in [
+                        "random_forest",
+                        "logistic_regression",
+                        "xgboost",
+                        "svm",
+                    ]
                 ]
-                model_probs.append(lr_proba)
+            )
 
-            # XGBoost predictions
-            if "xgboost" in self.models:
-                xgb_proba = self.models["xgboost"].predict_proba(X)[:, 1]
-                model_probs.append(xgb_proba)
+            for entry in ensemble_entries:
+                model_key = entry.get("model")
+                weight = float(entry.get("weight", 0.0))
 
-            # SVM predictions (need to scale features)
-            if "svm" in self.models:
-                X_scaled_svm = self.scalers["svm"].transform(X)
-                svm_proba = self.models["svm"].predict_proba(X_scaled_svm)[:, 1]
-                model_probs.append(svm_proba)
+                if model_key == "random_forest" and "random_forest" in self.models:
+                    prob = self.models["random_forest"].predict_proba(X)[:, 1]
+                elif (
+                    model_key == "logistic_regression"
+                    and "logistic_regression" in self.models
+                ):
+                    if logistic_scaled is None:
+                        logistic_scaled = self.scalers["logistic_regression"].transform(X)
+                    prob = self.models["logistic_regression"].predict_proba(
+                        logistic_scaled
+                    )[:, 1]
+                elif model_key == "xgboost" and "xgboost" in self.models:
+                    prob = self.models["xgboost"].predict_proba(X)[:, 1]
+                elif model_key == "svm" and "svm" in self.models:
+                    if svm_scaled is None:
+                        svm_scaled = self.scalers["svm"].transform(X)
+                    prob = self.models["svm"].predict_proba(svm_scaled)[:, 1]
+                else:
+                    continue
 
-            # Average probabilities
-            ensemble_proba = sum(model_probs) / len(model_probs)
-            ensemble_pred = (ensemble_proba > 0.5).astype(int)
+                probability_vectors.append(prob)
+                weights.append(weight if weight > 0 else 1.0)
+
+            if not probability_vectors:
+                raise ValueError("No ensemble components available for prediction")
+
+            weights_array = np.array(weights, dtype=float)
+            weights_sum = weights_array.sum()
+            if weights_sum <= 0:
+                weights_array = np.ones_like(weights_array) / len(weights_array)
+            else:
+                weights_array = weights_array / weights_sum
+
+            stacked = np.vstack(probability_vectors)
+            ensemble_proba = np.average(stacked, axis=0, weights=weights_array)
+            threshold = self.ensemble_threshold if self.ensemble_threshold else 0.5
+            ensemble_pred = (ensemble_proba >= threshold).astype(int)
 
             return ensemble_pred, ensemble_proba
 
@@ -612,8 +944,9 @@ class RiskPredictor:
             if "random_forest" not in self.models:
                 raise ValueError("Random Forest model not trained")
 
-            predictions = self.models["random_forest"].predict(X)
             probabilities = self.models["random_forest"].predict_proba(X)[:, 1]
+            threshold = self.thresholds.get("random_forest", 0.5)
+            predictions = (probabilities >= threshold).astype(int)
 
             return predictions, probabilities
 
@@ -622,10 +955,11 @@ class RiskPredictor:
                 raise ValueError("Logistic Regression model not trained")
 
             X_scaled = self.scalers["logistic_regression"].transform(X)
-            predictions = self.models["logistic_regression"].predict(X_scaled)
             probabilities = self.models["logistic_regression"].predict_proba(X_scaled)[
                 :, 1
             ]
+            threshold = self.thresholds.get("logistic_regression", 0.5)
+            predictions = (probabilities >= threshold).astype(int)
 
             return predictions, probabilities
 
@@ -633,8 +967,9 @@ class RiskPredictor:
             if "xgboost" not in self.models:
                 raise ValueError("XGBoost model not trained")
 
-            predictions = self.models["xgboost"].predict(X)
             probabilities = self.models["xgboost"].predict_proba(X)[:, 1]
+            threshold = self.thresholds.get("xgboost", 0.5)
+            predictions = (probabilities >= threshold).astype(int)
 
             return predictions, probabilities
 
@@ -643,8 +978,9 @@ class RiskPredictor:
                 raise ValueError("SVM model not trained")
 
             X_scaled = self.scalers["svm"].transform(X)
-            predictions = self.models["svm"].predict(X_scaled)
             probabilities = self.models["svm"].predict_proba(X_scaled)[:, 1]
+            threshold = self.thresholds.get("svm", 0.5)
+            predictions = (probabilities >= threshold).astype(int)
 
             return predictions, probabilities
 
@@ -692,6 +1028,21 @@ class RiskPredictor:
         with open(metrics_file, "w") as f:
             json.dump(self.model_metrics, f, indent=2)
 
+        # Save optimized thresholds and ensemble weights
+        thresholds_file = os.path.join(save_dir, "thresholds.json")
+        thresholds_payload = {
+            "model_thresholds": {
+                key: float(value) for key, value in self.thresholds.items()
+            },
+            "ensemble_threshold": float(self.ensemble_threshold),
+            "ensemble_weights": [
+                {"model": entry["model"], "weight": float(entry["weight"])}
+                for entry in self.ensemble_weights
+            ],
+        }
+        with open(thresholds_file, "w") as f:
+            json.dump(thresholds_payload, f, indent=2)
+
         # Save GPU info
         gpu_file = os.path.join(save_dir, "gpu_info.json")
         with open(gpu_file, "w") as f:
@@ -729,6 +1080,29 @@ class RiskPredictor:
             if os.path.exists(metrics_file):
                 with open(metrics_file, "r") as f:  # type: ignore
                     self.model_metrics = json.load(f)
+
+            # Load optimized thresholds and ensemble weights
+            thresholds_file = os.path.join(model_dir, "thresholds.json")
+            if os.path.exists(thresholds_file):
+                with open(thresholds_file, "r") as f:  # type: ignore
+                    threshold_data = json.load(f)
+
+                model_thresholds = threshold_data.get("model_thresholds", {})
+                self.thresholds = {
+                    key: float(value) for key, value in model_thresholds.items()
+                }
+                self.ensemble_threshold = float(
+                    threshold_data.get("ensemble_threshold", 0.5)
+                )
+                ensemble_weights = threshold_data.get("ensemble_weights", [])
+                self.ensemble_weights = [
+                    {
+                        "model": entry.get("model"),
+                        "weight": float(entry.get("weight", 0.0)),
+                    }
+                    for entry in ensemble_weights
+                    if entry.get("model") is not None
+                ]
 
             self.logger.info(f"Successfully loaded models from {model_dir}")
             return True

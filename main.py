@@ -382,8 +382,8 @@ class MarketRiskSystem:
         # Train models
         model_results = self.ml_models.train_models(X, y, feature_names)
 
-        # Save models
-        self.ml_models.save_models(self.config.MODEL_DIR)
+        # Save models using default directory handling
+        self.ml_models.save_models()
 
         return model_results
 

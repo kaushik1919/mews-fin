@@ -1162,3 +1162,168 @@ ValueError: Tz-aware datetime.datetime cannot be converted to datetime64 unless 
 2025-09-30 10:13:36,586 - src.visualizer - ERROR - Error creating market regimes plot: "Column(s) ['Risk_Label', 'news_sentiment_mean'] do not exist"
 2025-09-30 10:13:36,586 - src.visualizer - INFO - Created 4 visualizations
 2025-09-30 10:13:36,587 - src.visualizer - INFO - Created summary report: C:\Users\I7\Projects\mews-fin\outputs\risk_analysis_report.html
+2025-09-30 14:57:24,913 - root - WARNING - Missing API keys: ['ALPHA_VANTAGE_API_KEY', 'GNEWS_API_KEY']. Some features may not work.
+2025-09-30 14:57:24,914 - __main__ - WARNING - Some API keys are missing - functionality will be limited
+2025-09-30 14:57:24,942 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
+2025-09-30 14:58:01,001 - src.sentiment_analyzer - INFO - FinBERT model initialized
+2025-09-30 14:58:05,666 - __main__ - INFO - Market Risk Early Warning System initialized
+2025-09-30 14:58:05,666 - __main__ - INFO - Starting full pipeline execution...
+2025-09-30 14:58:05,666 - __main__ - INFO - Skipping data collection - loading existing data
+2025-09-30 14:58:05,686 - __main__ - INFO - Loaded existing stock data
+2025-09-30 14:58:05,697 - __main__ - INFO - Loaded existing SEC data
+2025-09-30 14:58:05,697 - __main__ - INFO - === Stage 2: Data Preprocessing ===
+2025-09-30 14:58:05,700 - src.data_preprocessor - INFO - Preprocessing stock data...
+2025-09-30 14:58:05,846 - src.data_preprocessor - INFO - Processed stock data: 2259 rows, 47 columns
+2025-09-30 14:58:05,846 - src.data_preprocessor - INFO - Preprocessing SEC filings data...
+2025-09-30 14:58:05,860 - src.data_preprocessor - INFO - Processed SEC data: 4 rows, 19 columns
+2025-09-30 14:58:05,860 - __main__ - INFO - === Stage 3: Sentiment Analysis ===
+2025-09-30 14:58:05,860 - src.sentiment_analyzer - INFO - Analyzing SEC filings sentiment with FinBERT...
+2025-09-30 14:58:05,860 - src.sentiment_analyzer - INFO - Analyzing MD&A sentiment
+2025-09-30 14:58:06,123 - src.sentiment_analyzer - INFO - Analyzing Risk Factors sentiment
+2025-09-30 14:58:06,236 - src.sentiment_analyzer - INFO - Completed SEC sentiment analysis for 4 filings
+2025-09-30 14:58:06,237 - src.sentiment_analyzer - INFO - Aggregating sentiment by date...
+2025-09-30 14:58:06,239 - src.sentiment_analyzer - INFO - Created sentiment aggregations for 4 symbol-date combinations
+2025-09-30 14:58:06,251 - src.sentiment_analyzer - INFO - Saved sentiment analysis results to C:\Users\I7\Projects\mews-fin\data
+2025-09-30 14:58:06,251 - __main__ - INFO - === Stage 4: Data Integration ===
+2025-09-30 14:58:06,252 - src.data_integrator - INFO - Starting data integration process...
+2025-09-30 14:58:06,258 - src.data_integrator - INFO - Merging sentiment data...
+2025-09-30 14:58:06,262 - src.data_integrator - INFO - Merged sentiment data: added 5 sentiment features
+2025-09-30 14:58:06,262 - src.data_integrator - INFO - Merging SEC features...
+2025-09-30 14:58:06,342 - src.data_integrator - INFO - Data integration completed: 2259 rows, 95 columns
+2025-09-30 14:58:06,343 - src.data_integrator - INFO - price_features: 22 features
+2025-09-30 14:58:06,343 - src.data_integrator - INFO - volume_features: 11 features
+2025-09-30 14:58:06,343 - src.data_integrator - INFO - technical_indicators: 30 features
+2025-09-30 14:58:06,343 - src.data_integrator - INFO - fundamental_ratios: 15 features
+2025-09-30 14:58:06,344 - src.data_integrator - INFO - market_features: 4 features
+2025-09-30 14:58:06,344 - src.data_integrator - INFO - derived_features: 1 features
+2025-09-30 14:58:06,344 - src.data_integrator - INFO - date_features: 8 features
+2025-09-30 14:58:06,453 - src.data_integrator - INFO - Saved integrated dataset to C:\Users\I7\Projects\mews-fin\data
+2025-09-30 14:58:06,453 - src.data_integrator - INFO - Dataset shape: (2259, 95)
+2025-09-30 14:58:06,453 - __main__ - INFO - === Stage 5: Model Training ===
+2025-09-30 14:58:06,453 - src.ml_models - INFO - Preparing data for modeling...
+2025-09-30 14:58:06,454 - src.ml_models - INFO - Creating target variable 'Risk_Label'
+2025-09-30 14:58:06,454 - src.ml_models - INFO - Creating risk labels...
+2025-09-30 14:58:06,465 - src.ml_models - INFO - Created risk labels: 627/2259 (27.76%) high-risk periods
+2025-09-30 14:58:06,466 - src.ml_models - INFO - Selected 87 features for modeling
+2025-09-30 14:58:06,483 - src.ml_models - INFO - Final dataset: 2259 samples, 87 features
+2025-09-30 14:58:06,483 - src.ml_models - INFO - Target distribution: [1632  627]
+2025-09-30 14:58:06,483 - src.ml_models - INFO - Training machine learning models...
+2025-09-30 14:58:07,656 - src.ml_models - INFO - Training set: 1807 samples
+2025-09-30 14:58:07,657 - src.ml_models - INFO - Test set: 452 samples
+2025-09-30 14:58:07,657 - src.ml_models - INFO - Training Random Forest model...
+2025-09-30 14:58:07,657 - src.ml_models - INFO - Using GPU acceleration where possible: NVIDIA GeForce RTX 5060
+2025-09-30 14:59:18,183 - src.ml_models - INFO - Random Forest - Test AUC: 0.9223, Accuracy: 0.8385
+2025-09-30 14:59:18,184 - src.ml_models - INFO - Training Logistic Regression model...
+2025-09-30 14:59:23,946 - src.ml_models - INFO - Logistic Regression - Test AUC: 0.8241, Accuracy: 0.7854
+2025-09-30 14:59:23,946 - src.ml_models - INFO - Training XGBoost model...
+2025-09-30 14:59:23,950 - src.ml_models - INFO - XGBoost configured for GPU acceleration
+2025-09-30 15:07:00,938 - src.ml_models - INFO - XGBoost - Test AUC: 0.9184, Accuracy: 0.8451
+2025-09-30 15:07:00,938 - src.ml_models - INFO - Training SVM model...
+2025-09-30 15:07:23,724 - src.ml_models - INFO - SVM - Test AUC: 0.8842, Accuracy: 0.8274
+2025-09-30 15:07:23,725 - src.ml_models - INFO - Creating ensemble model...
+2025-09-30 15:07:23,844 - src.ml_models - INFO - Ensemble Model - Test AUC: 0.9235, Accuracy: 0.8230
+2025-09-30 15:07:23,844 - src.ml_models - INFO - Ensemble includes 4 models: rf, lr, xgb, svm
+2025-09-30 15:07:23,850 - src.ml_models - INFO - Model results saved to data\model_results.json
+2025-09-30 15:07:23,868 - src.ml_models - INFO - Saved random_forest model to models\models_20250930_150723\random_forest_model.pkl
+2025-09-30 15:07:23,869 - src.ml_models - INFO - Saved logistic_regression model to models\models_20250930_150723\logistic_regression_model.pkl
+2025-09-30 15:07:23,875 - src.ml_models - INFO - Saved xgboost model to models\models_20250930_150723\xgboost_model.pkl
+2025-09-30 15:07:23,877 - src.ml_models - INFO - Saved svm model to models\models_20250930_150723\svm_model.pkl
+2025-09-30 15:07:23,884 - src.ml_models - INFO - All models saved to models\models_20250930_150723
+2025-09-30 15:07:23,909 - __main__ - ERROR - Pipeline failed at stage 4: [WinError 123] The filename, directory name, or volume label syntax is incorrect: 'models\\models_C:'
+2025-09-30 15:09:24,813 - root - WARNING - Missing API keys: ['ALPHA_VANTAGE_API_KEY', 'GNEWS_API_KEY']. Some features may not work.
+2025-09-30 15:09:24,813 - __main__ - WARNING - Some API keys are missing - functionality will be limited
+2025-09-30 15:09:24,820 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
+2025-09-30 15:09:32,237 - src.sentiment_analyzer - INFO - FinBERT model initialized
+2025-09-30 15:09:33,116 - __main__ - INFO - Market Risk Early Warning System initialized
+2025-09-30 15:09:33,116 - __main__ - INFO - Starting full pipeline execution...
+2025-09-30 15:09:33,117 - __main__ - INFO - Skipping data collection - loading existing data
+2025-09-30 15:09:33,128 - __main__ - INFO - Loaded existing stock data
+2025-09-30 15:09:33,130 - __main__ - INFO - Loaded existing SEC data
+2025-09-30 15:09:33,130 - __main__ - INFO - === Stage 2: Data Preprocessing ===
+2025-09-30 15:09:33,131 - src.data_preprocessor - INFO - Preprocessing stock data...
+2025-09-30 15:09:33,257 - src.data_preprocessor - INFO - Processed stock data: 2259 rows, 47 columns
+2025-09-30 15:09:33,257 - src.data_preprocessor - INFO - Preprocessing SEC filings data...
+2025-09-30 15:09:33,269 - src.data_preprocessor - INFO - Processed SEC data: 4 rows, 19 columns
+2025-09-30 15:09:33,269 - __main__ - INFO - === Stage 3: Sentiment Analysis ===
+2025-09-30 15:09:33,269 - src.sentiment_analyzer - INFO - Analyzing SEC filings sentiment with FinBERT...
+2025-09-30 15:09:33,270 - src.sentiment_analyzer - INFO - Analyzing MD&A sentiment
+2025-09-30 15:09:33,488 - src.sentiment_analyzer - INFO - Analyzing Risk Factors sentiment
+2025-09-30 15:09:33,586 - src.sentiment_analyzer - INFO - Completed SEC sentiment analysis for 4 filings
+2025-09-30 15:09:33,586 - src.sentiment_analyzer - INFO - Aggregating sentiment by date...
+2025-09-30 15:09:33,589 - src.sentiment_analyzer - INFO - Created sentiment aggregations for 4 symbol-date combinations
+2025-09-30 15:09:33,593 - src.sentiment_analyzer - INFO - Saved sentiment analysis results to C:\Users\I7\Projects\mews-fin\data
+2025-09-30 15:09:33,593 - __main__ - INFO - === Stage 4: Data Integration ===
+2025-09-30 15:09:33,593 - src.data_integrator - INFO - Starting data integration process...
+2025-09-30 15:09:33,598 - src.data_integrator - INFO - Merging sentiment data...
+2025-09-30 15:09:33,602 - src.data_integrator - INFO - Merged sentiment data: added 5 sentiment features
+2025-09-30 15:09:33,602 - src.data_integrator - INFO - Merging SEC features...
+2025-09-30 15:09:33,676 - src.data_integrator - INFO - Data integration completed: 2259 rows, 95 columns
+2025-09-30 15:09:33,677 - src.data_integrator - INFO - price_features: 22 features
+2025-09-30 15:09:33,677 - src.data_integrator - INFO - volume_features: 11 features
+2025-09-30 15:09:33,677 - src.data_integrator - INFO - technical_indicators: 30 features
+2025-09-30 15:09:33,677 - src.data_integrator - INFO - fundamental_ratios: 15 features
+2025-09-30 15:09:33,677 - src.data_integrator - INFO - market_features: 4 features
+2025-09-30 15:09:33,677 - src.data_integrator - INFO - derived_features: 1 features
+2025-09-30 15:09:33,677 - src.data_integrator - INFO - date_features: 8 features
+2025-09-30 15:09:33,784 - src.data_integrator - INFO - Saved integrated dataset to C:\Users\I7\Projects\mews-fin\data
+2025-09-30 15:09:33,784 - src.data_integrator - INFO - Dataset shape: (2259, 95)
+2025-09-30 15:09:33,784 - __main__ - INFO - === Stage 5: Model Training ===
+2025-09-30 15:09:33,785 - src.ml_models - INFO - Preparing data for modeling...
+2025-09-30 15:09:33,785 - src.ml_models - INFO - Creating target variable 'Risk_Label'
+2025-09-30 15:09:33,785 - src.ml_models - INFO - Creating risk labels...
+2025-09-30 15:09:33,797 - src.ml_models - INFO - Created risk labels: 627/2259 (27.76%) high-risk periods
+2025-09-30 15:09:33,798 - src.ml_models - INFO - Selected 87 features for modeling
+2025-09-30 15:09:33,814 - src.ml_models - INFO - Final dataset: 2259 samples, 87 features
+2025-09-30 15:09:33,814 - src.ml_models - INFO - Target distribution: [1632  627]
+2025-09-30 15:09:33,815 - src.ml_models - INFO - Training machine learning models...
+2025-09-30 15:09:33,954 - src.ml_models - INFO - Training set: 1807 samples
+2025-09-30 15:09:33,954 - src.ml_models - INFO - Test set: 452 samples
+2025-09-30 15:09:33,955 - src.ml_models - INFO - Training Random Forest model...
+2025-09-30 15:09:33,955 - src.ml_models - INFO - Using GPU acceleration where possible: NVIDIA GeForce RTX 5060
+2025-09-30 15:10:37,913 - src.ml_models - INFO - Random Forest - Test AUC: 0.9223, Accuracy: 0.8385
+2025-09-30 15:10:37,914 - src.ml_models - INFO - Training Logistic Regression model...
+2025-09-30 15:10:43,436 - src.ml_models - INFO - Logistic Regression - Test AUC: 0.8241, Accuracy: 0.7854
+2025-09-30 15:10:43,436 - src.ml_models - INFO - Training XGBoost model...
+2025-09-30 15:10:43,438 - src.ml_models - INFO - XGBoost configured for GPU acceleration
+2025-09-30 15:18:17,768 - src.ml_models - INFO - XGBoost - Test AUC: 0.9184, Accuracy: 0.8451
+2025-09-30 15:18:17,769 - src.ml_models - INFO - Training SVM model...
+2025-09-30 15:18:40,642 - src.ml_models - INFO - SVM - Test AUC: 0.8842, Accuracy: 0.8274
+2025-09-30 15:18:40,642 - src.ml_models - INFO - Creating ensemble model...
+2025-09-30 15:18:40,743 - src.ml_models - INFO - Ensemble Model - Test AUC: 0.9235, Accuracy: 0.8230
+2025-09-30 15:18:40,743 - src.ml_models - INFO - Ensemble includes 4 models: rf, lr, xgb, svm
+2025-09-30 15:18:40,749 - src.ml_models - INFO - Model results saved to data\model_results.json
+2025-09-30 15:18:40,768 - src.ml_models - INFO - Saved random_forest model to models\models_20250930_151840\random_forest_model.pkl
+2025-09-30 15:18:40,769 - src.ml_models - INFO - Saved logistic_regression model to models\models_20250930_151840\logistic_regression_model.pkl
+2025-09-30 15:18:40,774 - src.ml_models - INFO - Saved xgboost model to models\models_20250930_151840\xgboost_model.pkl
+2025-09-30 15:18:40,776 - src.ml_models - INFO - Saved svm model to models\models_20250930_151840\svm_model.pkl
+2025-09-30 15:18:40,784 - src.ml_models - INFO - All models saved to models\models_20250930_151840
+2025-09-30 15:18:40,820 - src.ml_models - INFO - Saved random_forest model to models\models_20250930_151840\random_forest_model.pkl
+2025-09-30 15:18:40,821 - src.ml_models - INFO - Saved logistic_regression model to models\models_20250930_151840\logistic_regression_model.pkl
+2025-09-30 15:18:40,827 - src.ml_models - INFO - Saved xgboost model to models\models_20250930_151840\xgboost_model.pkl
+2025-09-30 15:18:40,828 - src.ml_models - INFO - Saved svm model to models\models_20250930_151840\svm_model.pkl
+2025-09-30 15:18:40,834 - src.ml_models - INFO - All models saved to models\models_20250930_151840
+2025-09-30 15:18:40,835 - __main__ - INFO - === Stage 6: Generating Predictions ===
+2025-09-30 15:18:41,170 - __main__ - INFO - Generated 2259 predictions
+2025-09-30 15:18:41,170 - __main__ - INFO - === Stage 7: Creating Visualizations ===
+2025-09-30 15:18:41,171 - src.visualizer - INFO - Creating risk dashboard...
+2025-09-30 15:18:42,616 - src.visualizer - INFO - Created interactive risk timeline: C:\Users\I7\Projects\mews-fin\outputs\risk_timeline_interactive.html
+2025-09-30 15:18:44,060 - src.visualizer - INFO - Created static risk timeline: C:\Users\I7\Projects\mews-fin\outputs\risk_timeline_static.png
+2025-09-30 15:18:44,425 - src.visualizer - INFO - Created sentiment analysis plot: C:\Users\I7\Projects\mews-fin\outputs\sentiment_analysis.png
+2025-09-30 15:18:46,198 - src.visualizer - INFO - Created risk correlations heatmap: C:\Users\I7\Projects\mews-fin\outputs\risk_correlations.png
+2025-09-30 15:18:46,555 - src.visualizer - INFO - Created model performance plot: C:\Users\I7\Projects\mews-fin\outputs\model_performance.png
+2025-09-30 15:18:46,556 - src.visualizer - ERROR - Error creating market regimes plot: "Column(s) ['Risk_Label', 'news_sentiment_mean'] do not exist"
+2025-09-30 15:18:46,556 - src.visualizer - WARNING - Prediction DataFrame missing required columns for CEWS: {'Risk_Label'}
+2025-09-30 15:18:46,556 - src.visualizer - INFO - Created 5 visualizations
+2025-09-30 15:18:46,812 - src.visualizer - INFO - Created feature importance plot: C:\Users\I7\Projects\mews-fin\outputs\feature_importance.png
+2025-09-30 15:18:46,813 - src.visualizer - INFO - Created summary report: C:\Users\I7\Projects\mews-fin\outputs\risk_analysis_report.html
+2025-09-30 15:18:46,813 - __main__ - INFO - === Stage 8: Backtesting ===
+2025-09-30 15:18:46,813 - src.backtester - INFO - Running comprehensive backtest from 2020-01-01 to 2023-12-31
+2025-09-30 15:18:46,965 - src.backtester - INFO - Analyzing covid_crash: COVID-19 Market Crash
+2025-09-30 15:18:46,967 - src.backtester - INFO - Analyzing covid_recovery: COVID Recovery Period
+2025-09-30 15:18:46,967 - src.backtester - INFO - Analyzing fed_tightening_2022: Fed Tightening Period 2022
+2025-09-30 15:18:46,971 - src.backtester - INFO - Analyzing banking_crisis_2023: Banking Sector Crisis 2023
+2025-09-30 15:18:46,974 - src.backtester - INFO - Comprehensive backtest completed
+2025-09-30 15:18:46,976 - src.backtester - INFO - Generated backtest report: C:\Users\I7\Projects\mews-fin\outputs\backtest_report.html
+2025-09-30 15:18:46,976 - __main__ - INFO - === Stage 9: Generating Final Report ===
+2025-09-30 15:18:46,977 - __main__ - INFO - Generated final report: C:\Users\I7\Projects\mews-fin\outputs\final_report.md
+2025-09-30 15:18:46,977 - __main__ - INFO - Full pipeline completed successfully!

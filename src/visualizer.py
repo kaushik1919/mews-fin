@@ -3,6 +3,7 @@ Visualization dashboard for market risk analysis
 Creates interactive charts and static plots using matplotlib and Plotly
 """
 
+import json
 import logging
 import os
 import warnings
@@ -13,6 +14,13 @@ import numpy as np
 import pandas as pd
 
 warnings.filterwarnings("ignore")
+
+from .metrics import CEWSResult, compute_cews_score
+from .xai_utils import (
+    compute_global_shap_importance,
+    compute_lime_explanation,
+    compute_local_shap_explanation,
+)
 
 
 class RiskVisualizer:
@@ -57,6 +65,10 @@ class RiskVisualizer:
         df: pd.DataFrame,
         symbols: Optional[List[str]] = None,
         predictions_df: Optional[pd.DataFrame] = None,
+        model: Optional[Any] = None,
+        feature_df: Optional[pd.DataFrame] = None,
+        explainability_sample: int = 0,
+        class_names: Optional[np.ndarray] = None,
     ) -> Dict[str, str]:
         """
         Create comprehensive risk dashboard
@@ -65,9 +77,13 @@ class RiskVisualizer:
             df: Integrated dataset with risk features
             symbols: List of symbols to visualize (if None, use all)
             predictions_df: DataFrame with model predictions
+            model: Trained estimator used for SHAP/LIME explainability
+            feature_df: Feature matrix aligned with the trained estimator
+            explainability_sample: Row index used for local explanations
+            class_names: Optional class labels passed to LIME for readability
 
         Returns:
-            Dictionary with paths to generated visualizations
+            Dictionary with paths to generated visualizations and explainability assets
         """
         self.logger.info("Creating risk dashboard...")
 
@@ -121,6 +137,19 @@ class RiskVisualizer:
             path = self.plot_market_regimes(df)
             if path:
                 visualization_paths["market_regimes"] = path
+
+        if model is not None and feature_df is not None:
+            explainability_paths = self.create_explainability_dashboard(
+                model,
+                feature_df,
+                sample_index=explainability_sample,
+                class_names=class_names,
+            )
+            visualization_paths.update(explainability_paths)
+
+        if predictions_df is not None and not predictions_df.empty:
+            cews_paths = self.create_cews_dashboard(predictions_df)
+            visualization_paths.update(cews_paths)
 
         self.logger.info(f"Created {len(visualization_paths)} visualizations")
         return visualization_paths
@@ -966,6 +995,10 @@ class RiskVisualizer:
             "risk_correlations": "Correlation matrix of risk-related features",
             "model_performance": "Machine learning model performance metrics and validation",
             "market_regimes": "Interactive analysis of different market regimes and risk periods",
+            "explainability_shap_global": "Global SHAP feature importance highlighting drivers of risk",
+            "explainability_shap_local": "Local SHAP explanation for an exemplar scenario",
+            "explainability_lime": "LIME-based local explanation with human-readable feature weights",
+            "cews_timeline": "Crisis Early Warning Score timeline balancing early detection and false alarms",
         }
 
         for viz_name, viz_path in visualization_paths.items():
@@ -1005,3 +1038,324 @@ class RiskVisualizer:
 
         self.logger.info(f"Created summary report: {report_path}")
         return report_path
+
+    def create_cews_dashboard(
+        self,
+        predictions_df: pd.DataFrame,
+        probability_col: str = "Risk_Probability",
+        label_col: str = "Risk_Label",
+        date_col: str = "Date",
+        symbol_col: str = "Symbol",
+        threshold: float = 0.5,
+        lookback_window: int = 5,
+    ) -> Dict[str, str]:
+        """Generate CEWS timeline and summary artifacts."""
+
+        outputs: Dict[str, str] = {}
+
+        if predictions_df.empty:
+            self.logger.warning("Prediction DataFrame empty; skipping CEWS dashboard")
+            return outputs
+
+        required_cols = {probability_col, label_col, date_col}
+        if not required_cols.issubset(predictions_df.columns):
+            self.logger.warning(
+                "Prediction DataFrame missing required columns for CEWS: %s",
+                required_cols - set(predictions_df.columns),
+            )
+            return outputs
+
+        try:
+            cews_result = compute_cews_score(
+                predictions_df,
+                probability_col=probability_col,
+                label_col=label_col,
+                date_col=date_col,
+                symbol_col=symbol_col if symbol_col in predictions_df.columns else None,
+                threshold=threshold,
+                lookback_window=lookback_window,
+            )
+        except Exception as exc:  # pragma: no cover - defensive guard
+            self.logger.error("Failed to compute CEWS: %s", exc, exc_info=True)
+            return outputs
+
+        if self.plotly_available and not cews_result.timeline.empty:
+            timeline_path = self._plot_cews_timeline(cews_result)
+            if timeline_path:
+                outputs["cews_timeline"] = timeline_path
+
+        summary_path = self._write_cews_summary(cews_result)
+        if summary_path:
+            outputs["cews_summary"] = summary_path
+
+        return outputs
+
+    def _plot_cews_timeline(self, cews_result: CEWSResult) -> Optional[str]:
+        """Create interactive CEWS timeline plot."""
+
+        if not self.plotly_available or cews_result.timeline.empty:
+            return None
+
+        try:
+            import plotly.graph_objects as go
+
+            timeline = cews_result.timeline.copy()
+            date_series = timeline.iloc[:, 0]
+
+            fig = go.Figure()
+            fig.add_trace(
+                go.Scatter(
+                    x=date_series,
+                    y=timeline["cews"],
+                    mode="lines",
+                    name="CEWS",
+                    line=dict(color="#2563eb", width=3),
+                )
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=date_series,
+                    y=timeline["early_reward"],
+                    mode="lines",
+                    name="Early Detection Reward",
+                    line=dict(color="#16a34a", width=2, dash="dash"),
+                )
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=date_series,
+                    y=timeline["false_alarm_penalty"],
+                    mode="lines",
+                    name="False Alarm Penalty",
+                    line=dict(color="#dc2626", width=2, dash="dot"),
+                )
+            )
+
+            fig.update_layout(
+                title="Crisis Early Warning Score Timeline",
+                xaxis_title="Date",
+                yaxis_title="Score",
+                hovermode="x unified",
+                template="plotly_white",
+                legend=dict(orientation="h", y=1.08, x=0),
+                yaxis=dict(range=[0, 1]),
+            )
+
+            output_path = os.path.join(self.output_dir, "cews_timeline.html")
+            fig.write_html(output_path)
+            self.logger.info("Created CEWS timeline: %s", output_path)
+            return output_path
+
+        except Exception as exc:  # pragma: no cover - defensive guard
+            self.logger.error("Error creating CEWS timeline: %s", exc, exc_info=True)
+            return None
+
+    def _write_cews_summary(self, cews_result: CEWSResult) -> Optional[str]:
+        """Persist CEWS summary metrics for downstream dashboards."""
+
+        try:
+            summary = {
+                "score": cews_result.score,
+                "early_detection_reward": cews_result.early_detection_reward,
+                "false_alarm_penalty": cews_result.false_alarm_penalty,
+                "metadata": cews_result.metadata,
+            }
+            summary_path = os.path.join(self.output_dir, "cews_summary.json")
+            with open(summary_path, "w", encoding="utf-8") as handle:
+                json.dump(summary, handle, indent=2)
+            self.logger.info("Saved CEWS summary: %s", summary_path)
+            return summary_path
+        except Exception as exc:  # pragma: no cover - defensive guard
+            self.logger.error("Failed to save CEWS summary: %s", exc, exc_info=True)
+            return None
+
+    def create_explainability_dashboard(
+        self,
+        model: Any,
+        feature_df: pd.DataFrame,
+        sample_index: int = 0,
+        class_names: Optional[np.ndarray] = None,
+    ) -> Dict[str, str]:
+        """Generate explainability visualizations using SHAP and LIME."""
+
+        outputs: Dict[str, str] = {}
+
+        if model is None:
+            self.logger.warning("No model supplied for explainability dashboard")
+            return outputs
+
+        if feature_df is None or feature_df.empty:
+            self.logger.warning(
+                "Empty feature frame supplied for explainability dashboard"
+            )
+            return outputs
+
+        plt_module = None
+        if self.matplotlib_available:
+            try:
+                import matplotlib.pyplot as plt  # type: ignore
+
+                plt_module = plt
+            except ImportError:
+                self.logger.warning(
+                    "Matplotlib unavailable at runtime; falling back to tabular explainability outputs"
+                )
+
+        def _write_table_html(df: pd.DataFrame, title: str, filename: str) -> str:
+            table_path = os.path.join(self.output_dir, filename)
+            html = (
+                "<html><head><meta charset='utf-8'><title>{title}</title></head>"
+                "<body><h2>{title}</h2>{table}</body></html>"
+            ).format(title=title, table=df.to_html(index=False))
+            with open(table_path, "w", encoding="utf-8") as handle:
+                handle.write(html)
+            return table_path
+
+        try:
+            global_importance = compute_global_shap_importance(model, feature_df)
+        except Exception as exc:  # pragma: no cover - defensive
+            self.logger.error(
+                f"Error computing global SHAP importance: {exc}", exc_info=True
+            )
+            global_importance = None
+
+        if global_importance is not None and not global_importance.empty:
+            top_global = global_importance.head(20)
+            if plt_module is not None:
+                fig, ax = plt_module.subplots(figsize=(12, 8))
+                bars = ax.barh(
+                    top_global["feature"][::-1],
+                    top_global["importance"][::-1],
+                    color="#1f77b4",
+                    alpha=0.8,
+                )
+                ax.set_title(
+                    "Global Feature Importance (Mean |SHAP|)",
+                    fontsize=14,
+                    fontweight="bold",
+                )
+                ax.set_xlabel("Contribution to risk prediction")
+                ax.set_ylabel("Feature")
+                ax.invert_yaxis()
+                for bar, value in zip(bars, top_global["importance"][::-1]):
+                    ax.text(
+                        value + 0.001,
+                        bar.get_y() + bar.get_height() / 2,
+                        f"{value:.4f}",
+                        va="center",
+                        fontsize=9,
+                    )
+                fig.tight_layout()
+                global_path = os.path.join(
+                    self.output_dir, "explainability_shap_global.png"
+                )
+                fig.savefig(global_path, dpi=300, bbox_inches="tight")
+                plt_module.close(fig)
+            else:
+                global_path = _write_table_html(
+                    top_global,
+                    "Global Feature Importance (Mean |SHAP|)",
+                    "explainability_shap_global.html",
+                )
+            outputs["explainability_shap_global"] = global_path
+
+        try:
+            local_explanation = compute_local_shap_explanation(
+                model, feature_df, sample_index
+            )
+        except Exception as exc:  # pragma: no cover - defensive
+            self.logger.error(
+                f"Error computing local SHAP explanation: {exc}", exc_info=True
+            )
+            local_explanation = None
+
+        if local_explanation is not None and not local_explanation.empty:
+            top_local = local_explanation.head(20).copy()
+            plot_frame = top_local.iloc[::-1]
+            if plt_module is not None:
+                fig, ax = plt_module.subplots(figsize=(12, 8))
+                colors = [
+                    "#2ecc71" if val >= 0 else "#e74c3c"
+                    for val in plot_frame["shap_value"]
+                ]
+                ax.barh(
+                    plot_frame["feature"],
+                    plot_frame["shap_value"],
+                    color=colors,
+                    alpha=0.85,
+                )
+                ax.axvline(0, color="#333", linewidth=1)
+                ax.set_title(
+                    "Local SHAP Contributions", fontsize=14, fontweight="bold"
+                )
+                ax.set_xlabel("Impact on predicted risk")
+                ax.set_ylabel("Feature")
+                fig.tight_layout()
+                local_path = os.path.join(
+                    self.output_dir, "explainability_shap_local.png"
+                )
+                fig.savefig(local_path, dpi=300, bbox_inches="tight")
+                plt_module.close(fig)
+            else:
+                local_path = _write_table_html(
+                    top_local,
+                    "Local SHAP Contributions",
+                    "explainability_shap_local.html",
+                )
+            outputs["explainability_shap_local"] = local_path
+
+        try:
+            lime_explanation = compute_lime_explanation(
+                model, feature_df, sample_index, class_names=class_names
+            )
+        except Exception as exc:  # pragma: no cover - defensive
+            self.logger.error(
+                f"Error computing LIME explanation: {exc}", exc_info=True
+            )
+            lime_explanation = None
+
+        if lime_explanation is not None and not lime_explanation.empty:
+            top_lime = lime_explanation.head(20)
+            if plt_module is not None:
+                fig, ax = plt_module.subplots(figsize=(12, 6))
+                sorted_lime = top_lime.sort_values("weight")
+                colors = [
+                    "#2ecc71" if val >= 0 else "#e74c3c"
+                    for val in sorted_lime["weight"]
+                ]
+                ax.barh(
+                    sorted_lime["feature"],
+                    sorted_lime["weight"],
+                    color=colors,
+                    alpha=0.85,
+                )
+                ax.axvline(0, color="#333", linewidth=1)
+                ax.set_title(
+                    "LIME Local Explanation", fontsize=14, fontweight="bold"
+                )
+                ax.set_xlabel("Weight toward predicted class")
+                ax.set_ylabel("Feature")
+                fig.tight_layout()
+                lime_path = os.path.join(
+                    self.output_dir, "explainability_lime.png"
+                )
+                fig.savefig(lime_path, dpi=300, bbox_inches="tight")
+                plt_module.close(fig)
+            else:
+                lime_path = _write_table_html(
+                    top_lime,
+                    "LIME Local Explanation",
+                    "explainability_lime.html",
+                )
+            outputs["explainability_lime"] = lime_path
+
+        if not outputs:
+            self.logger.warning(
+                "Explainability artifacts could not be generated; check optional dependencies"
+            )
+        else:
+            self.logger.info(
+                "Created %s explainability artifacts", len(outputs)
+            )
+
+        return outputs

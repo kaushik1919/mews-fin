@@ -4,33 +4,28 @@ Unit tests for data processing modules.
 import pytest
 import pandas as pd
 import numpy as np
-from unittest.mock import Mock, patch, MagicMock
-import sys
-import os
+from unittest.mock import MagicMock, patch
 
-# Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-
-from data_fetcher import DataFetcher
-from data_preprocessor import DataPreprocessor
-from sentiment_analyzer import SentimentAnalyzer
+from src.data_fetcher import StockDataFetcher
+from src.data_preprocessor import DataPreprocessor
+from src.sentiment_analyzer import SentimentAnalyzer
 
 
-class TestDataFetcher:
-    """Test cases for DataFetcher class."""
+class TestStockDataFetcher:
+    """Test cases for :class:`StockDataFetcher`."""
     
     @pytest.fixture
     def data_fetcher(self):
-        """Create DataFetcher instance."""
-        return DataFetcher()
+        """Create StockDataFetcher instance."""
+        return StockDataFetcher()
     
     def test_data_fetcher_initialization(self, data_fetcher):
         """Test DataFetcher initialization."""
         assert data_fetcher is not None
-        assert hasattr(data_fetcher, 'fetch_stock_data')
+        assert hasattr(data_fetcher, "fetch_yahoo_data")
     
-    @patch('data_fetcher.yf.download')
-    def test_fetch_stock_data_success(self, mock_yf_download, data_fetcher):
+    @patch("src.data_fetcher.yf.Ticker")
+    def test_fetch_stock_data_success(self, mock_yf_ticker, data_fetcher):
         """Test successful stock data fetching."""
         # Mock yfinance response
         mock_data = pd.DataFrame({
@@ -41,22 +36,31 @@ class TestDataFetcher:
             'Volume': [1000000, 1100000, 1200000]
         }, index=pd.date_range('2023-01-01', periods=3))
         
-        mock_yf_download.return_value = mock_data
-        
-        result = data_fetcher.fetch_stock_data(['AAPL'], '2023-01-01', '2023-01-03')
-        
-        assert isinstance(result, pd.DataFrame)
-        assert len(result) == 3
-        assert 'Close' in result.columns
-        assert 'Volume' in result.columns
-    
-    @patch('data_fetcher.yf.download')
-    def test_fetch_stock_data_failure(self, mock_yf_download, data_fetcher):
+        mock_ticker = MagicMock()
+        mock_ticker.history.return_value = mock_data
+        mock_ticker.info = {}
+        mock_yf_ticker.return_value = mock_ticker
+
+        result = data_fetcher.fetch_yahoo_data(['AAPL'], '2023-01-01', '2023-01-03')
+
+        assert 'AAPL' in result
+        fetched_df = result['AAPL']
+        assert isinstance(fetched_df, pd.DataFrame)
+        assert len(fetched_df) == 3
+        assert 'Close' in fetched_df.columns
+        assert 'Volume' in fetched_df.columns
+        assert (fetched_df['Symbol'] == 'AAPL').all()
+
+    @patch("src.data_fetcher.yf.Ticker")
+    def test_fetch_stock_data_failure(self, mock_yf_ticker, data_fetcher):
         """Test handling of data fetching failure."""
-        mock_yf_download.side_effect = Exception("Network error")
+        mock_ticker = MagicMock()
+        mock_ticker.history.side_effect = Exception("Network error")
+        mock_yf_ticker.return_value = mock_ticker
         
-        with pytest.raises(Exception):
-            data_fetcher.fetch_stock_data(['AAPL'], '2023-01-01', '2023-01-03')
+        result = data_fetcher.fetch_yahoo_data(['AAPL'], '2023-01-01', '2023-01-03')
+
+        assert 'AAPL' not in result
 
 
 class TestDataPreprocessor:
@@ -65,52 +69,64 @@ class TestDataPreprocessor:
     @pytest.fixture
     def sample_stock_data(self):
         """Create sample stock data."""
-        return pd.DataFrame({
+        df = pd.DataFrame({
+            'Date': pd.date_range('2023-01-01', periods=5),
             'Open': [100, 101, 102, 103, 104],
             'High': [105, 106, 107, 108, 109],
             'Low': [95, 96, 97, 98, 99],
             'Close': [103, 104, 105, 106, 107],
-            'Volume': [1000000, 1100000, 1200000, 1300000, 1400000]
-        }, index=pd.date_range('2023-01-01', periods=5))
+            'Volume': [1000000, 1100000, 1200000, 1300000, 1400000],
+            'Symbol': ['AAPL'] * 5
+        })
+        return df
     
     @pytest.fixture
     def preprocessor(self):
         """Create DataPreprocessor instance."""
         return DataPreprocessor()
     
-    def test_calculate_technical_indicators(self, preprocessor, sample_stock_data):
-        """Test technical indicator calculations."""
-        result = preprocessor.calculate_technical_indicators(sample_stock_data)
-        
-        assert 'rsi' in result.columns
-        assert 'sma_20' in result.columns
-        assert 'price_change' in result.columns
+    def test_preprocess_stock_data_adds_features(self, preprocessor, sample_stock_data):
+        """Technical indicators should be added during preprocessing."""
+        result = preprocessor.preprocess_stock_data(sample_stock_data)
+
+        assert 'Returns' in result.columns
+        assert 'RSI' in result.columns
+        assert 'MACD' in result.columns
         assert len(result) == len(sample_stock_data)
     
     def test_create_risk_labels(self, preprocessor, sample_stock_data):
         """Test risk label creation."""
         # Add price changes that should trigger risk labels
         data_with_changes = sample_stock_data.copy()
-        data_with_changes.loc['2023-01-03', 'Close'] = 90  # Large drop
-        
-        result = preprocessor.create_risk_labels(data_with_changes, threshold=0.05)
-        
-        assert 'risk_label' in result.columns
-        assert result['risk_label'].dtype == int
-        assert set(result['risk_label'].unique()) <= {0, 1}
+        data_with_changes.loc[2, 'Close'] = 90  # Large drop
+
+        processed = preprocessor.preprocess_stock_data(data_with_changes)
+        result = preprocessor.create_risk_labels(
+            processed,
+            volatility_threshold=0.01,
+            return_threshold=-0.02,
+            window=2,
+        )
+
+        assert 'Risk_Label' in result.columns
+        assert set(result['Risk_Label'].unique()) <= {0, 1}
     
     def test_handle_missing_values(self, preprocessor):
         """Test missing value handling."""
         data_with_nan = pd.DataFrame({
-            'feature1': [1, 2, np.nan, 4, 5],
-            'feature2': [np.nan, 2, 3, 4, 5],
-            'feature3': [1, 2, 3, 4, np.nan]
+            'Date': pd.date_range('2023-01-01', periods=5),
+            'Open': [100, np.nan, 102, np.nan, 104],
+            'High': [105, 106, np.nan, 108, 109],
+            'Low': [95, 96, 97, np.nan, 99],
+            'Close': [103, np.nan, 105, 106, 107],
+            'Volume': [1000000, 1100000, np.nan, 1300000, 1400000],
+            'Symbol': ['AAPL'] * 5
         })
-        
-        result = preprocessor.handle_missing_values(data_with_nan)
-        
-        assert not result.isnull().any().any()
-        assert len(result) == len(data_with_nan)
+
+        result = preprocessor.preprocess_stock_data(data_with_nan)
+
+        numeric_cols = ['Open', 'High', 'Low', 'Close', 'Volume']
+        assert not result[numeric_cols].isnull().any().any()
 
 
 class TestSentimentAnalyzer:
@@ -187,32 +203,34 @@ class TestDataProcessingIntegration:
         """Test complete data processing pipeline."""
         # Create mock data
         stock_data = pd.DataFrame({
+            'Date': pd.date_range('2023-01-01', periods=50),
             'Open': np.random.uniform(90, 110, 50),
             'High': np.random.uniform(95, 115, 50),
             'Low': np.random.uniform(85, 105, 50),
             'Close': np.random.uniform(90, 110, 50),
-            'Volume': np.random.randint(500000, 2000000, 50)
-        }, index=pd.date_range('2023-01-01', periods=50))
+            'Volume': np.random.randint(500000, 2000000, 50),
+            'Symbol': ['AAPL'] * 50
+        })
         
         # Add some realistic price movements
         for i in range(1, len(stock_data)):
-            stock_data.iloc[i]['Close'] = (
-                stock_data.iloc[i-1]['Close'] * 
+            stock_data.loc[i, 'Close'] = (
+                stock_data.loc[i - 1, 'Close'] *
                 (1 + np.random.normal(0, 0.02))
             )
         
         preprocessor = DataPreprocessor()
         
         # Process data
-        processed_data = preprocessor.calculate_technical_indicators(stock_data)
+        processed_data = preprocessor.preprocess_stock_data(stock_data)
         processed_data = preprocessor.create_risk_labels(processed_data)
-        processed_data = preprocessor.handle_missing_values(processed_data)
+        processed_data = processed_data.dropna(subset=['Risk_Label'])
         
         # Verify pipeline results
         assert len(processed_data) > 0
-        assert 'risk_label' in processed_data.columns
+        assert 'Risk_Label' in processed_data.columns
         assert not processed_data.isnull().any().any()
-        assert processed_data['risk_label'].dtype == int
+        assert set(processed_data['Risk_Label'].unique()) <= {0, 1}
         
         # Test sentiment integration
         sample_news = [

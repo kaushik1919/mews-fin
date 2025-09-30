@@ -5,12 +5,16 @@ Interactive dashboard with 4 ML models comparison
 
 import json
 import os
+import pickle
 import warnings
 from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import plotly.figure_factory as ff
 import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
@@ -24,6 +28,71 @@ sys.path.append(".")
 from datetime import datetime, timedelta
 
 import requests
+
+
+def _normalize_datetime_column(
+    df: pd.DataFrame, column: str = "Date", dropna: bool = True
+) -> pd.DataFrame:
+    """Convert datetime-like column to timezone-naive pandas datetime."""
+
+    if column in df.columns:
+        as_str = df[column].astype(str)
+        normalized = pd.to_datetime(as_str, errors="coerce", utc=True)
+        df[column] = normalized.dt.tz_localize(None)
+        if dropna:
+            df = df.dropna(subset=[column])
+    return df
+
+
+def _format_dataframe_for_display(
+    df: pd.DataFrame, date_columns: Optional[Tuple[str, ...]] = None
+) -> pd.DataFrame:
+    """Convert datetime-like columns to ISO strings for Streamlit display."""
+
+    formatted = df.copy()
+
+    if date_columns is None:
+        inferred = []
+        for column in formatted.columns:
+            series = formatted[column]
+            if pd.api.types.is_datetime64_any_dtype(series):
+                inferred.append(column)
+            elif series.dtype == object and series.apply(
+                lambda val: isinstance(val, (pd.Timestamp, datetime))
+            ).any():
+                inferred.append(column)
+        candidate_columns = tuple(inferred)
+    else:
+        candidate_columns = date_columns
+
+    for column in candidate_columns:
+        if column not in formatted.columns:
+            continue
+
+        series = formatted[column]
+        if pd.api.types.is_datetime64_any_dtype(series):
+            formatted[column] = series.dt.strftime("%Y-%m-%d")
+        else:
+            formatted[column] = series.apply(
+                lambda val: val.strftime("%Y-%m-%d")
+                if isinstance(val, (pd.Timestamp, datetime))
+                else val
+            )
+
+    return formatted
+
+
+def _render_dataframe(df: pd.DataFrame, **kwargs: Any) -> None:
+    st.dataframe(_format_dataframe_for_display(df), **kwargs)
+
+
+from src.backtester import RiskBacktester
+from src.metrics import compute_cews_score
+from src.xai_utils import (
+    compute_global_shap_importance,
+    compute_lime_explanation,
+    compute_local_shap_explanation,
+)
 
 # Import enhanced features
 try:
@@ -87,9 +156,11 @@ def load_cached_data():
     df = None
     if os.path.exists(cache_file_with_risk):
         df = pd.read_csv(cache_file_with_risk)
+        df = _normalize_datetime_column(df)
         st.info("✅ Loaded dataset with pre-computed risk labels")
     elif os.path.exists(cache_file):
         df = pd.read_csv(cache_file)
+        df = _normalize_datetime_column(df)
         # Generate risk labels if needed
         if "Risk_Label" not in df.columns and results:
             try:
@@ -244,7 +315,7 @@ def create_sentiment_risk_chart(news_df, stock_data):
 
     try:
         # Group news sentiment by symbol and date
-        news_df["published_date"] = pd.to_datetime(news_df["published_date"])
+        news_df = _normalize_datetime_column(news_df, "published_date")
         news_df["date"] = news_df["published_date"].dt.date
 
         daily_sentiment = (
@@ -286,7 +357,7 @@ def create_sentiment_risk_chart(news_df, stock_data):
         # Add risk timeline if available
         if stock_data is not None and "Risk_Label" in stock_data.columns:
             if "Date" in stock_data.columns:
-                stock_data["Date"] = pd.to_datetime(stock_data["Date"])
+                stock_data = _normalize_datetime_column(stock_data, "Date")
                 daily_risk = (
                     stock_data.groupby("Date")["Risk_Label"].mean().reset_index()
                 )
@@ -386,85 +457,161 @@ def create_feature_importance_chart(results):
     if not results or "random_forest" not in results:
         return None
 
-    # Get feature importance from Random Forest (most interpretable)
     rf_results = results["random_forest"]
-    if "feature_importance" not in rf_results:
+    feature_importance = rf_results.get("feature_importance")
+    if not feature_importance:
         return None
 
-    importance = rf_results["feature_importance"]
-    sorted_features = sorted(importance.items(), key=lambda x: x[1], reverse=True)[:15]
+    sorted_features = sorted(
+        feature_importance.items(), key=lambda item: item[1], reverse=True
+    )[:15]
 
-    # Create user-friendly names
-    feature_names = []
-    for feature in sorted_features:
-        original_name = feature[0]
-        # Convert technical names to user-friendly names
-        friendly_name = original_name
-
-        # Technical -> User-friendly mappings
-        name_mappings = {
-            "rsi": "RSI (Price Momentum)",
-            "macd": "MACD (Trend Indicator)",
-            "bollinger": "Bollinger Bands (Volatility)",
-            "ma_": "Moving Average ",
-            "volume": "Trading Volume",
-            "close": "Stock Price",
-            "high": "Daily High Price",
-            "low": "Daily Low Price",
-            "open": "Opening Price",
-            "volatility": "Price Volatility",
-            "return": "Daily Return",
-            "sentiment": "News Sentiment",
-            "correlation": "Market Correlation",
-            "drawdown": "Price Drawdown",
-            "sharpe": "Risk-Return Ratio",
-            "vix": "Market Fear Index (VIX)",
-        }
-
-        for tech, friendly in name_mappings.items():
-            if tech.lower() in original_name.lower():
-                friendly_name = friendly
-                break
-
-        # Clean up remaining underscores and make title case
-        if friendly_name == original_name:
-            friendly_name = original_name.replace("_", " ").title()
-
-        feature_names.append(friendly_name)
-
-    features, scores = zip(*sorted_features)
-
-    # Create color gradient based on importance
-    colors = [
-        (
-            "rgba(255,99,71,0.8)"
-            if score > 0.1
-            else "rgba(255,165,0,0.8)" if score > 0.05 else "rgba(135,206,235,0.8)"
-        )
-        for score in scores
-    ]
+    feature_names = [name.replace("_", " ").title() for name, _ in sorted_features]
+    values = [value for _, value in sorted_features]
 
     fig = go.Figure(
-        go.Bar(
-            x=scores,
-            y=feature_names,
-            orientation="h",
-            marker_color=colors,
-            text=[f"{score:.3f}" for score in scores],
-            textposition="auto",
-        )
+        data=[
+            go.Bar(
+                x=feature_names,
+                y=values,
+                marker=dict(color="crimson"),
+                text=[f"{value:.3f}" for value in values],
+                textposition="auto",
+            )
+        ]
     )
 
     fig.update_layout(
-        title="🎯 Most Important Factors for Risk Prediction",
-        xaxis_title="Importance Level (0 = Not Important, 1 = Very Important)",
-        yaxis_title="Market Factors",
+        title="Top Factors Influencing Market Risk",
+        xaxis_tickangle=-45,
         height=500,
-        showlegend=False,
-        font=dict(size=12),
     )
 
     return fig
+
+@st.cache_resource(show_spinner=False)
+def load_latest_model(model_name: str = "random_forest") -> Optional[object]:
+    """Load the most recent trained model artifact from the models directory."""
+
+    models_root = Path("models")
+    if not models_root.exists():
+        return None
+
+    candidates = sorted(models_root.glob("models_*"))
+    if not candidates:
+        return None
+
+    latest_dir = max(candidates, key=lambda path: path.name)
+    model_path = latest_dir / f"{model_name}_model.pkl"
+    if not model_path.exists():
+        return None
+
+    with open(model_path, "rb") as handle:
+        return pickle.load(handle)
+
+
+@st.cache_data(show_spinner=False)
+def prepare_feature_matrix(
+    df: pd.DataFrame, target_column: str = "Risk_Label"
+) -> pd.DataFrame:
+    """Prepare numeric feature matrix for explainability analyses."""
+
+    features = df.select_dtypes(include=[np.number]).copy()
+    if target_column in features.columns:
+        features = features.drop(columns=[target_column])
+    return features.fillna(0)
+
+
+def get_test_predictions(results: Dict[str, Any]) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    """Extract ground-truth labels and ensemble probabilities from stored results."""
+
+    test_data = results.get("test_data")
+    if not test_data:
+        return None
+
+    y_true = np.array(test_data.get("y_test", []))
+    if y_true.size == 0:
+        return None
+
+    for key in ["ensemble_probabilities", "rf_probabilities", "lr_probabilities"]:
+        if key in test_data:
+            y_prob = np.array(test_data[key])
+            break
+    else:
+        return None
+
+    if y_prob.size != y_true.size:
+        return None
+
+    y_pred = (y_prob >= 0.5).astype(int)
+    return y_true, y_pred, y_prob
+
+
+def create_confusion_matrix_plot(
+    y_true: np.ndarray, y_pred: np.ndarray
+) -> Optional[go.Figure]:
+    """Create an annotated confusion matrix using Plotly."""
+
+    if y_true.size == 0 or y_pred.size == 0:
+        return None
+
+    from sklearn.metrics import confusion_matrix
+
+    cm = confusion_matrix(y_true, y_pred)
+    labels = [["TN", "FP"], ["FN", "TP"]]
+    heatmap = ff.create_annotated_heatmap(
+        z=cm,
+        x=["Predicted 0", "Predicted 1"],
+        y=["Actual 0", "Actual 1"],
+        annotation_text=labels,
+        colorscale="Blues",
+        showscale=True,
+    )
+    heatmap.update_layout(title="Confusion Matrix", height=400)
+    return heatmap
+
+
+@st.cache_data(show_spinner=False)
+def run_cached_backtest(
+    df: pd.DataFrame, predictions_df: Optional[pd.DataFrame]
+) -> Optional[Dict[str, Any]]:
+    """Run comprehensive backtest with caching to avoid recomputation."""
+
+    if df.empty:
+        return None
+
+    try:
+        backtester = RiskBacktester()
+        return backtester.run_comprehensive_backtest(df, predictions_df)
+    except Exception as exc:  # pragma: no cover - backtester optional
+        st.warning(f"Backtesting unavailable: {exc}")
+        return None
+
+
+def build_cews_input(df: pd.DataFrame) -> Optional[Tuple[pd.DataFrame, str]]:
+    """Prepare dataframe and probability column for CEWS computation."""
+
+    if df.empty:
+        return None
+
+    working_df = df.copy()
+    working_df = _normalize_datetime_column(working_df, "Date")
+    if "Date" not in working_df.columns or "Risk_Label" not in working_df.columns:
+        return None
+
+    probability_col = None
+    if "Risk_Probability" in working_df.columns:
+        probability_col = "Risk_Probability"
+    elif "Risk_Score" in working_df.columns:
+        probability_col = "Risk_Score"
+    else:
+        working_df["Risk_Probability"] = (
+            working_df["Risk_Label"].rolling(window=3, min_periods=1).mean()
+        )
+        probability_col = "Risk_Probability"
+
+    cews_df = working_df.dropna(subset=["Date", "Risk_Label", probability_col])
+    return cews_df, probability_col
 
 
 def explain_features():
@@ -499,8 +646,8 @@ def create_risk_timeline(df):
 
         # Handle different date formats
         try:
-            timeline_data["Date"] = pd.to_datetime(timeline_data["Date"])
-        except:
+            timeline_data = _normalize_datetime_column(timeline_data, "Date")
+        except Exception:
             st.warning("Could not parse Date column for risk timeline")
             return None
 
@@ -630,10 +777,36 @@ def main():
         f"Symbols: {df['Symbol'].nunique() if 'Symbol' in df.columns else 'N/A'}"
     )
 
-    # Main content tabs
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
+    # Prepare derived datasets for advanced visualizations
+    y_true_pred = get_test_predictions(results)
+    cews_bundle = build_cews_input(df)
+    cews_df: Optional[pd.DataFrame] = None
+    probability_column: Optional[str] = None
+    predictions_for_backtest: Optional[pd.DataFrame] = None
+
+    if cews_bundle:
+        cews_df, probability_column = cews_bundle
+        predictions_for_backtest = cews_df.copy()
+        if "Symbol" not in predictions_for_backtest.columns:
+            predictions_for_backtest["Symbol"] = "MEWS"
+        predictions_for_backtest = predictions_for_backtest.rename(
+            columns={probability_column: "Risk_Probability"}
+        )
+
+    (
+        tab_model_results,
+        tab_explainability,
+        tab_multimodal,
+        tab_feature_analysis,
+        tab_risk_timeline,
+        tab_sentiment,
+        tab_data_explorer,
+        tab_model_details,
+    ) = st.tabs(
         [
-            "🎯 Model Performance",
+            "📊 Model Results",
+            "🧠 Explainability",
+            "🧬 Multimodal + CEWS",
             "📈 Feature Analysis",
             "📊 Risk Timeline",
             "📰 Sentiment Analysis",
@@ -642,64 +815,392 @@ def main():
         ]
     )
 
-    with tab1:
-        st.subheader("ML Model Performance Comparison")
+    with tab_model_results:
+        st.subheader("Comprehensive Model Results")
 
-        col1, col2, col3, col4 = st.columns(4)
-
-        # Display model metrics
+        summary_cols = st.columns(4)
         model_count = 0
-        total_accuracy = 0
-        best_model = ""
-        best_auc = 0
+        total_accuracy = 0.0
+        best_model = "N/A"
+        best_auc = 0.0
 
         for model_name, metrics in results.items():
-            if model_name not in ["test_data", "ensemble"] and isinstance(
-                metrics, dict
-            ):
-                model_count += 1
-                accuracy = metrics.get("test_accuracy", 0)
-                auc = metrics.get("auc_score", 0)
-                total_accuracy += accuracy
+            if not isinstance(metrics, dict) or model_name == "test_data":
+                continue
 
-                if auc > best_auc:
-                    best_auc = auc
-                    best_model = model_name.replace("_", " ").title()
+            model_count += 1
+            accuracy = float(metrics.get("test_accuracy", 0.0))
+            auc_score = float(metrics.get("auc_score", 0.0))
+            total_accuracy += accuracy
 
-        with col1:
-            st.metric("Models Trained", model_count)
-        with col2:
-            st.metric("Avg Accuracy", f"{total_accuracy/max(model_count, 1):.3f}")
-        with col3:
-            st.metric("Best Model", best_model)
-        with col4:
-            st.metric("Best AUC", f"{best_auc:.3f}")
+            if model_name != "ensemble" and auc_score > best_auc:
+                best_auc = auc_score
+                best_model = model_name.replace("_", " ").title()
 
-        # Model comparison chart
+        summary_cols[0].metric("Models Trained", model_count)
+        summary_cols[1].metric(
+            "Avg Accuracy", f"{total_accuracy / max(model_count, 1):.3f}"
+        )
+        summary_cols[2].metric("Best Model", best_model)
+        summary_cols[3].metric("Best AUC", f"{best_auc:.3f}")
+
+        if y_true_pred:
+            from sklearn.metrics import precision_score, recall_score, roc_auc_score
+
+            y_true, y_pred, y_prob = y_true_pred
+            metric_cols = st.columns(3)
+            metric_cols[0].metric(
+                "Ensemble AUC", f"{roc_auc_score(y_true, y_prob):.3f}"
+            )
+            metric_cols[1].metric(
+                "Precision", f"{precision_score(y_true, y_pred, zero_division=0):.3f}"
+            )
+            metric_cols[2].metric(
+                "Recall", f"{recall_score(y_true, y_pred, zero_division=0):.3f}"
+            )
+
+            confusion_fig = create_confusion_matrix_plot(y_true, y_pred)
+            if confusion_fig:
+                st.plotly_chart(confusion_fig, use_container_width=True)
+        else:
+            st.info(
+                "Test prediction data unavailable. Run the training pipeline to populate evaluation metrics."
+            )
+
         comparison_fig = create_model_comparison_chart(results)
         if comparison_fig:
-            config = {'displayModeBar': False}
-            st.plotly_chart(comparison_fig, width='stretch', config=config)
+            st.plotly_chart(
+                comparison_fig, use_container_width=True, config={"displayModeBar": False}
+            )
 
-        # Model details table
         st.subheader("Detailed Model Results")
-
-        model_data = []
+        rows = []
         for model_name, metrics in results.items():
-            if model_name not in ["test_data"] and isinstance(metrics, dict):
-                model_data.append(
-                    {
-                        "Model": model_name.replace("_", " ").title(),
-                        "Accuracy": f"{metrics.get('test_accuracy', 0):.4f}",
-                        "AUC Score": f"{metrics.get('auc_score', 0):.4f}",
-                        "Training Time": "N/A",  # Add if available
-                    }
+            if not isinstance(metrics, dict) or model_name == "test_data":
+                continue
+            rows.append(
+                {
+                    "Model": model_name.replace("_", " ").title(),
+                    "Accuracy": f"{metrics.get('test_accuracy', 0):.4f}",
+                    "AUC Score": f"{metrics.get('auc_score', 0):.4f}",
+                    "Models Used": ", ".join(metrics.get("models_used", []))
+                    if isinstance(metrics.get("models_used"), list)
+                    else "-",
+                }
+            )
+
+        if rows:
+            _render_dataframe(pd.DataFrame(rows), use_container_width=True)
+
+        if predictions_for_backtest is not None:
+            backtest_results = run_cached_backtest(df, predictions_for_backtest)
+            event_analysis = (
+                backtest_results.get("event_analysis") if backtest_results else None
+            )
+
+            if event_analysis:
+                st.subheader("Historical Stress Tests")
+                event_rows = []
+                for event_key, analysis in event_analysis.items():
+                    if analysis.get("status") == "no_data":
+                        continue
+
+                    risk_signals = analysis.get("risk_signals", {})
+                    prediction_perf = analysis.get("prediction_performance", {})
+                    avg_prob = prediction_perf.get("avg_risk_probability")
+                    event_rows.append(
+                        {
+                            "Event": analysis.get("description", event_key.replace("_", " ").title()),
+                            "Period": analysis.get("period", "N/A"),
+                            "Risk Rate": f"{risk_signals.get('risk_rate', 0):.2%}",
+                            "Early Warning": f"{analysis.get('early_warning_score', 0.0):+.2f}",
+                            "Avg Predicted Risk": "N/A"
+                            if avg_prob is None
+                            else f"{avg_prob:.2f}",
+                        }
+                    )
+
+                if event_rows:
+                    _render_dataframe(
+                        pd.DataFrame(event_rows), use_container_width=True
+                    )
+                    st.caption(
+                        "Positive early warning scores indicate the system raised alerts before the event window."
+                    )
+                else:
+                    st.info(
+                        "No historical market event windows overlapped with the loaded dataset."
+                    )
+        else:
+            st.info(
+                "CEWS inputs not available yet—generate probability forecasts to unlock backtesting analytics."
+            )
+
+    with tab_explainability:
+        st.subheader("Explainability Studio (SHAP & LIME)")
+        model = load_latest_model()
+        feature_matrix = prepare_feature_matrix(df)
+
+        if model is None:
+            st.warning(
+                "No trained model artifacts found. Run the training pipeline to enable explainability insights."
+            )
+        elif feature_matrix.empty:
+            st.warning("Feature matrix is empty; cannot compute explanations.")
+        else:
+            sample_max = min(len(feature_matrix), 1000)
+            sample_min = min(100, sample_max)
+            sample_default = min(500, sample_max)
+            sample_size = st.slider(
+                "Sample size for global SHAP",
+                sample_min,
+                sample_max,
+                sample_default,
+                step=50,
+            )
+
+            shap_input = (
+                feature_matrix.sample(sample_size, random_state=42)
+                if len(feature_matrix) > sample_size
+                else feature_matrix
+            )
+
+            with st.spinner("Computing global SHAP importance..."):
+                shap_global = compute_global_shap_importance(model, shap_input)
+
+            if shap_global is not None and not shap_global.empty:
+                top_global = shap_global.head(20)
+                global_fig = go.Figure(
+                    go.Bar(
+                        x=top_global["importance"][::-1],
+                        y=top_global["feature"][::-1],
+                        orientation="h",
+                        marker=dict(color="#2563eb"),
+                    )
+                )
+                global_fig.update_layout(
+                    title="Global Feature Importance (Mean |SHAP|)",
+                    height=500,
+                    margin=dict(l=150, r=30, t=60, b=40),
+                )
+                st.plotly_chart(global_fig, use_container_width=True)
+            else:
+                st.info(
+                    "SHAP library not installed; run `pip install shap` to unlock global explanations."
                 )
 
-        if model_data:
-            st.dataframe(pd.DataFrame(model_data), width='stretch')
+            st.markdown("### Local Explanations")
+            selected_position: Optional[int] = None
 
-    with tab2:
+            if {"Symbol", "Date"}.issubset(df.columns):
+                selection_df = df[["Symbol", "Date"]].copy()
+                selection_df["row_position"] = np.arange(len(selection_df))
+                selection_df = _normalize_datetime_column(selection_df, "Date")
+
+                if not selection_df.empty:
+                    symbol_choice = st.selectbox(
+                        "Ticker", sorted(selection_df["Symbol"].dropna().unique())
+                    )
+                    symbol_slice = selection_df[selection_df["Symbol"] == symbol_choice]
+                    date_options = (
+                        symbol_slice["Date"].dt.date.unique()
+                        if not symbol_slice.empty
+                        else []
+                    )
+                    if len(date_options) > 0:
+                        date_choice = st.selectbox(
+                            "Date", sorted(date_options, reverse=True)
+                        )
+                        match_rows = symbol_slice[
+                            symbol_slice["Date"].dt.date == date_choice
+                        ]
+                        if not match_rows.empty:
+                            selected_position = int(match_rows["row_position"].iloc[0])
+
+            if selected_position is None:
+                selected_position = 0
+
+            selected_position = int(
+                np.clip(selected_position, 0, max(len(feature_matrix) - 1, 0))
+            )
+
+            with st.spinner("Computing local SHAP and LIME explanations..."):
+                shap_local = compute_local_shap_explanation(
+                    model, feature_matrix, selected_position
+                )
+                lime_explanation = compute_lime_explanation(
+                    model,
+                    feature_matrix,
+                    selected_position,
+                    class_names=np.array(["Stable", "Risk"]),
+                )
+
+            if shap_local is not None and not shap_local.empty:
+                local_display = shap_local.head(20).sort_values("abs_shap")
+                local_colors = [
+                    "#16a34a" if val >= 0 else "#dc2626"
+                    for val in local_display["shap_value"]
+                ]
+                local_fig = go.Figure(
+                    go.Bar(
+                        x=local_display["shap_value"],
+                        y=local_display["feature"],
+                        orientation="h",
+                        marker_color=local_colors,
+                    )
+                )
+                local_fig.update_layout(
+                    title="Local SHAP Contributions",
+                    height=500,
+                    margin=dict(l=150, r=30, t=60, b=40),
+                )
+                st.plotly_chart(local_fig, use_container_width=True)
+            else:
+                st.info("Local SHAP explanations unavailable for the selected sample.")
+
+            if lime_explanation is not None and not lime_explanation.empty:
+                lime_display = lime_explanation.sort_values("weight")
+                lime_colors = [
+                    "#16a34a" if val >= 0 else "#dc2626"
+                    for val in lime_display["weight"]
+                ]
+                lime_fig = go.Figure(
+                    go.Bar(
+                        x=lime_display["weight"],
+                        y=lime_display["feature"],
+                        orientation="h",
+                        marker_color=lime_colors,
+                    )
+                )
+                lime_fig.update_layout(
+                    title="LIME Feature Weights",
+                    height=500,
+                    margin=dict(l=150, r=30, t=60, b=40),
+                )
+                st.plotly_chart(lime_fig, use_container_width=True)
+            else:
+                st.info("LIME explanation unavailable—install the `lime` package to enable this view.")
+
+    with tab_multimodal:
+        st.subheader("Multimodal Fusion & CEWS Insights")
+        st.info(
+            "This view highlights fused tabular, news, and graph features alongside the Crisis Early Warning Score (CEWS)."
+        )
+
+        def _preview_columns(title: str, candidates: list[str]) -> None:
+            subset = [col for col in candidates if col in df.columns]
+            if subset:
+                st.markdown(f"**{title}**")
+                _render_dataframe(df[subset].head(5), use_container_width=True)
+            else:
+                st.markdown(f"**{title}:** _No features detected in dataset._")
+
+        tabular_keywords = [
+            "return",
+            "volatility",
+            "volume",
+            "close",
+            "open",
+            "high",
+            "low",
+            "pe",
+            "beta",
+        ]
+        news_keywords = ["sentiment", "news", "headline", "embedding"]
+        graph_keywords = ["centrality", "pagerank", "graph", "community"]
+
+        tabular_cols = [
+            col for col in df.columns if any(key in col.lower() for key in tabular_keywords)
+        ][:10]
+        news_cols = [
+            col for col in df.columns if any(key in col.lower() for key in news_keywords)
+        ][:10]
+        graph_cols = [
+            col for col in df.columns if any(key in col.lower() for key in graph_keywords)
+        ][:10]
+
+        _preview_columns("Tabular Signals", tabular_cols)
+        _preview_columns("News & Sentiment Signals", news_cols)
+        _preview_columns("Graph Connectivity Signals", graph_cols)
+
+        if cews_df is not None and probability_column is not None:
+            cews_for_calc = _normalize_datetime_column(cews_df.copy(), "Date")
+            if "Symbol" not in cews_for_calc.columns:
+                cews_for_calc["Symbol"] = "MEWS"
+
+            cews_ready = cews_for_calc.rename(
+                columns={probability_column: "Risk_Probability"}
+            )
+
+            cews_result = compute_cews_score(
+                cews_ready,
+                probability_col="Risk_Probability",
+                label_col="Risk_Label",
+                date_col="Date",
+                symbol_col="Symbol",
+            )
+
+            metric_cols = st.columns(3)
+            metric_cols[0].metric("CEWS Score", f"{cews_result.score:.3f}")
+            metric_cols[1].metric(
+                "Early Detection Reward",
+                f"{cews_result.early_detection_reward:.3f}",
+            )
+            metric_cols[2].metric(
+                "False Alarm Penalty",
+                f"{cews_result.false_alarm_penalty:.3f}",
+            )
+
+            timeline = cews_result.timeline.copy()
+            timeline_fig = go.Figure()
+            timeline_fig.add_trace(
+                go.Scatter(
+                    x=timeline["Date"],
+                    y=timeline["cews"],
+                    mode="lines",
+                    name="CEWS",
+                    line=dict(color="#2563eb", width=3),
+                )
+            )
+            timeline_fig.add_trace(
+                go.Scatter(
+                    x=timeline["Date"],
+                    y=timeline["early_reward"],
+                    mode="lines",
+                    name="Early Detection Reward",
+                    line=dict(color="#16a34a", dash="dash", width=2),
+                )
+            )
+            timeline_fig.add_trace(
+                go.Scatter(
+                    x=timeline["Date"],
+                    y=timeline["false_alarm_penalty"],
+                    mode="lines",
+                    name="False Alarm Penalty",
+                    line=dict(color="#dc2626", dash="dot", width=2),
+                )
+            )
+
+            timeline_fig.update_layout(
+                title="Crisis Early Warning Score Timeline",
+                xaxis_title="Date",
+                yaxis_title="Score",
+                yaxis=dict(range=[0, 1]),
+                hovermode="x unified",
+                template="plotly_white",
+                height=500,
+                legend=dict(orientation="h", y=1.08, x=0),
+            )
+            st.plotly_chart(timeline_fig, use_container_width=True)
+
+            with st.expander("CEWS Metadata"):
+                st.json(cews_result.metadata)
+        else:
+            st.info(
+                "CEWS visualizations require probability forecasts. Train models or run the pipeline to generate these inputs."
+            )
+
+    with tab_feature_analysis:
         st.subheader("📈 What Drives Market Risk? (Plain English)")
 
         st.info(
@@ -773,7 +1274,7 @@ def main():
                     "• **Tip**: Look for clusters of red or blue to find factor groups"
                 )
 
-    with tab3:
+    with tab_risk_timeline:
         st.subheader("📊 Market Risk Timeline - Your Risk Radar")
 
         st.info(
@@ -921,8 +1422,7 @@ def main():
             st.subheader("🕐 Recent Risk Trends")
 
             # Convert dates and get recent data
-            df_recent = df.copy()
-            df_recent["Date"] = pd.to_datetime(df_recent["Date"])
+            df_recent = _normalize_datetime_column(df.copy(), "Date")
             df_recent = df_recent.sort_values("Date").tail(30)  # Last 30 days
 
             recent_risk = df_recent["Risk_Label"].mean()
@@ -945,7 +1445,7 @@ def main():
                 else:
                     st.success("🟢 Currently Low Risk")
 
-    with tab4:
+    with tab_sentiment:
         st.subheader("Real-time Sentiment Analysis")
 
         # API Key input
@@ -1117,7 +1617,7 @@ def main():
                                 "Avg_Sentiment"
                             ].apply(interpret_sentiment)
 
-                            st.dataframe(symbol_sentiment, width='stretch')
+                            _render_dataframe(symbol_sentiment, width='stretch')
 
                             # Investment implications
                             st.subheader("💡 What This Means for Your Investments")
@@ -1206,7 +1706,7 @@ def main():
         """
         )
 
-    with tab5:
+    with tab_data_explorer:
         st.subheader("Data Explorer")
 
         # Dataset overview
@@ -1219,7 +1719,9 @@ def main():
                 st.metric("Symbols", df["Symbol"].nunique())
             if "Date" in df.columns:
                 try:
-                    date_col = pd.to_datetime(df["Date"])
+                    date_col = _normalize_datetime_column(
+                        df[["Date"]], "Date", dropna=False
+                    )["Date"]
                     date_range = date_col.dt.date
                     st.metric("Date Range", f"{date_range.min()} to {date_range.max()}")
                 except:
@@ -1227,13 +1729,13 @@ def main():
 
         # Data preview
         st.subheader("Dataset Preview")
-        st.dataframe(df.head(100), width='stretch')
+        _render_dataframe(df.head(100), width="stretch")
 
         # Data statistics
         st.subheader("Statistical Summary")
-        st.dataframe(df.describe(), width='stretch')
+        _render_dataframe(df.describe(), width="stretch")
 
-    with tab6:
+    with tab_model_details:
         st.subheader("Model Configuration Details")
 
         # Display model parameters
@@ -1249,7 +1751,7 @@ def main():
                     report_df = pd.DataFrame(
                         metrics["classification_report"]
                     ).transpose()
-                    st.dataframe(report_df, width='stretch')
+                    _render_dataframe(report_df, width='stretch')
 
                 st.divider()
 
