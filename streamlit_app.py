@@ -25,6 +25,13 @@ from datetime import datetime, timedelta
 
 import requests
 
+# Import enhanced features
+try:
+    from enhanced_integration import integrate_enhanced_risk_system
+    ENHANCED_FEATURES_AVAILABLE = True
+except ImportError:
+    ENHANCED_FEATURES_AVAILABLE = False
+
 # Page configuration
 st.set_page_config(
     page_title="Market Risk Early Warning System",
@@ -804,6 +811,61 @@ def main():
                 "❌ Could not create risk timeline. Please ensure the data has been processed correctly."
             )
 
+        # Enhanced Risk Timeline Option
+        if ENHANCED_FEATURES_AVAILABLE:
+            st.markdown("---")
+            st.subheader("🚀 Enhanced Risk Timeline (New!)")
+            
+            if st.button("🎯 Generate Enhanced Risk Analysis", type="primary"):
+                with st.spinner("🔄 Creating enhanced risk features and timeline..."):
+                    try:
+                        # Get selected symbols from sidebar
+                        available_symbols = df['Symbol'].unique() if 'Symbol' in df.columns else []
+                        selected_symbols = st.sidebar.multiselect(
+                            "Select symbols for enhanced analysis:", 
+                            available_symbols, 
+                            default=available_symbols[:3] if len(available_symbols) >= 3 else available_symbols
+                        )
+                        
+                        if selected_symbols:
+                            # Run enhanced analysis
+                            enhanced_results = integrate_enhanced_risk_system(df, selected_symbols)
+                            
+                            if 'enhanced_dataset' in enhanced_results:
+                                st.success(f"✅ Enhanced analysis complete! Added {enhanced_results.get('feature_count', 0)} new features")
+                                
+                                # Show enhanced timeline link
+                                if enhanced_results.get('timeline_path'):
+                                    st.markdown(f"📊 **Enhanced Interactive Timeline**: [View Enhanced Dashboard]({enhanced_results['timeline_path']})")
+                                
+                                # Show summary dashboard link  
+                                if enhanced_results.get('summary_dashboard_path'):
+                                    st.markdown(f"📋 **Risk Summary Dashboard**: [View Summary]({enhanced_results['summary_dashboard_path']})")
+                                
+                                # Show key metrics
+                                enhanced_df = enhanced_results['enhanced_dataset']
+                                if 'composite_risk_score' in enhanced_df.columns:
+                                    avg_risk = enhanced_df['composite_risk_score'].mean()
+                                    max_risk = enhanced_df['composite_risk_score'].max()
+                                    
+                                    col1, col2, col3 = st.columns(3)
+                                    with col1:
+                                        st.metric("Average Risk Score", f"{avg_risk:.3f}")
+                                    with col2:
+                                        st.metric("Maximum Risk Score", f"{max_risk:.3f}")
+                                    with col3:
+                                        risk_level = "🟢 LOW" if avg_risk < 0.3 else "🟡 MEDIUM" if avg_risk < 0.7 else "🔴 HIGH"
+                                        st.metric("Risk Level", risk_level)
+                            else:
+                                st.error("❌ Enhanced analysis failed. Check the logs for details.")
+                        else:
+                            st.warning("Please select at least one symbol for enhanced analysis.")
+                            
+                    except Exception as e:
+                        st.error(f"❌ Enhanced analysis error: {str(e)}")
+            
+            st.info("💡 **Enhanced Features Include**: Advanced sentiment analysis, market regime detection, volatility scoring, and composite risk indicators!")
+        
         # Risk distribution and insights
         if "Risk_Label" in df.columns:
             col1, col2 = st.columns(2)
