@@ -58,9 +58,9 @@ class MultiModalFeatureFusion:
     ) -> None:
         self.embedding_model_name = embedding_model_name
         self.device = device or ("cuda" if torch and torch.cuda.is_available() else "cpu")
-    self._tokenizer = None
-    self._model = None
-    self.embedding_dim = None
+        self._tokenizer = None
+        self._model = None
+        self.embedding_dim = None
 
     # ---------------------------------------------------------------------
     # Public API
