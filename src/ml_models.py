@@ -541,7 +541,7 @@ class RiskPredictor:
                         else:
                             json_results[model_name][key] = value
                 else:
-                    json_results[model_name] = metrics
+                    json_results[model_name] = metrics  # type: ignore
 
             with open(results_file, "w") as f:
                 json.dump(json_results, f, indent=2)
@@ -721,13 +721,13 @@ class RiskPredictor:
             # Load feature importance
             importance_file = os.path.join(model_dir, "feature_importance.json")
             if os.path.exists(importance_file):
-                with open(importance_file, "r") as f:
+                with open(importance_file, "r") as f:  # type: ignore
                     self.feature_importance = json.load(f)
 
             # Load model metrics
             metrics_file = os.path.join(model_dir, "model_metrics.json")
             if os.path.exists(metrics_file):
-                with open(metrics_file, "r") as f:
+                with open(metrics_file, "r") as f:  # type: ignore
                     self.model_metrics = json.load(f)
 
             self.logger.info(f"Successfully loaded models from {model_dir}")

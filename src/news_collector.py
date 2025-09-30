@@ -85,7 +85,7 @@ class NewsDataCollector:
                 }
 
                 # Make request
-                response = requests.get(f"{self.gnews_base_url}/search", params=params)
+                response = requests.get(f"{self.gnews_base_url}/search", params=params)  # type: ignore
 
                 if response.status_code == 200:
                     data = response.json()
@@ -161,7 +161,7 @@ class NewsDataCollector:
             }
 
             response = requests.get(
-                f"{self.newsapi_base_url}/everything", params=params
+                f"{self.newsapi_base_url}/everything", params=params  # type: ignore
             )
 
             if response.status_code == 200:
@@ -275,7 +275,7 @@ class NewsDataCollector:
                 }
 
                 headers = {"User-Agent": "Market Risk System 1.0"}
-                response = requests.get(url, params=params, headers=headers)
+                response = requests.get(url, params=params, headers=headers)  # type: ignore
 
                 if response.status_code == 200:
                     data = response.json()

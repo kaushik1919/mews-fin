@@ -119,7 +119,7 @@ class StockDataFetcher:
                 self.logger.warning(f"Alpha Vantage error for {symbol}: {data}")
                 return {}
 
-            return data
+            return data  # type: ignore
 
         except Exception as e:
             self.logger.error(

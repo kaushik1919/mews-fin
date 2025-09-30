@@ -441,7 +441,7 @@ class TextPreprocessor:
     def clean_text(self, text: str) -> str:
         """Basic text cleaning"""
         if not isinstance(text, str):
-            return ""
+            return ""  # type: ignore
 
         # Remove HTML tags
         text = re.sub(r"<[^>]+>", " ", text)
@@ -460,7 +460,7 @@ class TextPreprocessor:
     def clean_sec_text(self, text: str) -> str:
         """Specialized cleaning for SEC filings"""
         if not isinstance(text, str):
-            return ""
+            return ""  # type: ignore
 
         text = self.clean_text(text)
 

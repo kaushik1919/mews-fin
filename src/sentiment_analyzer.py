@@ -214,6 +214,8 @@ class SentimentAnalyzer:
                     text = str(text)[:512]  # Approximate token limit
 
                     # Tokenize
+                    if self.finbert_tokenizer is None:
+                        return 0.0
                     inputs = self.finbert_tokenizer(
                         text,
                         return_tensors="pt",
@@ -223,6 +225,8 @@ class SentimentAnalyzer:
                     )
 
                     # Get prediction
+                    if self.finbert_model is None:
+                        return 0.0
                     with torch.no_grad():
                         outputs = self.finbert_model(**inputs)
                         predictions = torch.nn.functional.softmax(

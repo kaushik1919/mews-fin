@@ -413,7 +413,7 @@ class RiskBacktester:
         if "Risk_Label" not in df.columns or "Symbol" not in df.columns:
             return {}
 
-        early_warning_results = {
+        early_warning_results: Dict[str, Any] = {
             "lead_time_analysis": {},
             "signal_persistence": {},
             "false_alarm_rate": {},
@@ -502,7 +502,7 @@ class RiskBacktester:
             return {}
 
         # Simple trading strategy based on risk signals
-        portfolio_results = {
+        portfolio_results: Dict[str, Any] = {
             "strategy_performance": {},
             "risk_adjusted_returns": {},
             "drawdown_analysis": {},
@@ -598,7 +598,7 @@ class RiskBacktester:
     def _calculate_risk_metrics(self, df: pd.DataFrame) -> Dict[str, Any]:
         """Calculate comprehensive risk metrics"""
 
-        risk_metrics = {
+        risk_metrics: Dict[str, Any] = {
             "market_risk_metrics": {},
             "model_stability": {},
             "feature_stability": {},
