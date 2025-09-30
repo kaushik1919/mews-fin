@@ -1119,3 +1119,46 @@ ValueError: Tz-aware datetime.datetime cannot be converted to datetime64 unless 
 2025-09-29 21:47:50,516 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
 2025-09-29 21:47:56,785 - src.sentiment_analyzer - INFO - FinBERT model initialized
 2025-09-29 21:47:57,664 - __main__ - INFO - Market Risk Early Warning System initialized
+2025-09-30 10:12:39,404 - root - WARNING - Missing API keys: ['ALPHA_VANTAGE_API_KEY', 'GNEWS_API_KEY']. Some features may not work.
+2025-09-30 10:12:39,405 - __main__ - WARNING - Some API keys are missing - functionality will be limited
+2025-09-30 10:12:39,431 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
+2025-09-30 10:13:07,205 - root - WARNING - Missing API keys: ['ALPHA_VANTAGE_API_KEY', 'GNEWS_API_KEY']. Some features may not work.
+2025-09-30 10:13:07,205 - __main__ - WARNING - Some API keys are missing - functionality will be limited
+2025-09-30 10:13:07,211 - src.sentiment_analyzer - INFO - VADER sentiment analyzer initialized
+2025-09-30 10:13:27,300 - src.sentiment_analyzer - INFO - FinBERT model initialized
+2025-09-30 10:13:32,138 - __main__ - INFO - Market Risk Early Warning System initialized
+2025-09-30 10:13:32,158 - __main__ - INFO - Loaded existing stock data
+2025-09-30 10:13:32,169 - __main__ - INFO - Loaded existing SEC data
+2025-09-30 10:13:32,171 - src.data_preprocessor - INFO - Preprocessing stock data...
+2025-09-30 10:13:32,316 - src.data_preprocessor - INFO - Processed stock data: 2259 rows, 47 columns
+2025-09-30 10:13:32,316 - src.data_preprocessor - INFO - Preprocessing SEC filings data...
+2025-09-30 10:13:32,330 - src.data_preprocessor - INFO - Processed SEC data: 4 rows, 19 columns
+2025-09-30 10:13:32,330 - src.sentiment_analyzer - INFO - Analyzing SEC filings sentiment with FinBERT...
+2025-09-30 10:13:32,331 - src.sentiment_analyzer - INFO - Analyzing MD&A sentiment
+2025-09-30 10:13:32,580 - src.sentiment_analyzer - INFO - Analyzing Risk Factors sentiment
+2025-09-30 10:13:32,691 - src.sentiment_analyzer - INFO - Completed SEC sentiment analysis for 4 filings
+2025-09-30 10:13:32,691 - src.sentiment_analyzer - INFO - Aggregating sentiment by date...
+2025-09-30 10:13:32,693 - src.sentiment_analyzer - INFO - Created sentiment aggregations for 4 symbol-date combinations
+2025-09-30 10:13:32,704 - src.sentiment_analyzer - INFO - Saved sentiment analysis results to C:\Users\I7\Projects\mews-fin\data
+2025-09-30 10:13:32,705 - src.data_integrator - INFO - Starting data integration process...
+2025-09-30 10:13:32,710 - src.data_integrator - INFO - Merging sentiment data...
+2025-09-30 10:13:32,714 - src.data_integrator - INFO - Merged sentiment data: added 5 sentiment features
+2025-09-30 10:13:32,714 - src.data_integrator - INFO - Merging SEC features...
+2025-09-30 10:13:32,785 - src.data_integrator - INFO - Data integration completed: 2259 rows, 95 columns
+2025-09-30 10:13:32,786 - src.data_integrator - INFO - price_features: 22 features
+2025-09-30 10:13:32,786 - src.data_integrator - INFO - volume_features: 11 features
+2025-09-30 10:13:32,786 - src.data_integrator - INFO - technical_indicators: 30 features
+2025-09-30 10:13:32,786 - src.data_integrator - INFO - fundamental_ratios: 15 features
+2025-09-30 10:13:32,786 - src.data_integrator - INFO - market_features: 4 features
+2025-09-30 10:13:32,786 - src.data_integrator - INFO - derived_features: 1 features
+2025-09-30 10:13:32,786 - src.data_integrator - INFO - date_features: 8 features
+2025-09-30 10:13:32,895 - src.data_integrator - INFO - Saved integrated dataset to C:\Users\I7\Projects\mews-fin\data
+2025-09-30 10:13:32,896 - src.data_integrator - INFO - Dataset shape: (2259, 95)
+2025-09-30 10:13:32,896 - src.visualizer - INFO - Creating risk dashboard...
+2025-09-30 10:13:34,158 - src.visualizer - INFO - Created interactive risk timeline: C:\Users\I7\Projects\mews-fin\outputs\risk_timeline_interactive.html
+2025-09-30 10:13:35,050 - src.visualizer - INFO - Created static risk timeline: C:\Users\I7\Projects\mews-fin\outputs\risk_timeline_static.png
+2025-09-30 10:13:35,420 - src.visualizer - INFO - Created sentiment analysis plot: C:\Users\I7\Projects\mews-fin\outputs\sentiment_analysis.png
+2025-09-30 10:13:36,585 - src.visualizer - INFO - Created risk correlations heatmap: C:\Users\I7\Projects\mews-fin\outputs\risk_correlations.png
+2025-09-30 10:13:36,586 - src.visualizer - ERROR - Error creating market regimes plot: "Column(s) ['Risk_Label', 'news_sentiment_mean'] do not exist"
+2025-09-30 10:13:36,586 - src.visualizer - INFO - Created 4 visualizations
+2025-09-30 10:13:36,587 - src.visualizer - INFO - Created summary report: C:\Users\I7\Projects\mews-fin\outputs\risk_analysis_report.html

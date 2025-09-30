@@ -4,7 +4,7 @@ Integrated Dataset Summary
 Total rows: 2259
 Total columns: 95
 Unique symbols: 3
-Date range: 2021-01-04 00:00:00-05:00 to 2023-12-29 00:00:00-05:00
+Date range: 2021-01-04 05:00:00 to 2023-12-29 05:00:00
 
 Feature Groups:
   price_features: 22 features
