@@ -56,6 +56,25 @@ docker-compose up -d mews-app
 # Access at http://localhost:8501
 ```
 
+## 🖥️ Command-Line Interface
+
+Once the dependencies are installed (via `python build.py setup-dev`, `pip install -r requirements.txt`, or `pip install -e .`), you can drive the full system directly from the command line. The CLI is available either through the module entry point or the installed console script.
+
+- **Show all available switches:**
+  - `python main.py --help`
+  - `mews-fin --help`
+- **Run the end-to-end pipeline with data collection, modeling, and reporting:**
+  - `python main.py --full-pipeline`
+  - `mews-fin --full-pipeline`
+- **Re-run analytics against previously collected data without fetching again:**
+  - `python main.py --full-pipeline --skip-data-collection`
+  - `mews-fin --full-pipeline --skip-data-collection`
+- **Execute just the backtesting stage (expects preprocessed data on disk):**
+  - `python main.py --backtest-only --skip-data-collection`
+  - `mews-fin --backtest-only --skip-data-collection`
+
+On Windows PowerShell, prefix virtual-environment scripts with `.\` (for example `.\venv\Scripts\activate`). The console script `mews-fin` and its alias `mews-fin-cli` are provided via the project metadata in `pyproject.toml` for installations performed with `pip install .` or `pip install -e .`.
+
 ## ⚙️ Configuration
 
 Copy `.env.example` to `.env` and configure your API keys:

@@ -1013,6 +1013,15 @@ def main():
                     margin=dict(l=150, r=30, t=60, b=40),
                 )
                 st.plotly_chart(global_fig, use_container_width=True)
+                st.markdown(
+                    """
+                    **How to read it:** Each bar shows the average absolute SHAP impact for a feature across the sampled rows. Longer bars mean the feature consistently nudged the model's risk score up or down. A flat bar implies the model rarely relied on that input. Look for clusters of related features (e.g., different volatility measures) to understand combined pressure on the prediction.
+
+                    • Values are always positive because we take the average magnitude of the push.  
+                    • If two features are close in height, they contributed nearly the same amount of influence.  
+                    • Use this chart to spot which signals dominate the model so you can monitor or stress-test them directly.
+                    """
+                )
             else:
                 st.info(
                     "SHAP library not installed; run `pip install shap` to unlock global explanations."
@@ -1084,6 +1093,15 @@ def main():
                     margin=dict(l=150, r=30, t=60, b=40),
                 )
                 st.plotly_chart(local_fig, use_container_width=True)
+                st.markdown(
+                    """
+                    **Understanding the bars:** Positive (green) bars pushed the prediction toward **Risk**, while negative (red) bars pulled it toward **Stable**. The bar length equals that feature's SHAP value for the selected date/ticker. Compare these against the global chart to see whether today's drivers match the long-term leaders.
+
+                    • SHAP values add up to the model's risk score once you include the baseline probability.  
+                    • Large positive + large negative bars can offset each other; the mix tells you whether the day was borderline or clearly risky.  
+                    • Hover each bar to see the exact contribution in probability points.
+                    """
+                )
             else:
                 st.info("Local SHAP explanations unavailable for the selected sample.")
 
@@ -1107,6 +1125,9 @@ def main():
                     margin=dict(l=150, r=30, t=60, b=40),
                 )
                 st.plotly_chart(lime_fig, use_container_width=True)
+                st.caption(
+                    "LIME perturbs the original row to learn a tiny linear model around it. Positive weights (green) argue for the risk class, negative weights (red) argue for the stable class. Compare them with the SHAP bars: if both methods agree on the top signals, the explanation is more trustworthy."
+                )
             else:
                 st.info("LIME explanation unavailable—install the `lime` package to enable this view.")
 
