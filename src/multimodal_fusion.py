@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 import numpy as np
 import pandas as pd
@@ -26,6 +26,11 @@ except ImportError:  # pragma: no cover - transformers is optional
     torch = None  # type: ignore
     AutoModel = None  # type: ignore
     AutoTokenizer = None  # type: ignore
+
+try:  # Optional cross-modal fusion module
+    from src.research.cross_modal import CrossAttentionFusion
+except ImportError:  # pragma: no cover - research extensions optional
+    CrossAttentionFusion = None  # type: ignore
 
 LOGGER = logging.getLogger(__name__)
 
@@ -55,6 +60,8 @@ class MultiModalFeatureFusion:
         self,
         embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
         device: Optional[str] = None,
+        fusion_strategy: str = "concat",
+        cross_attention_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.embedding_model_name = embedding_model_name
         self.device = device or (
@@ -63,6 +70,9 @@ class MultiModalFeatureFusion:
         self._tokenizer = None
         self._model = None
         self.embedding_dim = None
+        self.fusion_strategy = fusion_strategy
+        self.cross_attention_kwargs = cross_attention_kwargs or {}
+        self._cross_attention_model = None
 
     # ---------------------------------------------------------------------
     # Public API
@@ -88,6 +98,15 @@ class MultiModalFeatureFusion:
                 datetime_column=inputs.news_datetime_column,
             )
             base_df = self._merge_features(base_df, news_features)
+
+            if (
+                self.fusion_strategy == "cross_attention"
+                and CrossAttentionFusion is not None
+                and not news_features.empty
+            ):
+                cross_df = self._apply_cross_attention(base_df, news_features)
+                if cross_df is not None and not cross_df.empty:
+                    base_df = self._merge_features(base_df, cross_df)
 
         graph_features = self._build_graph_features(
             base_df if inputs.graph_source is None else inputs.graph_source
@@ -173,6 +192,56 @@ class MultiModalFeatureFusion:
             news_clean.groupby(["Symbol", "Date"])[text_column].count().values
         )
         return aggregated
+
+    def _apply_cross_attention(
+        self,
+        base_df: pd.DataFrame,
+        news_df: pd.DataFrame,
+    ) -> Optional[pd.DataFrame]:
+        if CrossAttentionFusion is None:
+            return None
+
+        key_cols = ["Symbol", "Date"]
+        tab_cols = [
+            col
+            for col in base_df.columns
+            if col not in key_cols and pd.api.types.is_numeric_dtype(base_df[col])
+        ]
+        text_cols = [
+            col
+            for col in news_df.columns
+            if col not in key_cols and pd.api.types.is_numeric_dtype(news_df[col])
+        ]
+
+        if not tab_cols or not text_cols:
+            return None
+
+        tabular_view = base_df[key_cols + tab_cols].copy()
+        text_view = news_df[key_cols + text_cols].copy()
+
+        if self._cross_attention_model is None:
+            init_kwargs: Dict[str, Any] = {
+                "tabular_dim": len(tab_cols),
+                "text_dim": len(text_cols),
+            }
+            init_kwargs.update(self.cross_attention_kwargs)
+            try:
+                self._cross_attention_model = CrossAttentionFusion(**init_kwargs)
+            except ImportError:
+                return None
+
+        try:
+            fused = self._cross_attention_model.fuse_dataframes(
+                tabular_df=tabular_view,
+                text_df=text_view,
+                key_columns=("Symbol", "Date"),
+                device=self.device,
+            )
+        except Exception as exc:  # pragma: no cover - safety guard
+            LOGGER.warning("Cross attention fusion failed: %s", exc)
+            return None
+
+        return fused
 
     def _load_embedding_model(self) -> None:
         """Lazy-load the transformer model for embeddings."""

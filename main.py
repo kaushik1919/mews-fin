@@ -9,7 +9,7 @@ import logging
 import os
 import sys
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
@@ -27,6 +27,14 @@ try:
     from src.sec_downloader import SECFilingsDownloader
     from src.sentiment_analyzer import SentimentAnalyzer
     from src.visualizer import RiskVisualizer
+    from src.research import (
+        GraphFeatureAblation,
+        ResearchEvaluator,
+        ResearchReportBuilder,
+        RobustnessStressTester,
+        SentimentBiasDetector,
+        SentimentImpactTester,
+    )
 except ImportError as e:
     print(f"Import error: {e}")
     print(
@@ -173,6 +181,12 @@ class MarketRiskSystem:
             report_path = self.generate_final_report(results)
             results["stages_completed"].append("final_report")
             results["final_report_path"] = report_path
+
+            self.logger.info("=== Stage 10: Research Addendum ===")
+            research_payload = self.generate_research_artifacts()
+            if research_payload:
+                results["stages_completed"].append("research_addendum")
+                results["research_artifacts"] = research_payload
 
             results["pipeline_end"] = datetime.now().isoformat()
             results["pipeline_status"] = "completed"
@@ -357,6 +371,7 @@ class MarketRiskSystem:
         feature_groups = self.data_integrator.create_feature_groups(
             self.integrated_data
         )
+        self.feature_groups = feature_groups
 
         # Save integrated data
         self.data_integrator.save_integrated_data(
@@ -373,7 +388,10 @@ class MarketRiskSystem:
             return {}
 
         # Prepare data for modeling
-        X, y, feature_names = self.ml_models.prepare_modeling_data(self.integrated_data)
+        feature_groups = getattr(self, "feature_groups", None)
+        X, y, feature_names = self.ml_models.prepare_modeling_data(
+            self.integrated_data, feature_groups=feature_groups
+        )
 
         if len(X) == 0:
             self.logger.error("No valid data for model training")
@@ -410,9 +428,18 @@ class MarketRiskSystem:
 
         X = self.integrated_data[feature_cols].fillna(0)
 
+        metadata_cols = [
+            col
+            for col in ["Date", "Symbol", "Returns", "Close", "Adj Close"]
+            if col in self.integrated_data.columns
+        ]
+        metadata = (
+            self.integrated_data[metadata_cols].copy() if metadata_cols else None
+        )
+
         # Generate predictions
         predictions, probabilities = self.ml_models.predict_risk(
-            X, model_type="ensemble"
+            X, model_type="ensemble", metadata=metadata
         )
 
         # Create predictions DataFrame
@@ -596,6 +623,180 @@ class MarketRiskSystem:
 
         self.logger.info(f"Generated final report: {report_path}")
         return report_path
+
+    def generate_research_artifacts(self) -> Optional[Dict[str, Any]]:
+        """Create research-grade evaluation, hypothesis, and robustness outputs."""
+
+        if self.predictions is None or self.predictions.empty:
+            self.logger.warning("No predictions available for research artifacts")
+            return None
+
+        if self.integrated_data is None or self.integrated_data.empty:
+            self.logger.warning("Integrated data missing - skipping research artifacts")
+            return None
+
+        evaluation_df = self.predictions.copy()
+        if "Actual_Risk_Label" in evaluation_df.columns:
+            evaluation_df.rename(
+                columns={"Actual_Risk_Label": "Risk_Label"}, inplace=True
+            )
+        if "Risk_Label" not in evaluation_df.columns:
+            self.logger.warning("Risk labels missing for evaluation")
+            return None
+
+        evaluator = ResearchEvaluator()
+        evaluation_results = evaluator.evaluate_predictions(
+            evaluation_df,
+            label_col="Risk_Label",
+            probability_col="Risk_Probability",
+        )
+
+        feature_groups = getattr(self, "feature_groups", {}) or {}
+        fundamental_keys = [
+            "price_features",
+            "volume_features",
+            "technical_indicators",
+            "fundamental_ratios",
+            "market_features",
+        ]
+        fundamental_features: List[str] = []
+        for key in fundamental_keys:
+            fundamental_features.extend(feature_groups.get(key, []))
+
+        sentiment_keys = ["sentiment_features", "news_features", "sec_features"]
+        sentiment_features: List[str] = []
+        for key in sentiment_keys:
+            sentiment_features.extend(feature_groups.get(key, []))
+        if not sentiment_features:
+            sentiment_features = [
+                col
+                for col in self.integrated_data.columns
+                if "sentiment" in col.lower() or col.startswith("news_embedding_")
+            ]
+
+        hypothesis_results: Dict[str, Any] = {}
+        if fundamental_features and sentiment_features:
+            tester = SentimentImpactTester()
+            merged_df = self.integrated_data.copy()
+            if "Risk_Label" not in merged_df.columns:
+                merged_df["Risk_Label"] = evaluation_df["Risk_Label"].values
+            try:
+                sentiment_result = tester.run_test(
+                    merged_df,
+                    fundamental_features=[
+                        feat
+                        for feat in fundamental_features
+                        if feat in merged_df.columns
+                    ],
+                    sentiment_features=[
+                        feat
+                        for feat in sentiment_features
+                        if feat in merged_df.columns
+                    ],
+                )
+                hypothesis_results["sentiment_vs_fundamentals"] = sentiment_result.__dict__
+            except Exception as exc:  # pragma: no cover - defensive
+                self.logger.warning("Hypothesis test failed: %s", exc)
+
+        graph_ablation = GraphFeatureAblation()
+        ablation_df = self.integrated_data.copy()
+        if "Risk_Label" not in ablation_df.columns:
+            ablation_df["Risk_Label"] = evaluation_df["Risk_Label"].values
+        try:
+            hypothesis_results["graph_feature_ablation"] = graph_ablation.evaluate(
+                ablation_df
+            )
+        except Exception as exc:  # pragma: no cover
+            self.logger.warning("Graph ablation failed: %s", exc)
+
+        robustness_results: Dict[str, Any] = {}
+        if self.news_data is not None and not self.news_data.empty:
+            sentiment_col = "sentiment_score"
+            group_col = "Source"
+            if sentiment_col in self.news_data.columns:
+                if group_col not in self.news_data.columns:
+                    group_col = "Symbol"
+                if group_col in self.news_data.columns:
+                    top_groups = (
+                        self.news_data[group_col]
+                        .value_counts()
+                        .index.tolist()
+                    )
+                    if len(top_groups) >= 2:
+                        detector = SentimentBiasDetector(sentiment_col=sentiment_col)
+                        try:
+                            bias_report = detector.compare_groups(
+                                self.news_data,
+                                group_col=group_col,
+                                group_a=top_groups[0],
+                                group_b=top_groups[1],
+                            )
+                            robustness_results["sentiment_bias"] = bias_report.__dict__
+                        except Exception as exc:  # pragma: no cover
+                            self.logger.warning("Bias detection failed: %s", exc)
+
+        if self.ml_models.feature_names:
+            stress_tester = RobustnessStressTester()
+            feature_cols = [
+                col for col in self.ml_models.feature_names if col in self.integrated_data.columns
+            ]
+            if feature_cols:
+                base_features = self.integrated_data[feature_cols].fillna(0)
+                metadata_cols = [
+                    col
+                    for col in ["Date", "Symbol", "Returns", "Close", "Adj Close"]
+                    if col in self.integrated_data.columns
+                ]
+                metadata = (
+                    self.integrated_data[metadata_cols].copy() if metadata_cols else None
+                )
+                _, base_probs = self.ml_models.predict_risk(
+                    base_features, metadata=metadata
+                )
+                noisy_features = stress_tester.inject_noise(
+                    base_features,
+                    noise_level=0.2,
+                    columns=feature_cols,
+                )
+                _, noisy_probs = self.ml_models.predict_risk(
+                    noisy_features, metadata=metadata
+                )
+                labels = evaluation_df["Risk_Label"].to_numpy()
+                robustness_results["adversarial_noise"] = {
+                    "baseline": evaluator.benchmarks.evaluate_metrics(
+                        labels, base_probs
+                    ),
+                    "noisy": evaluator.benchmarks.evaluate_metrics(
+                        labels, noisy_probs
+                    ),
+                }
+
+        report_builder = ResearchReportBuilder()
+        markdown_path = report_builder.build_markdown(
+            evaluation_results=evaluation_results,
+            hypothesis_results=hypothesis_results,
+            robustness_results=robustness_results,
+        )
+        html_path = report_builder.build_html(
+            evaluation_results=evaluation_results,
+            hypothesis_results=hypothesis_results,
+            robustness_results=robustness_results,
+        )
+
+        artifact_summary = {
+            "evaluation_results": evaluation_results,
+            "hypothesis_results": hypothesis_results,
+            "robustness_results": robustness_results,
+            "report_markdown": str(markdown_path),
+            "report_html": str(html_path),
+        }
+
+        self.logger.info(
+            "Research artifacts generated: %s and %s",
+            markdown_path,
+            html_path,
+        )
+        return artifact_summary
 
 
 def create_cli_parser():

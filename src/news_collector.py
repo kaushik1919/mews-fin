@@ -16,6 +16,11 @@ import numpy as np
 import pandas as pd
 import requests
 
+try:
+    from src.research.robustness import SentimentBiasDetector
+except ImportError:  # pragma: no cover - optional research dependency
+    SentimentBiasDetector = None  # type: ignore
+
 
 class NewsDataCollector:
     """Collects news data from various free APIs"""
@@ -27,6 +32,11 @@ class NewsDataCollector:
         self.news_api_key = news_api_key
         self.logger = logging.getLogger(__name__)
         self.rate_limit_delay = 6  # seconds between requests (10 per minute for GNews)
+        self.bias_detector = (
+            SentimentBiasDetector(sentiment_col="sentiment_score")
+            if SentimentBiasDetector is not None
+            else None
+        )
 
         # Base URLs
         self.gnews_base_url = "https://gnews.io/api/v4"
@@ -58,6 +68,7 @@ class NewsDataCollector:
             return []
 
         articles = []
+        raw_responses = []
 
         try:
             # Search queries for the company
@@ -91,6 +102,7 @@ class NewsDataCollector:
 
                 if response.status_code == 200:
                     data = response.json()
+                    raw_responses.append(data)
 
                     if "articles" in data:
                         for article in data["articles"]:
@@ -147,6 +159,7 @@ class NewsDataCollector:
             return []
 
         articles = []
+        raw_responses = []
 
         try:
             # Search query
@@ -168,6 +181,7 @@ class NewsDataCollector:
 
             if response.status_code == 200:
                 data = response.json()
+                raw_responses.append(data)
 
                 if "articles" in data:
                     for article in data["articles"]:

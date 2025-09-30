@@ -7,7 +7,7 @@ import logging
 import os
 import re
 import warnings
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -60,6 +60,81 @@ class SentimentAnalyzer:
             )
         except Exception as e:
             self.logger.warning(f"FinBERT initialization failed: {str(e)}")
+
+    def analyze_sentiment(self, text: str) -> Dict[str, float]:
+        """Analyze sentiment for a single text snippet with graceful fallbacks."""
+
+        if not text or not str(text).strip():
+            return {"neg": 0.0, "neu": 1.0, "pos": 0.0, "compound": 0.0}
+
+        text_str = str(text)
+
+        if self.vader_analyzer is not None:
+            try:
+                return self.vader_analyzer.polarity_scores(text_str)
+            except Exception as exc:  # pragma: no cover - defensive
+                self.logger.warning("VADER sentiment failed, using fallback: %s", exc)
+
+        return self._heuristic_sentiment(text_str)
+
+    def _heuristic_sentiment(self, text: str) -> Dict[str, float]:
+        """Lightweight rule-based sentiment fallback when VADER isn't available."""
+
+        tokens = re.findall(r"[A-Za-z']+", text.lower())
+        if not tokens:
+            return {"neg": 0.0, "neu": 1.0, "pos": 0.0, "compound": 0.0}
+
+        positive_words = {
+            "great",
+            "excellent",
+            "good",
+            "up",
+            "gain",
+            "bullish",
+            "strong",
+            "positive",
+            "surge",
+            "growth",
+            "improve",
+            "optimistic",
+        }
+        negative_words = {
+            "bad",
+            "terrible",
+            "loss",
+            "crash",
+            "down",
+            "bearish",
+            "weak",
+            "negative",
+            "drop",
+            "decline",
+            "risk",
+            "volatile",
+        }
+
+        def count_hits(words: Iterable[str]) -> int:
+            hits = 0
+            for token in tokens:
+                for lex in words:
+                    if token == lex or token.startswith(lex):
+                        hits += 1
+                        break
+            return hits
+
+        pos_hits = count_hits(positive_words)
+        neg_hits = count_hits(negative_words)
+
+        if pos_hits == 0 and neg_hits == 0:
+            return {"neg": 0.0, "neu": 1.0, "pos": 0.0, "compound": 0.0}
+
+        raw = (pos_hits - neg_hits) / max(pos_hits + neg_hits, 1)
+        compound = float(max(min(raw, 1.0), -1.0))
+        pos_score = max(compound, 0.0)
+        neg_score = max(-compound, 0.0)
+        neu_score = max(0.0, 1.0 - (pos_score + neg_score))
+
+        return {"neg": neg_score, "neu": neu_score, "pos": pos_score, "compound": compound}
 
     def analyze_news_sentiment(self, news_df: pd.DataFrame) -> pd.DataFrame:
         """

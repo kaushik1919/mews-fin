@@ -14,6 +14,15 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
+try:
+    from src.research.regime_ensemble import (
+        RegimeAdaptiveEnsemble,
+        VolatilityRegimeDetector,
+    )
+except ImportError:  # pragma: no cover - research extensions optional
+    RegimeAdaptiveEnsemble = None  # type: ignore
+    VolatilityRegimeDetector = None  # type: ignore
+
 warnings.filterwarnings("ignore")
 
 
@@ -214,6 +223,9 @@ class RiskPredictor:
         self.thresholds: Dict[str, float] = {}
         self.ensemble_threshold: float = 0.5
         self.ensemble_weights: List[Dict[str, float]] = []
+        self.dynamic_ensemble = None
+        self.regime_detector = None
+        self.training_metadata: Optional[pd.DataFrame] = None
         os.makedirs(self.model_dir, exist_ok=True)
 
     def prepare_modeling_data(
@@ -314,6 +326,16 @@ class RiskPredictor:
         )
         self.logger.info(f"Target distribution: {np.bincount(target.astype(int))}")
 
+        metadata_cols = [
+            col
+            for col in ["Date", "Symbol", "Returns", "Close", "Adj Close"]
+            if col in data.columns
+        ]
+        if metadata_cols:
+            self.training_metadata = data.loc[features_df.index, metadata_cols].copy()
+        else:
+            self.training_metadata = None
+
         return features_df, target, list(features_df.columns)
 
     def _optimize_threshold(
@@ -371,6 +393,7 @@ class RiskPredictor:
         self.thresholds = {}
         self.ensemble_weights = []
         self.ensemble_threshold = 0.5
+        self.feature_names = feature_names
 
         try:
             import joblib
@@ -803,6 +826,38 @@ class RiskPredictor:
             ),
         )
 
+        if (
+            RegimeAdaptiveEnsemble is not None
+            and VolatilityRegimeDetector is not None
+            and self.training_metadata is not None
+        ):
+            try:
+                validation_metadata = self.training_metadata.loc[X_test.index].copy()
+                if "Returns" not in validation_metadata.columns:
+                    price_col = "Close" if "Close" in validation_metadata.columns else "Adj Close"
+                    if price_col in validation_metadata.columns:
+                        validation_metadata["Returns"] = (
+                            validation_metadata.groupby("Symbol")[price_col]
+                            .pct_change()
+                            .fillna(0.0)
+                        )
+
+                detector = VolatilityRegimeDetector()
+                regimes = detector.fit_transform(validation_metadata)
+
+                probability_map = {
+                    component[0]: component[2] for component in ensemble_components
+                }
+                adaptive = RegimeAdaptiveEnsemble()
+                adaptive.fit(probability_map, y_test, regimes)
+                self.dynamic_ensemble = adaptive
+                self.regime_detector = detector
+                results["ensemble"]["regime_weights"] = adaptive.to_json()
+            except Exception as exc:  # pragma: no cover - defensive
+                self.logger.warning(
+                    "Failed to build regime-adaptive ensemble: %s", exc
+                )
+
         # Store test data for further analysis
         test_data = {
             "y_test": y_test.tolist(),
@@ -861,7 +916,10 @@ class RiskPredictor:
         return results
 
     def predict_risk(
-        self, X: pd.DataFrame, model_type: str = "ensemble"
+        self,
+        X: pd.DataFrame,
+        model_type: str = "ensemble",
+        metadata: Optional[pd.DataFrame] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Predict risk using trained models
@@ -869,6 +927,7 @@ class RiskPredictor:
         Args:
             X: Feature matrix
             model_type: Type of model to use ('random_forest', 'logistic_regression', 'xgboost', 'svm', 'ensemble')
+            metadata: Optional DataFrame containing contextual columns (Date, Symbol, Returns)
 
         Returns:
             Tuple of (predictions, probabilities)
@@ -880,6 +939,7 @@ class RiskPredictor:
 
             probability_vectors = []
             weights = []
+            probability_map: Dict[str, np.ndarray] = {}
 
             logistic_scaled = None
             svm_scaled = None
@@ -904,6 +964,7 @@ class RiskPredictor:
 
                 if model_key == "random_forest" and "random_forest" in self.models:
                     prob = self.models["random_forest"].predict_proba(X)[:, 1]
+                    probability_map["random_forest"] = prob
                 elif (
                     model_key == "logistic_regression"
                     and "logistic_regression" in self.models
@@ -915,12 +976,15 @@ class RiskPredictor:
                     prob = self.models["logistic_regression"].predict_proba(
                         logistic_scaled
                     )[:, 1]
+                    probability_map["logistic_regression"] = prob
                 elif model_key == "xgboost" and "xgboost" in self.models:
                     prob = self.models["xgboost"].predict_proba(X)[:, 1]
+                    probability_map["xgboost"] = prob
                 elif model_key == "svm" and "svm" in self.models:
                     if svm_scaled is None:
                         svm_scaled = self.scalers["svm"].transform(X)
                     prob = self.models["svm"].predict_proba(svm_scaled)[:, 1]
+                    probability_map["svm"] = prob
                 else:
                     continue
 
@@ -930,15 +994,46 @@ class RiskPredictor:
             if not probability_vectors:
                 raise ValueError("No ensemble components available for prediction")
 
-            weights_array = np.array(weights, dtype=float)
-            weights_sum = weights_array.sum()
-            if weights_sum <= 0:
-                weights_array = np.ones_like(weights_array) / len(weights_array)
-            else:
-                weights_array = weights_array / weights_sum
+            dynamic_available = (
+                self.dynamic_ensemble is not None
+                and self.regime_detector is not None
+                and metadata is not None
+            )
 
-            stacked = np.vstack(probability_vectors)
-            ensemble_proba = np.average(stacked, axis=0, weights=weights_array)
+            if dynamic_available:
+                meta = metadata.copy()
+                if "Returns" not in meta.columns:
+                    price_col = "Close" if "Close" in meta.columns else "Adj Close"
+                    if price_col in meta.columns:
+                        meta = meta.sort_values(["Symbol", "Date"])
+                        meta["Returns"] = (
+                            meta.groupby("Symbol")[price_col]
+                            .pct_change()
+                            .fillna(0.0)
+                        )
+                try:
+                    regimes = self.regime_detector.fit_transform(meta)
+                    ensemble_proba = self.dynamic_ensemble.predict(
+                        probability_map, regimes
+                    )
+                except Exception as exc:  # pragma: no cover
+                    self.logger.warning(
+                        "Dynamic ensemble prediction failed, falling back to static weights: %s",
+                        exc,
+                    )
+                    dynamic_available = False
+
+            if not dynamic_available:
+                weights_array = np.array(weights, dtype=float)
+                weights_sum = weights_array.sum()
+                if weights_sum <= 0:
+                    weights_array = np.ones_like(weights_array) / len(weights_array)
+                else:
+                    weights_array = weights_array / weights_sum
+
+                stacked = np.vstack(probability_vectors)
+                ensemble_proba = np.average(stacked, axis=0, weights=weights_array)
+
             threshold = self.ensemble_threshold if self.ensemble_threshold else 0.5
             ensemble_pred = (ensemble_proba >= threshold).astype(int)
 

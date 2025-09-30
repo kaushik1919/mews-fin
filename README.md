@@ -63,7 +63,7 @@ Once the dependencies are installed (via `python build.py setup-dev`, `pip insta
 - **Show all available switches:**
   - `python main.py --help`
   - `mews-fin --help`
-- **Run the end-to-end pipeline with data collection, modeling, and reporting:**
+- **Run the end-to-end pipeline with data collection, modeling, reporting, and research addendum artifacts:**
   - `python main.py --full-pipeline`
   - `mews-fin --full-pipeline`
 - **Re-run analytics against previously collected data without fetching again:**
@@ -74,6 +74,8 @@ Once the dependencies are installed (via `python build.py setup-dev`, `pip insta
   - `mews-fin --backtest-only --skip-data-collection`
 
 On Windows PowerShell, prefix virtual-environment scripts with `.\` (for example `.\venv\Scripts\activate`). The console script `mews-fin` and its alias `mews-fin-cli` are provided via the project metadata in `pyproject.toml` for installations performed with `pip install .` or `pip install -e .`.
+
+When `--full-pipeline` completes, the system runs a tenth "Research Addendum" stage that benchmarks MEWS against statistical baselines, performs hypothesis tests, evaluates robustness, and publishes Markdown/HTML summaries inside `outputs/research/`. See `docs/RESEARCH_GUIDE.md` for interpretation tips and citation-ready figures.
 
 ## ⚙️ Configuration
 
@@ -163,6 +165,12 @@ The system generates:
 - Market event detection results
 - Feature correlation analysis
 - Comprehensive final report
+- Research addendum (Markdown + HTML in `outputs/research/`)
+
+### Research Artifacts
+- Crisis-era benchmarks versus GARCH/VaR and LSTM baselines
+- Likelihood-ratio hypothesis tests for sentiment and graph features
+- Robustness diagnostics covering sentiment bias and adversarial noise
 
 ### Data Files
 - `integrated_data.csv`: Combined features from all sources
@@ -188,6 +196,23 @@ The system includes two main models:
 - Confusion matrix
 - Feature importance
 - Cross-validation scores
+
+## 🧠 Research-Grade Enhancements
+
+- **Regime-Adaptive Ensemble:** Learns volatility-aware weights across Random Forest, Logistic Regression, XGBoost, and SVM models.
+- **Cross-Attention Fusion:** Optional transformer-based fusion layer that combines textual sentiment embeddings with tabular indicators via `CrossAttentionFusion`.
+- **Benchmark Suite:** Compare MEWS against GARCH/VaR and LSTM baselines with crisis-period metrics including AUC, Brier score, and Precision@K.
+- **Hypothesis Testing:** Quantify the lift from sentiment and graph features using likelihood-ratio tests and automated ablation studies.
+- **Robustness & Bias Checks:** Diagnose sentiment skew and evaluate adversarial scenarios (noise or delayed news) with `SentimentBiasDetector` and `RobustnessStressTester`.
+- **Research Reports:** Auto-generated Markdown/HTML summaries in `outputs/research/` ready for citation (see `docs/RESEARCH_GUIDE.md`).
+
+## 🧬 Unique & Novel Contributions
+
+- **Volatility-Regime Smarts:** A regime-adaptive ensemble continuously learns optimal weights as market volatility shifts, improving crisis detection.
+- **Multimodal Attention Fusion:** Cross-attention bridges language models and tabular indicators so textual sentiment directly modulates numerical signals.
+- **Publication-Ready Benchmarking:** Automated comparisons against GARCH/VaR and deep LSTM baselines yield crisis-specific diagnostics in a single run.
+- **Integrated Causal Diagnostics:** Likelihood-ratio tests, graph feature ablations, and sentiment bias audits are bundled into the default pipeline to validate signal provenance.
+- **Hands-Free Research Artifacts:** MEWS exports Markdown and HTML reports with methodology, figures, and robustness narratives ready for peer review.
 
 ## 🔍 Backtesting
 

@@ -109,6 +109,11 @@ class DataPreprocessor:
         # Add market indicators
         df = self._add_market_indicators(df)
 
+        # Final pass to remove any residual NaNs introduced by rolling windows
+        numeric_cols = df.select_dtypes(include=[np.number]).columns
+        if len(numeric_cols) > 0:
+            df[numeric_cols] = df[numeric_cols].fillna(0.0)
+
         self.logger.info(
             f"Processed stock data: {len(df)} rows, {len(df.columns)} columns"
         )
@@ -407,27 +412,51 @@ class DataPreprocessor:
                 .shift(-window)
             ).reset_index(0, drop=True)
 
-            # Risk label based on multiple criteria
-            df["Risk_Label"] = 0  # Default: stable
+            valid_mask = df["Forward_Return"].notna() & df["Forward_Volatility"].notna()
 
-            # High risk if:
-            # 1. High forward volatility
-            # 2. Large negative forward return
-            # 3. Both conditions
+            df["Risk_Label"] = 0
+            df["Risk_Score"] = 0.0
 
-            high_vol_mask = df["Forward_Volatility"] > volatility_threshold
-            neg_return_mask = df["Forward_Return"] < return_threshold
+            if valid_mask.any():
+                high_vol_mask = df["Forward_Volatility"] > volatility_threshold
+                neg_return_mask = df["Forward_Return"] < return_threshold
 
-            df.loc[high_vol_mask | neg_return_mask, "Risk_Label"] = 1
+                df.loc[
+                    valid_mask & (high_vol_mask | neg_return_mask), "Risk_Label"
+                ] = 1
 
-            # Risk score (0-1) based on combination of factors
-            vol_score = (df["Forward_Volatility"] / volatility_threshold).clip(0, 2) / 2
-            return_score = (-df["Forward_Return"] / -return_threshold).clip(0, 2) / 2
+                vol_score = (
+                    df["Forward_Volatility"] / volatility_threshold
+                ).clip(lower=0, upper=2) / 2
+                return_score = (
+                    (-df["Forward_Return"] / -return_threshold).clip(lower=0, upper=2)
+                    / 2
+                )
+                combined_score = ((vol_score + return_score) / 2).clip(0, 1)
+                df.loc[valid_mask, "Risk_Score"] = (
+                    combined_score.loc[valid_mask].fillna(0.0)
+                )
+                df.loc[~valid_mask, ["Forward_Return", "Forward_Volatility"]] = 0.0
+            else:
+                self.logger.warning(
+                    "Insufficient forward data to compute risk labels for window=%s",
+                    window,
+                )
 
-            df["Risk_Score"] = ((vol_score + return_score) / 2).clip(0, 1)
-
+        valid_observations = (
+            int(df["Risk_Label"].notna().sum())
+            if "Risk_Label" in df.columns
+            else 0
+        )
+        high_risk_count = (
+            int(df.loc[df["Risk_Label"].notna(), "Risk_Label"].sum())
+            if "Risk_Label" in df.columns
+            else 0
+        )
         self.logger.info(
-            f"Created risk labels: {df['Risk_Label'].sum()}/{len(df)} high-risk periods"
+            "Created risk labels: %s/%s high-risk periods",
+            high_risk_count,
+            valid_observations,
         )
         return df
 

@@ -19,6 +19,11 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
+try:
+    from src.research.reporting import ResearchReportBuilder
+except ImportError:  # pragma: no cover - research optional in UI
+    ResearchReportBuilder = None  # type: ignore
+
 warnings.filterwarnings("ignore")
 
 # Import our system components
@@ -821,6 +826,7 @@ def main():
         tab_sentiment,
         tab_data_explorer,
         tab_model_details,
+        tab_research,
     ) = st.tabs(
         [
             "📊 Model Results",
@@ -831,6 +837,7 @@ def main():
             "📰 Sentiment Analysis",
             "🔍 Data Explorer",
             "⚙️ Model Details",
+            "📚 Research Addendum",
         ]
     )
 
@@ -1873,6 +1880,170 @@ def main():
                     _render_dataframe(report_df, use_container_width=True)
 
                 st.divider()
+
+    with tab_research:
+        st.subheader("Research Addendum")
+
+        research_payload = results.get("research_artifacts") if isinstance(results, dict) else None
+        if not research_payload:
+            st.info("Research artifacts will appear here after running the full pipeline on the CLI.")
+        else:
+            st.success("Research artifacts generated from the latest pipeline run.")
+
+            evaluation = research_payload.get("evaluation_results", {})
+            overall_metrics = evaluation.get("overall", {}) if evaluation else {}
+            calibration = evaluation.get("calibration", {}) if evaluation else {}
+            crisis_windows = evaluation.get("crisis_windows", {}) if evaluation else {}
+
+            summary_cols = st.columns(3)
+            summary_cols[0].metric(
+                "AUC",
+                f"{overall_metrics.get('auc', float('nan')):.3f}" if overall_metrics else "N/A",
+            )
+            summary_cols[1].metric(
+                "Brier Score",
+                f"{overall_metrics.get('brier', float('nan')):.3f}" if overall_metrics else "N/A",
+            )
+            summary_cols[2].metric(
+                "Precision@50",
+                f"{overall_metrics.get('precision_at_k', float('nan')):.3f}"
+                if overall_metrics
+                else "N/A",
+            )
+
+            st.markdown("#### Evaluation Metrics Overview")
+            if overall_metrics:
+                metrics_df = pd.DataFrame([overall_metrics]).rename(
+                    columns=lambda col: col.replace("_", " ").title()
+                )
+                _render_dataframe(metrics_df, use_container_width=True)
+            else:
+                st.write("Evaluation metrics unavailable.")
+
+            st.markdown("#### Calibration Reliability Curve")
+            true_probs = calibration.get("calibration_true") if calibration else None
+            pred_probs = calibration.get("calibration_pred") if calibration else None
+            if true_probs and pred_probs and len(true_probs) == len(pred_probs):
+                cal_fig = go.Figure()
+                cal_fig.add_trace(
+                    go.Scatter(
+                        x=pred_probs,
+                        y=true_probs,
+                        mode="lines+markers",
+                        name="Observed",
+                        line=dict(color="#1f77b4", width=3),
+                    )
+                )
+                cal_fig.add_trace(
+                    go.Scatter(
+                        x=[0, 1],
+                        y=[0, 1],
+                        mode="lines",
+                        name="Perfect Calibration",
+                        line=dict(color="#888888", dash="dash"),
+                    )
+                )
+                cal_fig.update_layout(
+                    xaxis_title="Predicted Probability",
+                    yaxis_title="Observed Frequency",
+                    height=350,
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                )
+                st.plotly_chart(cal_fig, use_container_width=True)
+            else:
+                st.write("Calibration data unavailable.")
+
+            st.markdown("#### Crisis Period Benchmarks")
+            if crisis_windows:
+                crisis_df = (
+                    pd.DataFrame(crisis_windows)
+                    .T.reset_index()
+                    .rename(columns={"index": "Crisis"})
+                )
+                crisis_df = crisis_df.rename(
+                    columns=lambda col: col if col == "Crisis" else col.replace("_", " ").title()
+                )
+                _render_dataframe(crisis_df, use_container_width=True)
+            else:
+                st.write("No crisis window evaluations recorded.")
+
+            st.markdown("### Hypothesis Tests")
+            hypothesis_results = research_payload.get("hypothesis_results", {})
+            if hypothesis_results:
+                hypothesis_df = (
+                    pd.DataFrame(hypothesis_results)
+                    .T.reset_index()
+                    .rename(columns={"index": "Test"})
+                )
+                hypothesis_df = hypothesis_df.rename(
+                    columns=lambda col: col if col == "Test" else col.replace("_", " ").title()
+                )
+                _render_dataframe(hypothesis_df, use_container_width=True)
+            else:
+                st.write("No hypothesis tests recorded.")
+
+            st.markdown("### Robustness Checks")
+            robustness_results = research_payload.get("robustness_results", {})
+            if robustness_results:
+                bias_result = robustness_results.get("sentiment_bias")
+                if bias_result:
+                    st.markdown("**Sentiment Bias Diagnostics**")
+                    bias_df = pd.DataFrame([bias_result]).rename(
+                        columns=lambda col: col.replace("_", " ").title()
+                    )
+                    _render_dataframe(bias_df, use_container_width=True)
+
+                noise_result = robustness_results.get("adversarial_noise")
+                if noise_result:
+                    st.markdown("**Adversarial Noise Sensitivity**")
+                    noise_df = (
+                        pd.DataFrame(noise_result)
+                        .T.reset_index()
+                        .rename(columns={"index": "Scenario"})
+                    )
+                    noise_df = noise_df.rename(
+                        columns=lambda col: col if col == "Scenario" else col.replace("_", " ").title()
+                    )
+                    _render_dataframe(noise_df, use_container_width=True)
+
+                remaining_keys = {
+                    key: value
+                    for key, value in robustness_results.items()
+                    if key not in {"sentiment_bias", "adversarial_noise"}
+                }
+                if remaining_keys:
+                    st.json(remaining_keys)
+            else:
+                st.write("No robustness diagnostics recorded.")
+
+            st.markdown("### Unique & Novel Contributions")
+            st.markdown(
+                """
+- **Regime-Adaptive Ensemble:** Dynamically reweights classical ML models by volatility regime to capture market regime shifts.
+- **Cross-Modal Attention Fusion:** Aligns textual sentiment embeddings with tabular indicators for richer early-warning signals.
+- **Research Benchmarking Suite:** Tracks MEWS against GARCH/VaR and deep LSTM baselines with crisis-specific scorecards.
+- **Causal & Ethical Diagnostics:** Automates likelihood-ratio tests, graph ablations, and sentiment bias checks to validate signal integrity.
+- **Auto-Generated Research Reports:** Publishes Markdown and HTML dossiers ready for peer review in `outputs/research/`.
+"""
+            )
+
+            st.markdown("### Download Reports")
+            md_path = research_payload.get("report_markdown")
+            html_path = research_payload.get("report_html")
+            if md_path and os.path.exists(md_path):
+                with open(md_path, "r", encoding="utf-8") as handle:
+                    st.download_button(
+                        "Download Markdown Report",
+                        handle.read(),
+                        file_name=os.path.basename(md_path),
+                    )
+            if html_path and os.path.exists(html_path):
+                with open(html_path, "r", encoding="utf-8") as handle:
+                    st.download_button(
+                        "Download HTML Report",
+                        handle.read(),
+                        file_name=os.path.basename(html_path),
+                    )
 
 
 if __name__ == "__main__":
