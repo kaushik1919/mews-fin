@@ -97,14 +97,25 @@ When `--full-pipeline` completes, the system runs a tenth "Research Addendum" st
 
 ## ⚙️ Configuration
 
-Copy `.env.example` to `.env` and configure your API keys:
+Copy the provided template to a root-level `.env` and confirm your keys:
 
 ```bash
-cp .env.example .env
+cp config/.env.template .env
 ```
 
+The template already carries a working demo `GNEWS_API_KEY` (from the `config/.env.template` attachment above). Update any other keys you plan to use:
+
+```ini
+# .env
+GNEWS_API_KEY=0903e69179300b9e3117cdc721c14366
+ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
+NEWS_API_KEY=optional_news_api_key
+```
+
+If you prefer to keep secrets outside the repo, export them as environment variables instead of editing `.env`.
+
 Required API keys (all have free tiers):
-- **GNews API** ([Get key](https://gnews.io/)): 100 requests/day
+- **GNews API** ([Get key](https://gnews.io/)): 100 requests/day (already seeded in the template)
 - Optional: Alpha Vantage, News API, FRED API
 
 ## 🧪 Development & Testing
@@ -256,9 +267,18 @@ The system generates:
 
 ### Sample Visuals
 
-| Risk Timeline | SHAP Summary |
-| --- | --- |
-| ![Annotated risk timeline](outputs/risk_timeline_static.png) | ![SHAP summary plot](outputs/feature_importance.png) |
+| Risk Timeline | News Sentiment Trend | SHAP Summary |
+| --- | --- | --- |
+| ![Annotated risk timeline](outputs/risk_timeline_static.png) | ![Daily news sentiment scores](outputs/sentiment_analysis.png) | ![SHAP summary plot](outputs/shap_summary.png) |
+
+### Sample News Sentiment Scores
+
+| Symbol | Date | SEC MD&A Sentiment | SEC Risk Sentiment | Combined Sentiment |
+| --- | --- | --- | --- | --- |
+| GOOGL | 2025-02-05 | 0.917 | 0.891 | 0.904 |
+| MSFT | 2025-01-29 | 0.864 | 0.895 | 0.879 |
+| MSFT | 2025-04-30 | 0.868 | 0.895 | 0.881 |
+| MSFT | 2025-07-30 | 0.919 | 0.893 | 0.906 |
 
 ### Visualizations
 - Risk timeline charts
