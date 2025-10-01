@@ -267,18 +267,18 @@ The system generates:
 
 ### Sample Visuals
 
-| Risk Timeline | News Sentiment Trend | SHAP Summary |
-| --- | --- | --- |
-| ![Annotated risk timeline](outputs/risk_timeline_static.png) | ![Daily news sentiment scores](outputs/sentiment_analysis.png) | ![SHAP summary plot](outputs/shap_summary.png) |
+| Risk Timeline |
+| --- |
+| ![Annotated risk timeline](outputs/risk_timeline_static.png) |
 
-### Sample News Sentiment Scores
+### Sample News Sentiment & Risk Snapshot
 
-| Symbol | Date | SEC MD&A Sentiment | SEC Risk Sentiment | Combined Sentiment |
-| --- | --- | --- | --- | --- |
-| GOOGL | 2025-02-05 | 0.917 | 0.891 | 0.904 |
-| MSFT | 2025-01-29 | 0.864 | 0.895 | 0.879 |
-| MSFT | 2025-04-30 | 0.868 | 0.895 | 0.881 |
-| MSFT | 2025-07-30 | 0.919 | 0.893 | 0.906 |
+| Symbol | Date | SEC MD&A Sentiment | SEC Risk Sentiment | Combined Sentiment | Risk Probability |
+| --- | --- | --- | --- | --- | --- |
+| GOOGL | 2025-02-05 | 0.917 | 0.891 | 0.904 | 0.61 |
+| MSFT | 2025-01-29 | 0.864 | 0.895 | 0.879 | 0.44 |
+| MSFT | 2025-04-30 | 0.868 | 0.895 | 0.881 | 0.47 |
+| MSFT | 2025-07-30 | 0.919 | 0.893 | 0.906 | 0.52 |
 
 ### Visualizations
 - Risk timeline charts
