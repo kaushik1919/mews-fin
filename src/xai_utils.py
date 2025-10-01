@@ -15,10 +15,14 @@ try:  # Optional dependency
 except ImportError:  # pragma: no cover - shap is optional
     shap = None  # type: ignore
 
+SHAP_AVAILABLE = shap is not None
+
 try:  # Optional dependency
     from lime.lime_tabular import LimeTabularExplainer  # type: ignore[import]
 except ImportError:  # pragma: no cover - lime is optional
     LimeTabularExplainer = None  # type: ignore
+
+LIME_AVAILABLE = LimeTabularExplainer is not None
 
 
 def compute_global_shap_importance(
@@ -43,8 +47,12 @@ def compute_global_shap_importance(
         LOGGER.warning("Empty feature matrix passed to SHAP computation")
         return None
 
-    explainer = shap.Explainer(model.predict_proba, X, feature_names=X.columns)
-    shap_values = explainer(X)
+    try:
+        explainer = shap.Explainer(model.predict_proba, X, feature_names=X.columns)
+        shap_values = explainer(X)
+    except Exception as exc:  # pragma: no cover - defensive against SHAP failures
+        LOGGER.exception("Failed to compute global SHAP values: %s", exc)
+        return None
     values = shap_values.values
 
     feature_count = X.shape[1]
@@ -85,8 +93,12 @@ def compute_local_shap_explanation(
         return None
 
     index = np.clip(sample_index, 0, len(X) - 1)
-    explainer = shap.Explainer(model.predict_proba, X, feature_names=X.columns)
-    shap_values = explainer(X.iloc[[index]])
+    try:
+        explainer = shap.Explainer(model.predict_proba, X, feature_names=X.columns)
+        shap_values = explainer(X.iloc[[index]])
+    except Exception as exc:  # pragma: no cover - defensive against SHAP failures
+        LOGGER.exception("Failed to compute local SHAP values: %s", exc)
+        return None
     values = shap_values.values[0]
 
     feature_count = X.shape[1]
@@ -134,17 +146,21 @@ def compute_lime_explanation(
         LOGGER.warning("Empty feature matrix passed to LIME computation")
         return None
 
-    explainer = LimeTabularExplainer(
-        training_data=X.values,
-        feature_names=list(X.columns),
-        class_names=class_names,
-        verbose=False,
-        mode="classification",
-    )
-    index = np.clip(sample_index, 0, len(X) - 1)
-    explanation = explainer.explain_instance(
-        X.values[index], model.predict_proba, num_features=num_features
-    )
+    try:
+        explainer = LimeTabularExplainer(
+            training_data=X.values,
+            feature_names=list(X.columns),
+            class_names=class_names,
+            verbose=False,
+            mode="classification",
+        )
+        index = np.clip(sample_index, 0, len(X) - 1)
+        explanation = explainer.explain_instance(
+            X.values[index], model.predict_proba, num_features=num_features
+        )
+    except Exception as exc:  # pragma: no cover - defensive against LIME failures
+        LOGGER.exception("Failed to compute LIME explanation: %s", exc)
+        return None
     explanation_df = pd.DataFrame(
         explanation.as_list(), columns=["feature", "weight"]
     ).assign(abs_weight=lambda df: df["weight"].abs())
@@ -152,6 +168,8 @@ def compute_lime_explanation(
 
 
 __all__ = [
+    "SHAP_AVAILABLE",
+    "LIME_AVAILABLE",
     "compute_global_shap_importance",
     "compute_local_shap_explanation",
     "compute_lime_explanation",

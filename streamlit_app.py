@@ -11,7 +11,7 @@ import tempfile
 import warnings
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -35,6 +35,14 @@ sys.path.append(".")
 from datetime import datetime, timedelta
 
 import requests
+
+try:
+    import mlflow  # type: ignore
+
+    MLFLOW_AVAILABLE = True
+except ImportError:  # pragma: no cover - optional dependency
+    mlflow = None  # type: ignore
+    MLFLOW_AVAILABLE = False
 
 
 def _normalize_datetime_column(
@@ -94,8 +102,23 @@ def _format_dataframe_for_display(
     return formatted
 
 
-def _render_dataframe(df: pd.DataFrame, **kwargs: Any) -> None:
-    st.dataframe(_format_dataframe_for_display(df), **kwargs)
+def _render_dataframe(df: pd.DataFrame) -> None:
+    formatted = _format_dataframe_for_display(df)
+    st.dataframe(formatted)
+
+
+def _render_plotly(fig: go.Figure, **kwargs: Any) -> None:
+    """Render Plotly figures with responsive sizing and streamlined config."""
+
+    default_config = {"displaylogo": False, "responsive": True}
+    user_config = kwargs.pop("config", None)
+    if isinstance(user_config, dict):
+        default_config.update(user_config)
+    elif user_config is not None:
+        warnings.warn("Ignoring non-dict Plotly config passed to _render_plotly", RuntimeWarning)
+
+    kwargs.pop("use_container_width", None)
+    st.plotly_chart(fig, config=default_config, **kwargs)
 
 
 def _render_download_buttons(df: pd.DataFrame, base_name: str, key_prefix: str) -> None:
@@ -111,7 +134,6 @@ def _render_download_buttons(df: pd.DataFrame, base_name: str, key_prefix: str) 
             csv_data,
             file_name=f"{base_name}.csv",
             mime="text/csv",
-            use_container_width=True,
             key=f"{key_prefix}_csv",
         )
     with download_cols[1]:
@@ -120,7 +142,6 @@ def _render_download_buttons(df: pd.DataFrame, base_name: str, key_prefix: str) 
             html_data,
             file_name=f"{base_name}.html",
             mime="text/html",
-            use_container_width=True,
             key=f"{key_prefix}_html",
         )
 
@@ -367,6 +388,8 @@ def _compute_run_shap_global(
 from src.backtester import RiskBacktester
 from src.metrics import compute_cews_score
 from src.xai_utils import (
+    LIME_AVAILABLE,
+    SHAP_AVAILABLE,
     compute_global_shap_importance,
     compute_lime_explanation,
     compute_local_shap_explanation,
@@ -420,6 +443,13 @@ st.markdown(
         border-radius: 5px;
         color: white;
         margin: 0.5rem 0;
+    }
+    div[data-testid="stButton"] > button,
+    div[data-testid="stDownloadButton"] button {
+        width: 100%;
+    }
+    div[data-testid="stPlotlyChart"] iframe {
+        width: 100% !important;
     }
 </style>
 """,
@@ -889,6 +919,22 @@ def run_cached_backtest(
         return None
 
 
+def reset_streamlit_caches() -> None:
+    """Clear cached readers so downstream tabs reload after pipeline runs."""
+
+    cache_functions = [
+        load_predictions_cache,
+        run_cached_backtest,
+        prepare_feature_matrix,
+        _load_mlflow_json_artifact,
+    ]
+
+    for cache_fn in cache_functions:
+        clear = getattr(cache_fn, "clear", None)
+        if callable(clear):
+            clear()
+
+
 def build_cews_input(df: pd.DataFrame) -> Optional[Tuple[pd.DataFrame, str]]:
     """Prepare dataframe and probability column for CEWS computation."""
 
@@ -1279,8 +1325,29 @@ def execute_stage_controls(
     risk_threshold: float,
     cews_threshold: float,
     robustness_config: Dict[str, Any],
+    progress_callback: Optional[Callable[[str, int, int], None]] = None,
 ) -> list[Dict[str, Any]]:
     stage_outputs: list[Dict[str, Any]] = []
+    stage_order = (
+        "Data",
+        "Preprocessing",
+        "Sentiment",
+        "Fusion",
+        "Training",
+        "Evaluation",
+        "Robustness",
+    )
+    tracked_stages = [stage for stage in stage_order if stage in selected_stages]
+    total_tracked = len(tracked_stages)
+    completed_stages = 0
+
+    def report_progress(stage_name: str) -> None:
+        nonlocal completed_stages
+        if stage_name not in tracked_stages or total_tracked == 0:
+            return
+        completed_stages += 1
+        if progress_callback:
+            progress_callback(stage_name, completed_stages, total_tracked)
 
     if "Data" in selected_stages:
         sample = df.head(500)
@@ -1334,6 +1401,7 @@ def execute_stage_controls(
                 "dataframe": sample[[col for col in sample.columns if col in ["Date", "Symbol"] + sample.select_dtypes(include=[np.number]).columns.tolist()[:8]]],
             }
         )
+        report_progress("Data")
 
     if "Preprocessing" in selected_stages:
         missing = (
@@ -1368,6 +1436,7 @@ def execute_stage_controls(
                 ],
             }
         )
+        report_progress("Preprocessing")
 
     if "Sentiment" in selected_stages:
         if sentiment_df is not None and not sentiment_df.empty:
@@ -1428,6 +1497,7 @@ def execute_stage_controls(
                     "messages": ["No sentiment data available for the current configuration. Re-run the pipeline via CLI to populate the sentiment cache."],
                 }
             )
+        report_progress("Sentiment")
 
     if "Fusion" in selected_stages:
         news_df = load_news_cache()
@@ -1456,6 +1526,7 @@ def execute_stage_controls(
                     "messages": ["Fusion preview unavailable. Ensure Symbol and Date columns exist and at least one fusion strategy is selected."],
                 }
             )
+        report_progress("Fusion")
 
     if "Training" in selected_stages:
         training_metrics = []
@@ -1500,6 +1571,7 @@ def execute_stage_controls(
                 ],
             }
         )
+        report_progress("Training")
 
     if "Evaluation" in selected_stages:
         y_true_pred = get_test_predictions(results)
@@ -1529,6 +1601,7 @@ def execute_stage_controls(
                     "messages": ["Test predictions were not cached. Re-run training to enable evaluation diagnostics."],
                 }
             )
+        report_progress("Evaluation")
 
     if "Robustness" in selected_stages:
         noise_level = float(robustness_config.get("noise", 0.05))
@@ -1591,6 +1664,7 @@ def execute_stage_controls(
                     "messages": ["No robustness reports available and on-the-fly evaluation failed."],
                 }
             )
+        report_progress("Robustness")
 
     return stage_outputs
 
@@ -1612,15 +1686,15 @@ def render_stage_outputs(stage_outputs: Iterable[Dict[str, Any]]) -> None:
             data = table.get("data")
             if isinstance(data, pd.DataFrame) and not data.empty:
                 st.markdown(f"**{table.get('caption', 'Table')}**")
-                _render_dataframe(data, use_container_width=True)
+                _render_dataframe(data)
 
         df_preview = entry.get("dataframe")
         if isinstance(df_preview, pd.DataFrame) and not df_preview.empty:
-            _render_dataframe(df_preview.head(100), use_container_width=True)
+            _render_dataframe(df_preview.head(100))
 
         figure = entry.get("figure")
         if figure is not None:
-            st.plotly_chart(figure, use_container_width=True)
+            _render_plotly(figure)
 
 
 def run_benchmarks(df: pd.DataFrame, ensemble_choice: str) -> Optional[Dict[str, Any]]:
@@ -1662,7 +1736,7 @@ def display_benchmark_results(summary: Dict[str, Any]) -> None:
         baseline_entries = run.get("baselines", [])
         if baseline_entries:
             baseline_df = pd.DataFrame(baseline_entries)
-            _render_dataframe(baseline_df, use_container_width=True)
+            _render_dataframe(baseline_df)
         if run.get("combined_baselines"):
             st.caption(f"Combined predictions saved to: {run['combined_baselines']}")
         if "mews_model" in run:
@@ -1708,7 +1782,7 @@ def display_case_study_results(results: Iterable[Any]) -> None:
 
         if result.top_features:
             feature_df = pd.DataFrame(result.top_features, columns=["Feature", "Frequency"])
-            _render_dataframe(feature_df, use_container_width=True)
+            _render_dataframe(feature_df)
 
         if result.report_path and result.report_path.exists():
             st.caption(f"Markdown report saved to: {result.report_path.as_posix()}")
@@ -2163,28 +2237,52 @@ def main():
                 "delay_days": robustness_delay,
             }
 
-            if st.button("Run Pipeline with Current Settings", use_container_width=True, key="run_pipeline_button"):
-                with st.spinner("Running pipeline orchestration..."):
-                    outputs = execute_stage_controls(
-                        selected_stages,
-                        selected_models,
-                        fusion_choice,
-                        ensemble_choice,
-                        filtered_df,
-                        results,
-                        sentiment_df,
-                        risk_threshold,
-                        cews_threshold,
-                        robustness_config,
-                    )
-                    st.session_state["pipeline_results"] = {
-                        "stage_outputs": outputs,
-                        "run_summary": run_summary,
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    }
+            if st.button("Run Pipeline with Current Settings", key="run_pipeline_button"):
+                progress_bar = st.progress(0.0)
+                progress_status = st.empty()
+                progress_status.info("Initializing pipeline run…")
+
+                def _on_stage_complete(stage_name: str, completed: int, total: int) -> None:
+                    percent = completed / total if total else 1.0
+                    progress_status.info(f"Completed {stage_name} ({completed}/{total})")
+                    progress_bar.progress(min(1.0, percent))
+
+                outputs = execute_stage_controls(
+                    selected_stages,
+                    selected_models,
+                    fusion_choice,
+                    ensemble_choice,
+                    filtered_df,
+                    results,
+                    sentiment_df,
+                    risk_threshold,
+                    cews_threshold,
+                    robustness_config,
+                    progress_callback=_on_stage_complete,
+                )
+
+                st.session_state["pipeline_results"] = {
+                    "stage_outputs": outputs,
+                    "run_summary": run_summary,
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                }
+
+                case_selection = st.session_state.get("case_study_selection", [])
+                if st.session_state.get("case_study_results") and case_selection:
+                    st.session_state["case_studies_queue"] = list(case_selection)
+
+                reset_streamlit_caches()
+                st.session_state["pipeline_refresh_notice"] = True
+                progress_bar.progress(1.0)
+                progress_status.success("Pipeline run complete! Refreshing downstream tabs…")
+
+                st.experimental_rerun()
 
             pipeline_results = st.session_state.get("pipeline_results")
             if pipeline_results and pipeline_results.get("stage_outputs"):
+                if st.session_state.pop("pipeline_refresh_notice", False):
+                    st.caption("✅ Downstream tabs refreshed with the latest pipeline artifacts.")
+
                 summary = pipeline_results.get("run_summary", {})
                 timestamp = pipeline_results.get("timestamp")
                 subtitle_parts = []
@@ -2206,7 +2304,7 @@ def main():
         col_left, col_right = st.columns([1, 1])
 
         with col_left:
-            if st.button("Run Benchmark Suite", use_container_width=True, key="run_benchmarks_button"):
+            if st.button("Run Benchmark Suite", key="run_benchmarks_button"):
                 with st.spinner("Running baseline comparisons on a sampled dataset…"):
                     st.session_state["benchmark_results"] = run_benchmarks(filtered_df, ensemble_choice)
 
@@ -2217,7 +2315,16 @@ def main():
                 help="Replay iconic crises with the latest cached predictions to inspect warning coverage.",
                 key="case_study_selection",
             )
-            if st.button("Run Case Studies", use_container_width=True, key="run_case_studies_button"):
+
+            queued_case_names = st.session_state.pop("case_studies_queue", None)
+            if queued_case_names:
+                valid_case_names = [name for name in queued_case_names if name in case_study_map]
+                if valid_case_names:
+                    with st.spinner("Refreshing case studies with latest results…"):
+                        slugs = [case_study_map[name] for name in valid_case_names]
+                        st.session_state["case_study_results"] = run_case_studies(slugs)
+
+            if st.button("Run Case Studies", key="run_case_studies_button"):
                 if not selected_case_names:
                     st.warning("Pick one or more case studies before running the replay.")
                 else:
@@ -2305,7 +2412,7 @@ def main():
                     case_fig = create_case_study_plot(timeline_filtered, selected_scenario, selected_scenario.risk_threshold)
                     if case_fig is not None:
                         case_fig.update_xaxes(range=[range_start, range_end])
-                        st.plotly_chart(case_fig, use_container_width=True)
+                        _render_plotly(case_fig)
                         st.caption("Use the slider above to zoom into specific phases of the crisis timeline.")
 
                     preview_cols = [
@@ -2316,7 +2423,6 @@ def main():
                     with st.expander("Show sample data points"):
                         _render_dataframe(
                             subset_filtered[preview_cols].head(200),
-                            use_container_width=True,
                         )
 
     with tab_model_results:
@@ -2365,7 +2471,7 @@ def main():
 
             confusion_fig = create_confusion_matrix_plot(y_true, y_pred)
             if confusion_fig:
-                st.plotly_chart(confusion_fig, use_container_width=True)
+                _render_plotly(confusion_fig)
         else:
             st.info(
                 "Test prediction data unavailable. Run the training pipeline to populate evaluation metrics."
@@ -2373,9 +2479,8 @@ def main():
 
         comparison_fig = create_model_comparison_chart(results)
         if comparison_fig:
-            st.plotly_chart(
+            _render_plotly(
                 comparison_fig,
-                use_container_width=True,
                 config={"displayModeBar": False},
             )
 
@@ -2398,7 +2503,7 @@ def main():
             )
 
         if rows:
-            _render_dataframe(pd.DataFrame(rows), use_container_width=True)
+            _render_dataframe(pd.DataFrame(rows))
 
         if predictions_for_backtest is not None:
             backtest_results = run_cached_backtest(df, predictions_for_backtest)
@@ -2432,7 +2537,7 @@ def main():
 
                 if event_rows:
                     _render_dataframe(
-                        pd.DataFrame(event_rows), use_container_width=True
+                        pd.DataFrame(event_rows)
                     )
                     st.caption(
                         "Positive early warning scores indicate the system raised alerts before the event window."
@@ -2525,7 +2630,7 @@ def main():
                     experiments_display[col] = experiments_display[col].apply(
                         lambda val: _fmt_metric(val)
                     )
-                _render_dataframe(experiments_display, use_container_width=True)
+                _render_dataframe(experiments_display)
                 _render_download_buttons(
                     experiments_download,
                     "mews_experiment_metrics",
@@ -2547,7 +2652,7 @@ def main():
                 crisis_display = crisis_download.copy()
                 for col in [c for c in crisis_display.columns if c != "Crisis"]:
                     crisis_display[col] = crisis_display[col].apply(lambda val: _fmt_metric(val))
-                _render_dataframe(crisis_display, use_container_width=True)
+                _render_dataframe(crisis_display)
                 _render_download_buttons(
                     crisis_download,
                     "mews_crisis_windows",
@@ -2584,7 +2689,7 @@ def main():
                         sentiment_display["Reject Null?"] = sentiment_display["Reject Null?"].map(
                             {True: "Yes", False: "No"}
                         )
-                    _render_dataframe(sentiment_display, use_container_width=True)
+                    _render_dataframe(sentiment_display)
                     _render_download_buttons(
                         sentiment_download,
                         "mews_sentiment_ablation",
@@ -2607,7 +2712,7 @@ def main():
                     graph_display = graph_download.copy()
                     for col in graph_display.columns:
                         graph_display[col] = graph_display[col].apply(lambda val: _fmt_metric(val))
-                    _render_dataframe(graph_display, use_container_width=True)
+                    _render_dataframe(graph_display)
                     _render_download_buttons(
                         graph_download,
                         "mews_graph_ablation",
@@ -2652,7 +2757,7 @@ def main():
                     height=350,
                     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                 )
-                st.plotly_chart(cal_fig, use_container_width=True)
+                _render_plotly(cal_fig)
                 _render_download_buttons(
                     cal_df,
                     "mews_calibration_curve",
@@ -2684,7 +2789,7 @@ def main():
                 if "Significant?" in bias_display.columns:
                     bias_display["Significant?"] = bias_display["Significant?"].map({True: "Yes", False: "No"})
                 st.markdown("**Sentiment Bias Diagnostics**")
-                _render_dataframe(bias_display, use_container_width=True)
+                _render_dataframe(bias_display)
                 _render_download_buttons(
                     bias_download,
                     "mews_sentiment_bias",
@@ -2707,7 +2812,7 @@ def main():
                     for col in [c for c in noise_display.columns if c != "Scenario"]:
                         noise_display[col] = noise_display[col].apply(lambda val: _fmt_metric(val))
                     st.markdown("**Adversarial Noise Sensitivity**")
-                    _render_dataframe(noise_display, use_container_width=True)
+                    _render_dataframe(noise_display)
 
                     value_columns = [c for c in noise_download.columns if c != "Scenario"]
                     if value_columns:
@@ -2725,7 +2830,7 @@ def main():
                             barmode="group",
                         )
                         noise_fig.update_layout(height=360, legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                        st.plotly_chart(noise_fig, use_container_width=True)
+                        _render_plotly(noise_fig)
 
                     _render_download_buttons(
                         noise_download,
@@ -2770,268 +2875,276 @@ def main():
     with tab_experiment_tracker:
         st.subheader("MLflow Experiment Tracker")
 
-        client, experiment_id, mlflow_error = _init_mlflow_client()
-        if mlflow_error:
-            st.info(mlflow_error)
-        else:
-            runs_df, run_lookup, ordered_run_ids, runs_error = _load_mlflow_runs_table(
-                client, experiment_id
+        if not MLFLOW_AVAILABLE:
+            st.warning("MLflow isn't installed, so experiment tracking is disabled for this session.")
+            st.markdown(
+                "Install the optional dependency to enable this tab, then rerun the app after logging a pipeline run."
             )
-            if runs_error:
-                st.error(runs_error)
-            elif runs_df.empty:
-                st.info(
-                    "No MLflow runs recorded yet for this experiment. Execute the training pipeline to populate history."
-                )
+            st.code("pip install mlflow", language="bash")
+        else:
+            client, experiment_id, mlflow_error = _init_mlflow_client()
+            if mlflow_error:
+                st.info(mlflow_error)
             else:
-                st.markdown("#### Recent Runs")
-                display_df = runs_df[[
-                    "Run ID",
-                    "Run",
-                    "Status",
-                    "Start",
-                    "Duration (min)",
-                    "Ensemble AUC",
-                    "Brier",
-                ]].copy()
-                _render_dataframe(display_df, use_container_width=True)
-
-                run_label_map: Dict[str, str] = {}
-                option_labels: List[str] = []
-                for run_id in ordered_run_ids:
-                    meta = run_lookup.get(run_id)
-                    if not meta:
-                        continue
-                    start_label = (
-                        meta["start"].strftime("%Y-%m-%d %H:%M")
-                        if isinstance(meta.get("start"), pd.Timestamp)
-                        else "N/A"
+                runs_df, run_lookup, ordered_run_ids, runs_error = _load_mlflow_runs_table(
+                    client, experiment_id
+                )
+                if runs_error:
+                    st.error(runs_error)
+                elif runs_df.empty:
+                    st.info(
+                        "No MLflow runs recorded yet for this experiment. Execute the training pipeline to populate history."
                     )
-                    label = f"{meta['name']} • {start_label}"
-                    option_labels.append(label)
-                    run_label_map[label] = run_id
-
-                if not option_labels:
-                    st.info("No completed run metadata is available yet.")
                 else:
-                    selected_label = st.selectbox("Run for model card", option_labels, index=0)
-                    selected_run_id = run_label_map[selected_label]
-                    run_meta = run_lookup[selected_run_id]
-                    run_results = _load_mlflow_json_artifact(
-                        selected_run_id, "artifacts/model_results.json"
-                    ) or {}
-                    if not isinstance(run_results, dict):
-                        run_results = {}
+                    st.markdown("#### Recent Runs")
+                    display_df = runs_df[[
+                        "Run ID",
+                        "Run",
+                        "Status",
+                        "Start",
+                        "Duration (min)",
+                        "Ensemble AUC",
+                        "Brier",
+                    ]].copy()
+                    _render_dataframe(display_df)
 
-                    ensemble_metrics = run_results.get("ensemble", {}) if isinstance(run_results, dict) else {}
-
-                    st.markdown("### Model Card")
-
-                    start_time = run_meta.get("start")
-                    end_time = run_meta.get("end")
-                    start_display = (
-                        start_time.strftime("%Y-%m-%d %H:%M")
-                        if isinstance(start_time, pd.Timestamp)
-                        else "—"
-                    )
-                    end_display = (
-                        end_time.strftime("%Y-%m-%d %H:%M")
-                        if isinstance(end_time, pd.Timestamp)
-                        else "—"
-                    )
-                    duration_seconds = run_meta.get("duration_seconds")
-                    duration_display = (
-                        f"{duration_seconds / 60:.1f} min"
-                        if isinstance(duration_seconds, (int, float))
-                        else "—"
-                    )
-                    status_display = (
-                        run_meta.get("status", "N/A").title()
-                        if isinstance(run_meta.get("status"), str)
-                        else str(run_meta.get("status", "N/A"))
-                    )
-
-                    metric_cols = st.columns(4)
-                    metric_cols[0].metric(
-                        "Ensemble AUC", _format_metric_value(ensemble_metrics.get("auc_score"))
-                    )
-                    metric_cols[1].metric(
-                        "Accuracy", _format_metric_value(ensemble_metrics.get("test_accuracy"))
-                    )
-                    metric_cols[2].metric(
-                        "Fβ Score", _format_metric_value(ensemble_metrics.get("fbeta_score"))
-                    )
-                    metric_cols[3].metric(
-                        "Threshold", _format_metric_value(ensemble_metrics.get("optimal_threshold"))
-                    )
-
-                    meta_cols = st.columns(2)
-                    with meta_cols[0]:
-                        detail_lines = [
-                            f"- **Run ID:** `{selected_run_id}`",
-                            f"- **Status:** {status_display}",
-                            f"- **Start:** {start_display}",
-                            f"- **End:** {end_display}",
-                            f"- **Duration:** {duration_display}",
-                        ]
-                        st.markdown("**Run Details**\n\n" + "\n".join(detail_lines))
-
-                    with meta_cols[1]:
-                        weights = ensemble_metrics.get("weights")
-                        if isinstance(weights, dict) and weights:
-                            weights_df = pd.DataFrame(
-                                [{"Model": key.upper(), "Weight": value} for key, value in weights.items()]
-                            )
-                            weights_df["Weight"] = weights_df["Weight"].apply(_format_metric_value)
-                            st.markdown("**Ensemble Weights**")
-                            _render_dataframe(weights_df, use_container_width=True)
-                        else:
-                            st.markdown("**Ensemble Weights**")
-                            st.write("Weight allocations unavailable for this run.")
-
-                    model_rows = []
-                    for model_name, model_metrics in run_results.items():
-                        if not isinstance(model_metrics, dict):
+                    run_label_map: Dict[str, str] = {}
+                    option_labels: List[str] = []
+                    for run_id in ordered_run_ids:
+                        meta = run_lookup.get(run_id)
+                        if not meta:
                             continue
-                        if model_name in {"metadata", "test_data"}:
-                            continue
-                        if not any(
-                            key in model_metrics for key in ("auc_score", "test_accuracy", "fbeta_score")
-                        ):
-                            continue
-                        model_rows.append(
-                            {
-                                "Model": model_name.replace("_", " ").title(),
-                                "AUC": model_metrics.get("auc_score"),
-                                "Accuracy": model_metrics.get("test_accuracy"),
-                                "Fβ": model_metrics.get("fbeta_score"),
-                            }
+                        start_label = (
+                            meta["start"].strftime("%Y-%m-%d %H:%M")
+                            if isinstance(meta.get("start"), pd.Timestamp)
+                            else "N/A"
                         )
+                        label = f"{meta['name']} • {start_label}"
+                        option_labels.append(label)
+                        run_label_map[label] = run_id
 
-                    if model_rows:
-                        models_df = pd.DataFrame(model_rows)
-                        models_display = models_df.copy()
-                        for col in ["AUC", "Accuracy", "Fβ"]:
-                            models_display[col] = models_display[col].apply(_format_metric_value)
-                        st.markdown("**Per-model Metrics**")
-                        _render_dataframe(models_display, use_container_width=True)
-
-                    params = run_meta.get("params") or {}
-                    with st.expander("MLflow Parameters", expanded=False):
-                        if params:
-                            params_df = pd.DataFrame(sorted(params.items()), columns=["Parameter", "Value"])
-                            _render_dataframe(params_df, use_container_width=True)
-                        else:
-                            st.write("No parameters logged for this run.")
-
-                    tags = run_meta.get("tags") or {}
-                    if tags:
-                        with st.expander("MLflow Tags", expanded=False):
-                            tags_df = pd.DataFrame(sorted(tags.items()), columns=["Tag", "Value"])
-                            _render_dataframe(tags_df, use_container_width=True)
-
-                    st.markdown("### SHAP Feature Impact")
-                    shap_candidates = [
-                        name
-                        for name, metrics in run_results.items()
-                        if isinstance(metrics, dict) and name not in {"metadata", "test_data"}
-                    ]
-                    shap_label_map = {
-                        name.replace("_", " ").title(): name for name in shap_candidates
-                    }
-                    if shap_label_map:
-                        shap_selected_label = st.selectbox(
-                            "Model for SHAP overview",
-                            list(shap_label_map.keys()),
-                            key=f"mlflow_shap_model_{selected_run_id}",
-                        )
-                        shap_model_key = shap_label_map[shap_selected_label]
-                        with st.spinner("Computing SHAP summary..."):
-                            shap_df = _compute_run_shap_global(selected_run_id, shap_model_key, df)
-                        if shap_df is not None and not shap_df.empty:
-                            top_shap = shap_df.head(20)
-                            shap_fig = go.Figure(
-                                go.Bar(
-                                    x=top_shap["importance"][::-1],
-                                    y=top_shap["feature"][::-1],
-                                    orientation="h",
-                                    marker=dict(color="#7c3aed"),
-                                )
-                            )
-                            shap_fig.update_layout(
-                                title=f"Global SHAP Impact — {shap_selected_label}",
-                                height=480,
-                                margin=dict(l=160, r=40, t=60, b=40),
-                            )
-                            st.plotly_chart(shap_fig, use_container_width=True)
-                        else:
-                            st.info(
-                                "SHAP values unavailable. Ensure the SHAP library is installed and the chosen model artifact exists in MLflow."
-                            )
+                    if not option_labels:
+                        st.info("No completed run metadata is available yet.")
                     else:
-                        st.info("No model artifacts available for SHAP visualisation in this run.")
+                        selected_label = st.selectbox("Run for model card", option_labels, index=0)
+                        selected_run_id = run_label_map[selected_label]
+                        run_meta = run_lookup[selected_run_id]
+                        run_results = _load_mlflow_json_artifact(
+                            selected_run_id, "artifacts/model_results.json"
+                        ) or {}
+                        if not isinstance(run_results, dict):
+                            run_results = {}
 
-                    st.markdown("### Run Comparison")
-                    default_compare = option_labels[: min(3, len(option_labels))]
-                    selected_compares = st.multiselect(
-                        "Select runs to compare",
-                        option_labels,
-                        default=default_compare,
-                        help="Compare ensemble metrics across multiple MLflow runs.",
-                    )
-                    if selected_compares:
-                        comparison_records = []
-                        for compare_label in selected_compares:
-                            run_id = run_label_map[compare_label]
-                            compare_results = _load_mlflow_json_artifact(
-                                run_id, "artifacts/model_results.json"
-                            )
-                            ensemble = (
-                                compare_results.get("ensemble", {})
-                                if isinstance(compare_results, dict)
-                                else {}
-                            )
-                            comparison_records.append(
+                        ensemble_metrics = run_results.get("ensemble", {}) if isinstance(run_results, dict) else {}
+
+                        st.markdown("### Model Card")
+
+                        start_time = run_meta.get("start")
+                        end_time = run_meta.get("end")
+                        start_display = (
+                            start_time.strftime("%Y-%m-%d %H:%M")
+                            if isinstance(start_time, pd.Timestamp)
+                            else "—"
+                        )
+                        end_display = (
+                            end_time.strftime("%Y-%m-%d %H:%M")
+                            if isinstance(end_time, pd.Timestamp)
+                            else "—"
+                        )
+                        duration_seconds = run_meta.get("duration_seconds")
+                        duration_display = (
+                            f"{duration_seconds / 60:.1f} min"
+                            if isinstance(duration_seconds, (int, float))
+                            else "—"
+                        )
+                        status_display = (
+                            run_meta.get("status", "N/A").title()
+                            if isinstance(run_meta.get("status"), str)
+                            else str(run_meta.get("status", "N/A"))
+                        )
+
+                        metric_cols = st.columns(4)
+                        metric_cols[0].metric(
+                            "Ensemble AUC", _format_metric_value(ensemble_metrics.get("auc_score"))
+                        )
+                        metric_cols[1].metric(
+                            "Accuracy", _format_metric_value(ensemble_metrics.get("test_accuracy"))
+                        )
+                        metric_cols[2].metric(
+                            "Fβ Score", _format_metric_value(ensemble_metrics.get("fbeta_score"))
+                        )
+                        metric_cols[3].metric(
+                            "Threshold", _format_metric_value(ensemble_metrics.get("optimal_threshold"))
+                        )
+
+                        meta_cols = st.columns(2)
+                        with meta_cols[0]:
+                            detail_lines = [
+                                f"- **Run ID:** `{selected_run_id}`",
+                                f"- **Status:** {status_display}",
+                                f"- **Start:** {start_display}",
+                                f"- **End:** {end_display}",
+                                f"- **Duration:** {duration_display}",
+                            ]
+                            st.markdown("**Run Details**\n\n" + "\n".join(detail_lines))
+
+                        with meta_cols[1]:
+                            weights = ensemble_metrics.get("weights")
+                            if isinstance(weights, dict) and weights:
+                                weights_df = pd.DataFrame(
+                                    [{"Model": key.upper(), "Weight": value} for key, value in weights.items()]
+                                )
+                                weights_df["Weight"] = weights_df["Weight"].apply(_format_metric_value)
+                                st.markdown("**Ensemble Weights**")
+                                _render_dataframe(weights_df)
+                            else:
+                                st.markdown("**Ensemble Weights**")
+                                st.write("Weight allocations unavailable for this run.")
+
+                        model_rows = []
+                        for model_name, model_metrics in run_results.items():
+                            if not isinstance(model_metrics, dict):
+                                continue
+                            if model_name in {"metadata", "test_data"}:
+                                continue
+                            if not any(
+                                key in model_metrics for key in ("auc_score", "test_accuracy", "fbeta_score")
+                            ):
+                                continue
+                            model_rows.append(
                                 {
-                                    "Run": run_lookup[run_id]["name"],
-                                    "AUC": ensemble.get("auc_score"),
-                                    "Accuracy": ensemble.get("test_accuracy"),
-                                    "Fβ": ensemble.get("fbeta_score"),
+                                    "Model": model_name.replace("_", " ").title(),
+                                    "AUC": model_metrics.get("auc_score"),
+                                    "Accuracy": model_metrics.get("test_accuracy"),
+                                    "Fβ": model_metrics.get("fbeta_score"),
                                 }
                             )
-                        comparison_df = pd.DataFrame(comparison_records)
-                        if not comparison_df.empty:
-                            comparison_display = comparison_df.copy()
-                            for col in ["AUC", "Accuracy", "Fβ"]:
-                                comparison_display[col] = comparison_display[col].apply(
-                                    _format_metric_value
-                                )
-                            _render_dataframe(comparison_display, use_container_width=True)
 
-                            melted = (
-                                comparison_df.melt(
-                                    id_vars="Run",
-                                    value_vars=["AUC", "Accuracy", "Fβ"],
-                                    var_name="Metric",
-                                    value_name="Value",
-                                )
-                                .dropna(subset=["Value"])
+                        if model_rows:
+                            models_df = pd.DataFrame(model_rows)
+                            models_display = models_df.copy()
+                            for col in ["AUC", "Accuracy", "Fβ"]:
+                                models_display[col] = models_display[col].apply(_format_metric_value)
+                            st.markdown("**Per-model Metrics**")
+                            _render_dataframe(models_display)
+
+                        params = run_meta.get("params") or {}
+
+                        with st.expander("MLflow Parameters", expanded=False):
+                            if params:
+                                params_df = pd.DataFrame(sorted(params.items()), columns=["Parameter", "Value"])
+                                _render_dataframe(params_df)
+                            else:
+                                st.write("No parameters logged for this run.")
+
+                        tags = run_meta.get("tags") or {}
+                        if tags:
+                            with st.expander("MLflow Tags", expanded=False):
+                                tags_df = pd.DataFrame(sorted(tags.items()), columns=["Tag", "Value"])
+                                _render_dataframe(tags_df)
+
+                        st.markdown("### SHAP Feature Impact")
+                        shap_candidates = [
+                            name
+                            for name, metrics in run_results.items()
+                            if isinstance(metrics, dict) and name not in {"metadata", "test_data"}
+                        ]
+                        shap_label_map = {
+                            name.replace("_", " ").title(): name for name in shap_candidates
+                        }
+                        if shap_label_map:
+                            shap_selected_label = st.selectbox(
+                                "Model for SHAP overview",
+                                list(shap_label_map.keys()),
+                                key=f"mlflow_shap_model_{selected_run_id}",
                             )
-                            if not melted.empty:
-                                compare_fig = px.bar(
-                                    melted,
-                                    x="Run",
-                                    y="Value",
-                                    color="Metric",
-                                    barmode="group",
+                            shap_model_key = shap_label_map[shap_selected_label]
+                            with st.spinner("Computing SHAP summary..."):
+                                shap_df = _compute_run_shap_global(selected_run_id, shap_model_key, df)
+                            if shap_df is not None and not shap_df.empty:
+                                top_shap = shap_df.head(20)
+                                shap_fig = go.Figure(
+                                    go.Bar(
+                                        x=top_shap["importance"][::-1],
+                                        y=top_shap["feature"][::-1],
+                                        orientation="h",
+                                        marker=dict(color="#7c3aed"),
+                                    )
                                 )
-                                compare_fig.update_layout(
-                                    height=420,
-                                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                                shap_fig.update_layout(
+                                    title=f"Global SHAP Impact — {shap_selected_label}",
+                                    height=480,
+                                    margin=dict(l=160, r=40, t=60, b=40),
                                 )
-                                st.plotly_chart(compare_fig, use_container_width=True)
-                    else:
-                        st.info("Select one or more runs to build a comparison chart.")
+                                _render_plotly(shap_fig)
+                            else:
+                                st.info(
+                                    "SHAP values unavailable. Ensure the SHAP library is installed and the chosen model artifact exists in MLflow."
+                                )
+                        else:
+                            st.info("No model artifacts available for SHAP visualisation in this run.")
+
+                        st.markdown("### Run Comparison")
+                        default_compare = option_labels[: min(3, len(option_labels))]
+                        selected_compares = st.multiselect(
+                            "Select runs to compare",
+                            option_labels,
+                            default=default_compare,
+                            help="Compare ensemble metrics across multiple MLflow runs.",
+                        )
+                        if selected_compares:
+                            comparison_records = []
+                            for compare_label in selected_compares:
+                                run_id = run_label_map[compare_label]
+                                compare_results = _load_mlflow_json_artifact(
+                                    run_id, "artifacts/model_results.json"
+                                )
+                                ensemble = (
+                                    compare_results.get("ensemble", {})
+                                    if isinstance(compare_results, dict)
+                                    else {}
+                                )
+                                comparison_records.append(
+                                    {
+                                        "Run": run_lookup[run_id]["name"],
+                                        "AUC": ensemble.get("auc_score"),
+                                        "Accuracy": ensemble.get("test_accuracy"),
+                                        "Fβ": ensemble.get("fbeta_score"),
+                                    }
+                                )
+                            comparison_df = pd.DataFrame(comparison_records)
+                            if not comparison_df.empty:
+                                comparison_display = comparison_df.copy()
+                                for col in ["AUC", "Accuracy", "Fβ"]:
+                                    comparison_display[col] = comparison_display[col].apply(
+                                        _format_metric_value
+                                    )
+                                _render_dataframe(comparison_display)
+
+                                melted = (
+                                    comparison_df.melt(
+                                        id_vars="Run",
+                                        value_vars=["AUC", "Accuracy", "Fβ"],
+                                        var_name="Metric",
+                                        value_name="Value",
+                                    )
+                                    .dropna(subset=["Value"])
+                                )
+                                if not melted.empty:
+                                    compare_fig = px.bar(
+                                        melted,
+                                        x="Run",
+                                        y="Value",
+                                        color="Metric",
+                                        barmode="group",
+                                    )
+                                    compare_fig.update_layout(
+                                        height=420,
+                                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                                    )
+                                    _render_plotly(compare_fig)
+                        else:
+                            st.info("Select one or more runs to build a comparison chart.")
 
     with tab_explainability:
         st.subheader("Explainability Studio (SHAP & LIME)")
@@ -3054,6 +3167,7 @@ def main():
                     feature_order = list(importance.keys())
 
         feature_matrix = prepare_feature_matrix(df, feature_order=feature_order)
+        sample_cap = min(len(feature_matrix), 1000)
 
         if model is None:
             st.warning(
@@ -3062,16 +3176,26 @@ def main():
         elif feature_matrix.empty:
             st.warning("Feature matrix is empty; cannot compute explanations.")
         else:
-            sample_max = min(len(feature_matrix), 1000)
-            sample_min = min(100, sample_max)
-            sample_default = min(500, sample_max)
-            sample_size = st.slider(
-                "Sample size for global SHAP",
-                sample_min,
-                sample_max,
-                sample_default,
-                step=50,
-            )
+            if sample_cap <= 10:
+                sample_size = sample_cap
+                st.caption(
+                    "Using all available rows (≤10) for the global SHAP summary. Collect more data for richer explanations."
+                )
+            else:
+                sample_min = min(sample_cap - 1, max(10, sample_cap // 2))
+                sample_default = min(
+                    sample_cap - 1,
+                    max(sample_min, (sample_min + sample_cap) // 2),
+                )
+                slider_step = max(1, (sample_cap - sample_min) // 10)
+                sample_size = st.slider(
+                    "Sample size for global SHAP",
+                    sample_min,
+                    sample_cap,
+                    sample_default,
+                    step=slider_step,
+                    help="Larger samples smooth the global importance chart; smaller samples react faster to new data.",
+                )
 
             shap_input = (
                 feature_matrix.sample(sample_size, random_state=42)
@@ -3079,8 +3203,12 @@ def main():
                 else feature_matrix
             )
 
-            with st.spinner("Computing global SHAP importance..."):
-                shap_global = compute_global_shap_importance(model, shap_input)
+            shap_global = None
+            if not SHAP_AVAILABLE:
+                st.info("Install the optional `shap` package to unlock global explanations (`pip install shap`).")
+            else:
+                with st.spinner("Computing global SHAP importance..."):
+                    shap_global = compute_global_shap_importance(model, shap_input)
 
             if shap_global is not None and not shap_global.empty:
                 top_global = shap_global.head(20)
@@ -3097,7 +3225,7 @@ def main():
                     height=500,
                     margin=dict(l=150, r=30, t=60, b=40),
                 )
-                st.plotly_chart(global_fig, use_container_width=True)
+                _render_plotly(global_fig)
                 st.markdown(
                     """
                     **How to read it:** Each bar shows the average absolute SHAP impact for a feature across the sampled rows. Longer bars mean the feature consistently nudged the model's risk score up or down. A flat bar implies the model rarely relied on that input. Look for clusters of related features (e.g., different volatility measures) to understand combined pressure on the prediction.
@@ -3107,9 +3235,9 @@ def main():
                     • Use this chart to spot which signals dominate the model so you can monitor or stress-test them directly.
                     """
                 )
-            else:
-                st.info(
-                    "SHAP library not installed; run `pip install shap` to unlock global explanations."
+            elif SHAP_AVAILABLE:
+                st.warning(
+                    "Unable to compute SHAP values for the sampled data. Try reducing the sample size or rerunning the training pipeline."
                 )
 
             st.markdown("### Local Explanations")
@@ -3147,19 +3275,24 @@ def main():
                 np.clip(selected_position, 0, max(len(feature_matrix) - 1, 0))
             )
 
-            with st.spinner("Computing local SHAP and LIME explanations..."):
-                shap_local = compute_local_shap_explanation(
-                    model, feature_matrix, selected_position
-                )
-                lime_explanation = compute_lime_explanation(
-                    model,
-                    feature_matrix,
-                    selected_position,
-                    class_names=np.array(["Stable", "Risk"]),
-                )
+            shap_local = None
+            lime_explanation = None
+            if SHAP_AVAILABLE or LIME_AVAILABLE:
+                with st.spinner("Computing local SHAP and LIME explanations..."):
+                    if SHAP_AVAILABLE:
+                        shap_local = compute_local_shap_explanation(
+                            model, feature_matrix, selected_position
+                        )
+                    if LIME_AVAILABLE:
+                        lime_explanation = compute_lime_explanation(
+                            model,
+                            feature_matrix,
+                            selected_position,
+                            class_names=np.array(["Stable", "Risk"]),
+                        )
 
             if shap_local is not None and not shap_local.empty:
-                local_display = shap_local.head(20).sort_values("abs_shap")
+                local_display = shap_local.nlargest(20, "abs_shap").iloc[::-1]
                 local_colors = [
                     "#16a34a" if val >= 0 else "#dc2626"
                     for val in local_display["shap_value"]
@@ -3177,7 +3310,7 @@ def main():
                     height=500,
                     margin=dict(l=150, r=30, t=60, b=40),
                 )
-                st.plotly_chart(local_fig, use_container_width=True)
+                _render_plotly(local_fig)
                 st.markdown(
                     """
                     **Understanding the bars:** Positive (green) bars pushed the prediction toward **Risk**, while negative (red) bars pulled it toward **Stable**. The bar length equals that feature's SHAP value for the selected date/ticker. Compare these against the global chart to see whether today's drivers match the long-term leaders.
@@ -3187,11 +3320,13 @@ def main():
                     • Hover each bar to see the exact contribution in probability points.
                     """
                 )
-            else:
+            elif SHAP_AVAILABLE:
                 st.info("Local SHAP explanations unavailable for the selected sample.")
+            else:
+                st.info("Install the optional `shap` package to enable local explanations (`pip install shap`).")
 
             if lime_explanation is not None and not lime_explanation.empty:
-                lime_display = lime_explanation.sort_values("weight")
+                lime_display = lime_explanation.nlargest(20, "abs_weight").iloc[::-1]
                 lime_colors = [
                     "#16a34a" if val >= 0 else "#dc2626"
                     for val in lime_display["weight"]
@@ -3209,10 +3344,12 @@ def main():
                     height=500,
                     margin=dict(l=150, r=30, t=60, b=40),
                 )
-                st.plotly_chart(lime_fig, use_container_width=True)
+                _render_plotly(lime_fig)
                 st.caption(
                     "LIME perturbs the original row to learn a tiny linear model around it. Positive weights (green) argue for the risk class, negative weights (red) argue for the stable class. Compare them with the SHAP bars: if both methods agree on the top signals, the explanation is more trustworthy."
                 )
+            elif LIME_AVAILABLE:
+                st.info("LIME explanation unavailable for the selected sample.")
             else:
                 st.info(
                     "LIME explanation unavailable—install the `lime` package to enable this view."
@@ -3238,7 +3375,7 @@ def main():
             subset = [col for col in candidates if col in df.columns]
             if subset:
                 st.markdown(f"**{title}**")
-                _render_dataframe(df[subset].head(5), use_container_width=True)
+                _render_dataframe(df[subset].head(5))
             else:
                 st.markdown(f"**{title}:** _No features detected in dataset._")
 
@@ -3344,7 +3481,7 @@ def main():
                 height=500,
                 legend=dict(orientation="h", y=1.08, x=0),
             )
-            st.plotly_chart(timeline_fig, use_container_width=True)
+            _render_plotly(timeline_fig)
 
             with st.expander("CEWS Metadata"):
                 st.json(cews_result.metadata)
@@ -3364,7 +3501,7 @@ def main():
         importance_fig = create_feature_importance_chart(results)
         if importance_fig:
             config = {"displayModeBar": False}
-            st.plotly_chart(importance_fig, use_container_width=True, config=config)
+            _render_plotly(importance_fig, config=config)
 
             # Add explanations
             st.subheader("🧠 What Do These Factors Mean?")
@@ -3416,7 +3553,7 @@ def main():
 
             fig.update_layout(title="🔗 Market Factor Relationships", height=600)
 
-            st.plotly_chart(fig, use_container_width=True)
+            _render_plotly(fig)
 
             with st.expander("❓ How to Read This Chart"):
                 st.write("• **Dark Red (+1.0)**: Factors move perfectly together")
@@ -3439,7 +3576,7 @@ def main():
         if timeline_fig:
             # Configure plotly for better display
             config = {"displayModeBar": False}
-            st.plotly_chart(timeline_fig, use_container_width=True, config=config)
+            _render_plotly(timeline_fig, config=config)
 
             # Add explanations
             with st.expander("🧠 How to Read This Chart"):
@@ -3579,7 +3716,7 @@ def main():
                         "Risky Days 🔴": "#dc3545",
                     },
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                _render_plotly(fig)
 
             with col2:
                 st.subheader("📊 Risk Statistics")
@@ -3762,9 +3899,7 @@ def main():
                                 news_with_sentiment, df
                             )
                             if sentiment_chart:
-                                st.plotly_chart(
-                                    sentiment_chart, use_container_width=True
-                                )
+                                _render_plotly(sentiment_chart)
 
                             # Sentiment by symbol with explanations
                             st.subheader("📊 Sentiment Breakdown by Company")
@@ -3806,9 +3941,7 @@ def main():
                                 "Avg_Sentiment"
                             ].apply(interpret_sentiment)
 
-                            _render_dataframe(
-                                symbol_sentiment, use_container_width=True
-                            )
+                            _render_dataframe(symbol_sentiment)
 
                             # Investment implications
                             st.subheader("💡 What This Means for Your Investments")
@@ -3920,11 +4053,11 @@ def main():
 
         # Data preview
         st.subheader("Dataset Preview")
-        _render_dataframe(df.head(100), use_container_width=True)
+        _render_dataframe(df.head(100))
 
         # Data statistics
         st.subheader("Statistical Summary")
-        _render_dataframe(df.describe(), use_container_width=True)
+        _render_dataframe(df.describe())
 
     with tab_explanations:
         st.subheader("Concept Guide")
@@ -4046,7 +4179,7 @@ def main():
                     report_df = pd.DataFrame(
                         metrics["classification_report"]
                     ).transpose()
-                    _render_dataframe(report_df, use_container_width=True)
+                    _render_dataframe(report_df)
 
                 st.divider()
 
@@ -4085,7 +4218,7 @@ def main():
                 metrics_df = pd.DataFrame([overall_metrics]).rename(
                     columns=lambda col: col.replace("_", " ").title()
                 )
-                _render_dataframe(metrics_df, use_container_width=True)
+                _render_dataframe(metrics_df)
             else:
                 st.write("Evaluation metrics unavailable.")
 
@@ -4118,7 +4251,7 @@ def main():
                     height=350,
                     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                 )
-                st.plotly_chart(cal_fig, use_container_width=True)
+                _render_plotly(cal_fig)
             else:
                 st.write("Calibration data unavailable.")
 
@@ -4132,7 +4265,7 @@ def main():
                 crisis_df = crisis_df.rename(
                     columns=lambda col: col if col == "Crisis" else col.replace("_", " ").title()
                 )
-                _render_dataframe(crisis_df, use_container_width=True)
+                _render_dataframe(crisis_df)
             else:
                 st.write("No crisis window evaluations recorded.")
 
@@ -4147,7 +4280,7 @@ def main():
                 hypothesis_df = hypothesis_df.rename(
                     columns=lambda col: col if col == "Test" else col.replace("_", " ").title()
                 )
-                _render_dataframe(hypothesis_df, use_container_width=True)
+                _render_dataframe(hypothesis_df)
             else:
                 st.write("No hypothesis tests recorded.")
 
@@ -4160,7 +4293,7 @@ def main():
                     bias_df = pd.DataFrame([bias_result]).rename(
                         columns=lambda col: col.replace("_", " ").title()
                     )
-                    _render_dataframe(bias_df, use_container_width=True)
+                    _render_dataframe(bias_df)
 
                 noise_result = robustness_results.get("adversarial_noise")
                 if noise_result:
@@ -4173,7 +4306,7 @@ def main():
                     noise_df = noise_df.rename(
                         columns=lambda col: col if col == "Scenario" else col.replace("_", " ").title()
                     )
-                    _render_dataframe(noise_df, use_container_width=True)
+                    _render_dataframe(noise_df)
 
                 remaining_keys = {
                     key: value

@@ -629,23 +629,55 @@ class RiskPredictor:
                 "n_jobs": -1,
             }
 
+            xgb_base: Optional[XGBClassifier] = None
             if gpu_info["available"]:
                 try:
-                    # Try GPU acceleration with warning suppression
                     import warnings
 
                     with warnings.catch_warnings():
                         warnings.simplefilter("ignore")
-                        xgb_params["device"] = "cuda"
+                        xgb_base = XGBClassifier(
+                            **xgb_params,
+                            tree_method="gpu_hist",
+                            predictor="gpu_predictor",
+                        )
                         self.logger.info("XGBoost configured for GPU acceleration")
-                except:
+                except TypeError:
+                    xgb_base = None
+                    self.logger.info("GPU parameters unsupported; falling back to CPU for XGBoost")
+                except Exception:
+                    xgb_base = None
                     self.logger.info("GPU acceleration failed, using CPU for XGBoost")
 
-            xgb_base = XGBClassifier(**xgb_params)
+            if xgb_base is None:
+                xgb_base = XGBClassifier(
+                    **xgb_params,
+                    tree_method="hist",
+                    predictor="cpu_predictor",
+                )
+
             xgb_grid = GridSearchCV(
                 xgb_base, xgb_param_grid, cv=3, scoring="roc_auc", n_jobs=-1, verbose=1
             )
-            xgb_grid.fit(X_train, y_train)
+            try:
+                xgb_grid.fit(X_train, y_train)
+            except Exception as exc:
+                if gpu_info["available"]:
+                    self.logger.warning(
+                        "GPU-accelerated XGBoost training failed (%s); retrying on CPU.",
+                        exc,
+                    )
+                    xgb_base = XGBClassifier(
+                        **xgb_params,
+                        tree_method="hist",
+                        predictor="cpu_predictor",
+                    )
+                    xgb_grid = GridSearchCV(
+                        xgb_base, xgb_param_grid, cv=3, scoring="roc_auc", n_jobs=-1, verbose=1
+                    )
+                    xgb_grid.fit(X_train, y_train)
+                else:
+                    raise
 
             self.models["xgboost"] = xgb_grid.best_estimator_
 
