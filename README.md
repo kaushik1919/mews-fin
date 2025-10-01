@@ -267,18 +267,19 @@ The system generates:
 
 ### Sample Visuals
 
-| Risk Timeline |
-| --- |
-| ![Annotated risk timeline](outputs/risk_timeline_static.png) |
+| Risk Timeline | Sentiment Risk Timeline |
+| --- | --- |
+| ![Annotated risk timeline](outputs/risk_timeline_static.png) | ![Market sentiment timeline](outputs/sentiment_analysis.png) |
 
 ### Sample News Sentiment & Risk Snapshot
 
 | Symbol | Date | SEC MD&A Sentiment | SEC Risk Sentiment | Combined Sentiment | Risk Probability |
 | --- | --- | --- | --- | --- | --- |
-| GOOGL | 2025-02-05 | 0.917 | 0.891 | 0.904 | 0.61 |
-| MSFT | 2025-01-29 | 0.864 | 0.895 | 0.879 | 0.44 |
-| MSFT | 2025-04-30 | 0.868 | 0.895 | 0.881 | 0.47 |
-| MSFT | 2025-07-30 | 0.919 | 0.893 | 0.906 | 0.52 |
+| GOOGL | 2025-10-01 | 0.917 | 0.891 | 0.888 | 0.04 |
+| MSFT | 2025-10-01 | 0.919 | 0.893 | 0.864 | 0.05 |
+| NVDA | 2025-10-01 | — | — | 0.864 | 0.05 |
+
+*NVDA currently has no recent SEC filing in the cached dataset, so only headline-driven sentiment is shown.*
 
 ### Visualizations
 - Risk timeline charts
@@ -304,6 +305,7 @@ The system generates:
 - `integrated_data.csv`: Combined features from all sources
 - `risk_predictions.csv`: Model predictions with probabilities
 - `sentiment_aggregated.csv`: Daily sentiment scores
+- `news_sentiment_timeseries.csv`: Recent headline sentiment timeline used for README visuals
 - Model files (`.joblib` format)
 
 ## 🎯 Model Performance

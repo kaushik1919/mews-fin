@@ -43,6 +43,18 @@ class NewsDataCollector:
         self.gnews_base_url = "https://gnews.io/api/v4"
         self.newsapi_base_url = "https://newsapi.org/v2"
 
+    @staticmethod
+    def _sanitize_gnews_query(raw_query: str) -> str:
+        """Return a GNews-safe query by stripping unsupported punctuation."""
+
+        if not raw_query:
+            return ""
+
+        # Keep alphanumeric characters and spaces to satisfy GNews query syntax rules
+        cleaned = re.sub(r"[^A-Za-z0-9\s]", " ", raw_query)
+        cleaned = re.sub(r"\s+", " ", cleaned).strip()
+        return cleaned
+
     def fetch_gnews_data(
         self,
         symbol: str,
@@ -81,7 +93,14 @@ class NewsDataCollector:
                 f"{company_name} financial",
             ]
 
-            for query in queries:
+            for raw_query in queries:
+                query = self._sanitize_gnews_query(raw_query)
+                if not query:
+                    self.logger.debug(
+                        "Skipping empty GNews query after sanitization for %s", symbol
+                    )
+                    continue
+
                 self.logger.info(f"Fetching GNews for query: {query}")
 
                 # GNews API parameters

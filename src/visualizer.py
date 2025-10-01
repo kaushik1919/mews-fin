@@ -94,35 +94,41 @@ class RiskVisualizer:
         # Select symbols to visualize
         if symbols is None:
             symbols = df["Symbol"].unique()[:10] if "Symbol" in df.columns else []
+        else:
+            symbols = list(symbols)
+
+        enriched_df = self._attach_external_sentiment(df, symbols)
 
         visualization_paths = {}
 
         # 1. Stock price and risk timeline
         if self.plotly_available:
-            path = self.plot_risk_timeline_interactive(df, symbols, predictions_df)
+            path = self.plot_risk_timeline_interactive(
+                enriched_df, symbols, predictions_df
+            )
             if path:
                 visualization_paths["risk_timeline_interactive"] = path
 
         if self.matplotlib_available:
-            path = self.plot_risk_timeline_static(df, symbols, predictions_df)
+            path = self.plot_risk_timeline_static(enriched_df, symbols, predictions_df)
             if path:
                 visualization_paths["risk_timeline_static"] = path
 
         # 2. Sentiment analysis visualizations
         if self.matplotlib_available:
-            path = self.plot_sentiment_analysis(df, symbols)
+            path = self.plot_sentiment_analysis(enriched_df, symbols)
             if path:
                 visualization_paths["sentiment_analysis"] = path
 
         # 3. Feature importance plots
         if self.matplotlib_available:
-            path = self.plot_feature_importance(df)
+            path = self.plot_feature_importance(enriched_df)
             if path:
                 visualization_paths["feature_importance"] = path
 
         # 4. Risk correlation heatmap
         if self.matplotlib_available:
-            path = self.plot_risk_correlations(df)
+            path = self.plot_risk_correlations(enriched_df)
             if path:
                 visualization_paths["risk_correlations"] = path
 
@@ -134,7 +140,7 @@ class RiskVisualizer:
 
         # 6. Market regime analysis
         if self.plotly_available:
-            path = self.plot_market_regimes(df)
+            path = self.plot_market_regimes(enriched_df)
             if path:
                 visualization_paths["market_regimes"] = path
 
@@ -154,6 +160,182 @@ class RiskVisualizer:
         self.logger.info(f"Created {len(visualization_paths)} visualizations")
         return visualization_paths
 
+    def _attach_external_sentiment(
+        self, df: pd.DataFrame, symbols: List[str]
+    ) -> pd.DataFrame:
+        """Ensure news sentiment scores are available for visualization outputs."""
+
+        if df.empty or "Date" not in df.columns:
+            return df
+
+        if "news_sentiment_mean" in df.columns and df["news_sentiment_mean"].notna().any():
+            return df
+
+        sentiment_path = os.path.join(
+            self.output_dir, "news_sentiment_timeseries.csv"
+        )
+        if not os.path.exists(sentiment_path):
+            self.logger.debug(
+                "Sentiment timeseries not found at %s; skipping sentiment enrichment",
+                sentiment_path,
+            )
+            return df
+
+        try:
+            sentiment_df = pd.read_csv(sentiment_path)
+        except Exception as exc:  # pragma: no cover - defensive fallback
+            self.logger.warning(
+                "Failed to load sentiment timeseries from %s: %s",
+                sentiment_path,
+                exc,
+            )
+            return df
+
+        if sentiment_df.empty or "Date" not in sentiment_df.columns:
+            return df
+
+        sentiment_df["Date"] = pd.to_datetime(
+            sentiment_df["Date"], errors="coerce"
+        )
+        sentiment_df = sentiment_df.dropna(subset=["Date"])
+
+        if "Symbol" in sentiment_df.columns and symbols:
+            sentiment_df = sentiment_df[sentiment_df["Symbol"].isin(symbols)]
+
+        if sentiment_df.empty:
+            return df
+
+        merged_df = df.copy()
+        merged_df["Date"] = pd.to_datetime(merged_df["Date"], errors="coerce")
+        merged_df = merged_df.dropna(subset=["Date"])
+
+        merge_value_map = {
+            "Combined_Sentiment": "external_combined_sentiment",
+            "News_Sentiment": "external_news_sentiment",
+            "Risk_Probability": "external_sentiment_risk_probability",
+        }
+        available_cols = [col for col in merge_value_map if col in sentiment_df.columns]
+        if not available_cols:
+            return merged_df
+
+        join_cols = ["Date"]
+        use_symbol = False
+        if "Symbol" in sentiment_df.columns and "Symbol" in merged_df.columns:
+            join_cols.insert(0, "Symbol")
+            use_symbol = True
+
+        sentiment_prepped = sentiment_df[join_cols + available_cols].rename(
+            columns={col: merge_value_map[col] for col in available_cols}
+        )
+
+        if use_symbol:
+            merged_df = merged_df.dropna(subset=["Symbol"])
+            sentiment_prepped = sentiment_prepped.dropna(subset=["Symbol"])
+
+        merged_df["__original_index"] = np.arange(len(merged_df))
+
+        tolerance = pd.Timedelta(days=5 * 365)
+
+        try:
+            if use_symbol:
+                enriched_parts = []
+                for symbol in merged_df["Symbol"].unique():
+                    base = merged_df[merged_df["Symbol"] == symbol].sort_values(
+                        "Date", kind="mergesort"
+                    )
+                    external = sentiment_prepped[
+                        sentiment_prepped["Symbol"] == symbol
+                    ].sort_values("Date", kind="mergesort")
+
+                    if external.empty:
+                        enriched_parts.append(base)
+                        continue
+
+                    merged_symbol = pd.merge_asof(
+                        base,
+                        external.drop(columns=["Symbol"]),
+                        on="Date",
+                        direction="nearest",
+                        tolerance=tolerance,
+                    )
+                    enriched_parts.append(merged_symbol)
+
+                enriched = (
+                    pd.concat(enriched_parts, ignore_index=True)
+                    if enriched_parts
+                    else merged_df.copy()
+                )
+            else:
+                base_sorted = merged_df.sort_values("Date", kind="mergesort")
+                external_sorted = sentiment_prepped.sort_values(
+                    "Date", kind="mergesort"
+                )
+                enriched = pd.merge_asof(
+                    base_sorted,
+                    external_sorted,
+                    on="Date",
+                    direction="nearest",
+                    tolerance=tolerance,
+                )
+        except Exception as exc:  # pragma: no cover - defensive fallback
+            self.logger.warning(
+                "Failed to align sentiment timeseries with integrated data: %s", exc
+            )
+            merged_df.drop(columns=["__original_index"], inplace=True)
+            return merged_df
+
+        enriched = enriched.sort_values("__original_index", kind="mergesort")
+        enriched = enriched.drop(columns=["__original_index"])
+
+        candidate_sources = []
+        if "external_combined_sentiment" in enriched.columns:
+            candidate_sources.append(enriched["external_combined_sentiment"])
+        if "external_news_sentiment" in enriched.columns:
+            candidate_sources.append(enriched["external_news_sentiment"])
+
+        if candidate_sources:
+            if "news_sentiment_mean" in enriched.columns:
+                for candidate in candidate_sources:
+                    enriched["news_sentiment_mean"] = enriched["news_sentiment_mean"].fillna(
+                        candidate
+                    )
+            else:
+                enriched["news_sentiment_mean"] = candidate_sources[0]
+
+        if (
+            "news_sentiment_mean" in enriched.columns
+            and "Symbol" in enriched.columns
+            and enriched["news_sentiment_mean"].notna().any()
+        ):
+            enriched["news_sentiment_mean"] = (
+                enriched.groupby("Symbol")["news_sentiment_mean"]
+                .transform(lambda s: s.fillna(method="ffill").fillna(method="bfill"))
+            )
+
+        if "external_sentiment_risk_probability" in enriched.columns:
+            if "Risk_Probability" in enriched.columns:
+                enriched["Risk_Probability"] = enriched["Risk_Probability"].fillna(
+                    enriched["external_sentiment_risk_probability"]
+                )
+            else:
+                enriched["Risk_Probability"] = enriched[
+                    "external_sentiment_risk_probability"
+                ]
+
+        columns_to_drop = [
+            col
+            for col in [
+                "external_combined_sentiment",
+                "external_news_sentiment",
+                "external_sentiment_risk_probability",
+            ]
+            if col in enriched.columns
+        ]
+        if columns_to_drop:
+            enriched.drop(columns=columns_to_drop, inplace=True)
+
+        return enriched
+
     def plot_risk_timeline_interactive(
         self,
         df: pd.DataFrame,
@@ -171,11 +353,20 @@ class RiskVisualizer:
 
             # Select data for chosen symbols
             symbol_data = (
-                df[df["Symbol"].isin(symbols)] if "Symbol" in df.columns else df
+                df[df["Symbol"].isin(symbols)].copy()
+                if "Symbol" in df.columns
+                else df.copy()
             )
 
             if symbol_data.empty:
                 return None
+
+            if "Date" in symbol_data.columns:
+                symbol_data["Date"] = pd.to_datetime(
+                    symbol_data["Date"], errors="coerce"
+                )
+                symbol_data = symbol_data.dropna(subset=["Date"])
+                symbol_data = symbol_data.sort_values("Date")
 
             # Create subplots
             fig = make_subplots(
@@ -330,11 +521,20 @@ class RiskVisualizer:
 
             # Select data for chosen symbols
             symbol_data = (
-                df[df["Symbol"].isin(symbols)] if "Symbol" in df.columns else df
+                df[df["Symbol"].isin(symbols)].copy()
+                if "Symbol" in df.columns
+                else df.copy()
             )
 
             if symbol_data.empty:
                 return None
+
+            if "Date" in symbol_data.columns:
+                symbol_data["Date"] = pd.to_datetime(
+                    symbol_data["Date"], errors="coerce"
+                )
+                symbol_data = symbol_data.dropna(subset=["Date"])
+                symbol_data = symbol_data.sort_values("Date")
 
             # Create figure with subplots
             fig, axes = plt.subplots(3, 1, figsize=(15, 12), sharex=True)
@@ -377,13 +577,17 @@ class RiskVisualizer:
 
                 # Plot 2: Sentiment scores
                 if "news_sentiment_mean" in symbol_df.columns:
-                    axes[1].plot(
-                        symbol_df["Date"],
-                        symbol_df["news_sentiment_mean"],
-                        color=color,
-                        alpha=0.7,
-                        linewidth=1,
+                    sentiment_series = pd.to_numeric(
+                        symbol_df["news_sentiment_mean"], errors="coerce"
                     )
+                    if not sentiment_series.dropna().empty:
+                        axes[1].plot(
+                            symbol_df["Date"],
+                            sentiment_series,
+                            color=color,
+                            alpha=0.7,
+                            linewidth=1,
+                        )
 
                 # Plot 3: Risk predictions
                 if predictions_df is not None and not predictions_df.empty:
