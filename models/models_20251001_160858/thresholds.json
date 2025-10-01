@@ -1,0 +1,22 @@
+{
+  "model_thresholds": {
+    "random_forest": 0.12499999999999999,
+    "logistic_regression": 0.05,
+    "svm": 0.27999999999999997
+  },
+  "ensemble_threshold": 0.29,
+  "ensemble_weights": [
+    {
+      "model": "random_forest",
+      "weight": 0.3776867963152508
+    },
+    {
+      "model": "logistic_regression",
+      "weight": 0.2998976458546571
+    },
+    {
+      "model": "svm",
+      "weight": 0.3224155578300922
+    }
+  ]
+}

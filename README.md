@@ -2,6 +2,8 @@
 
 A professional-grade machine learning system for predicting market risk using free data sources. Features GPU acceleration, real-time sentiment analysis, and an interactive web dashboard.
 
+> **Research framing:** MEWS is designed as a reproducible research stack that fuses market microstructure data, textual sentiment, and correlation graphs to stress-test systemic risk hypotheses. The pipeline supports crisis replays, ablation experiments, and robustness diagnostics so you can defend findings with publication-ready evidence.
+
 ## ✨ Features
 
 - 🤖 **4 ML Models**: Random Forest, XGBoost, SVM, and Logistic Regression with ensemble predictions
@@ -11,6 +13,7 @@ A professional-grade machine learning system for predicting market risk using fr
 - 🔄 **CI/CD Pipeline**: Automated testing, linting, and deployment
 - 🐳 **Docker Support**: Containerized deployment for easy scaling
 - 📈 **Risk Timeline**: Historical risk visualization with statistical analysis
+- 🕸️ **Graph-Aware Risk Signals**: Correlation GNN features powered by PyTorch Geometric
 
 ## 🚀 Quick Start
 
@@ -40,6 +43,9 @@ source venv/bin/activate  # Linux/Mac
 # Install dependencies
 pip install -r requirements.txt
 
+# If pip cannot resolve torch-geometric automatically, follow the
+# [PyTorch Geometric installation guide](https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html).
+
 # Download NLTK data
 python -c "import nltk; nltk.download('vader_lexicon'); nltk.download('punkt')"
 
@@ -54,6 +60,18 @@ streamlit run streamlit_app.py
 docker-compose up -d mews-app
 
 # Access at http://localhost:8501
+```
+
+### Run the full research pipeline
+
+```powershell
+python main.py --full-pipeline
+```
+
+### Launch the Streamlit dashboard
+
+```powershell
+streamlit run streamlit_app.py
 ```
 
 ## 🖥️ Command-Line Interface
@@ -110,6 +128,8 @@ python build.py all
 
 ## 📊 System Architecture
 
+![MEWS end-to-end architecture](docs/figures/architecture.png)
+
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Data Sources  │    │   Processing    │    │   ML & Output   │
@@ -137,6 +157,88 @@ python build.py all
 9. **`visualizer.py`**: Interactive dashboards and static plots
 10. **`backtester.py`**: Historical validation and performance metrics
 11. **`main.py`**: Main orchestrator with CLI interface
+12. **`graph_models/gnn_risk_predictor.py`**: Correlation-graph GCN/GAT that produces node-level risk scores for the ensemble
+
+### Baseline Benchmarks & Experiments
+
+- **`src/baselines/`** now includes statistical and deep learning baselines:
+  - `GARCHBaseline`: conditional volatility with one-step Value-at-Risk thresholds
+  - `ValueAtRiskBaseline`: historical simulation + parametric normal VaR
+  - `LSTMBaseline`: sequence model returning per-date risk probabilities
+- **`src/experiments/experiment_manager.py`** orchestrates configurable experiments, ablations, and compares MEWS against the baselines. It saves every run under `outputs/experiments/<timestamp>_<name>/` with per-model CSVs, summary JSON, and optional MEWS predictions.
+
+Create a lightweight experiment by supplying a Pandas dataframe or a YAML/JSON config:
+
+```python
+from src.experiments import ExperimentConfig, ExperimentManager
+
+config = ExperimentConfig.from_mapping({
+    "name": "baseline_demo",
+    "data_path": "data/integrated_dataset.csv",
+    "baselines": [
+        {"type": "garch", "params": {"confidence": 0.95}},
+        {"type": "value_at_risk", "params": {"window": 126}},
+        {"type": "lstm", "params": {"sequence_length": 30, "epochs": 3}},
+    ],
+    "mews": {"enabled": False},  # set to True to retrain the full MEWS ensemble
+})
+
+ExperimentManager(config).run()
+```
+
+> **Dependencies:** the baselines utilise optional packages (`arch`, `torch`). Install them with `pip install -r requirements.txt` or remove the corresponding baseline entry if you want to skip them.
+
+### Robustness Diagnostics
+
+- **`src/robustness/`** bundles tooling to stress test the pipeline:
+  - `SentimentBiasAuditor`: compares FinBERT and VADER distributions for polarity skew
+  - `AdversarialNoiseTester`: injects Gaussian or uniform noise into tabular features
+  - `DelaySimulator`: shifts and masks news sentiment columns to emulate reporting delays
+  - `RobustnessEvaluator`: orchestrates perturbations, re-trains MEWS models, computes CEWS deltas, and writes JSON reports under `outputs/robustness/`
+
+Run a full robustness sweep against `data/integrated_dataset.csv` with:
+
+```bash
+python robustness_eval.py data/integrated_dataset.csv
+```
+
+Add `--feature-groups path/to/feature_groups.json` to reuse curated feature lists or `--skip-bias` if the sentiment audit should be omitted. The evaluation produces a timestamped directory containing `robustness_report.json` with baseline metrics, per-perturbation deltas, and sentiment bias summaries.
+
+### Hypothesis Testing Suite
+
+- **`src/hypothesis/`** provides statistical comparisons tailored for research artifacts:
+  - `paired_t_test` and `permutation_test` quantify gains from sentiment-aware models
+  - `granger_causality` evaluates directional influence between sentiment and fundamental signals
+  - `likelihood_ratio_test` supports nested model comparisons using log-likelihoods
+  - `HypothesisReportBuilder` saves Markdown and HTML summaries to `outputs/hypothesis/`
+
+Minimal example combining all diagnostics:
+
+```python
+from src.hypothesis import (
+    HypothesisReportBuilder,
+    granger_causality,
+    likelihood_ratio_test,
+    paired_t_test,
+    permutation_test,
+)
+
+paired = [
+    paired_t_test(sentiment_model_auc, baseline_auc, metric_name="AUC"),
+    permutation_test(sentiment_model_cews, baseline_cews, metric_name="CEWS"),
+]
+granger = [granger_causality(sentiment_series=sentiment, fundamental_series=fundamental, max_lag=3)]
+lr = [likelihood_ratio_test(null_model=null_result, alt_model=alt_result, model_name="Sentiment Feature")]
+
+HypothesisReportBuilder().build_reports(
+    paired_results=paired,
+    granger_results=granger,
+    lr_results=lr,
+    metadata={"Dataset": "Integrated"},
+)
+```
+
+The builder returns paths for both Markdown and HTML documents that can be cited in research notes or appended to the full MEWS report.
 
 ### Key Features
 
@@ -151,6 +253,12 @@ python build.py all
 ## 📈 Example Outputs
 
 The system generates:
+
+### Sample Visuals
+
+| Risk Timeline | SHAP Summary |
+| --- | --- |
+| ![Annotated risk timeline](outputs/risk_timeline_static.png) | ![SHAP summary plot](outputs/feature_importance.png) |
 
 ### Visualizations
 - Risk timeline charts

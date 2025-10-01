@@ -2,11 +2,13 @@
 Configuration management for the Market Risk Early Warning System
 """
 
-import logging
 import os
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from dotenv import load_dotenv
+
+from src.utils.logging import configure_logging, get_logger
 
 # Load environment variables
 load_dotenv()
@@ -35,6 +37,8 @@ class Config:
     DATA_DIR = os.path.join(BASE_DIR, "data")
     MODEL_DIR = os.path.join(BASE_DIR, "models")
     OUTPUT_DIR = os.path.join(BASE_DIR, "outputs")
+    MLFLOW_TRACKING_DIR = os.path.join(OUTPUT_DIR, "mlruns")
+    MLFLOW_EXPERIMENT = os.getenv("MLFLOW_EXPERIMENT", "MEWS-Experiment")
 
     # Logging
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
@@ -102,14 +106,33 @@ class Config:
     @classmethod
     def setup_logging(cls):
         """Setup logging configuration"""
-        logging.basicConfig(
-            level=getattr(logging, cls.LOG_LEVEL.upper()),
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            handlers=[
-                logging.FileHandler(os.path.join(cls.OUTPUT_DIR, "risk_system.log")),
-                logging.StreamHandler(),
-            ],
+        configure_logging(
+            level=cls.LOG_LEVEL,
+            output_dir=cls.OUTPUT_DIR,
+            filename="risk_system.log",
+            force=True,
         )
+
+    @classmethod
+    def setup_mlflow(cls):
+        """Configure MLflow tracking to use the project outputs directory."""
+
+        try:
+            import mlflow  # type: ignore
+
+            tracking_dir = Path(cls.MLFLOW_TRACKING_DIR)
+            tracking_dir.mkdir(parents=True, exist_ok=True)
+            mlflow.set_tracking_uri(tracking_dir.resolve().as_uri())
+            mlflow.set_experiment(cls.MLFLOW_EXPERIMENT)
+            get_logger(__name__).info(
+                "MLflow tracking set to %s for experiment '%s'",
+                tracking_dir,
+                cls.MLFLOW_EXPERIMENT,
+            )
+        except ImportError:
+            get_logger(__name__).warning(
+                "MLflow is not installed; experiment tracking is disabled."
+            )
 
     @classmethod
     def validate_config(cls):
@@ -123,7 +146,7 @@ class Config:
             missing_keys.append("GNEWS_API_KEY")
 
         if missing_keys:
-            logging.warning(
+            get_logger(__name__).warning(
                 f"Missing API keys: {missing_keys}. Some features may not work."
             )
 

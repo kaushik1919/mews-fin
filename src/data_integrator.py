@@ -3,7 +3,6 @@ Data integration module
 Merges structured and unstructured features indexed by date and company
 """
 
-import logging
 import os
 import warnings
 from datetime import datetime, timedelta
@@ -14,12 +13,14 @@ import pandas as pd
 
 warnings.filterwarnings("ignore")
 
+from src.utils.logging import get_logger
+
 
 class DataIntegrator:
     """Integrates all data sources into a unified dataset for modeling"""
 
     def __init__(self):
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger(__name__)
 
     def integrate_all_data(
         self,

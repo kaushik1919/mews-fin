@@ -1,0 +1,27 @@
+{
+  "model_thresholds": {
+    "random_forest": 0.4049999999999999,
+    "logistic_regression": 0.5549999999999999,
+    "xgboost": 0.3549999999999999,
+    "svm": 0.31999999999999995
+  },
+  "ensemble_threshold": 0.3549999999999999,
+  "ensemble_weights": [
+    {
+      "model": "random_forest",
+      "weight": 0.25157945893406775
+    },
+    {
+      "model": "logistic_regression",
+      "weight": 0.24380366110481125
+    },
+    {
+      "model": "xgboost",
+      "weight": 0.2476915600194395
+    },
+    {
+      "model": "svm",
+      "weight": 0.2569253199416815
+    }
+  ]
+}

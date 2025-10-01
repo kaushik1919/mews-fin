@@ -4,7 +4,6 @@ Handles Yahoo Finance and Alpha Vantage APIs with rate limiting
 """
 
 import json
-import logging
 import os
 import time
 from datetime import datetime, timedelta
@@ -15,13 +14,15 @@ import pandas as pd
 import requests
 import yfinance as yf
 
+from src.utils.logging import get_logger
+
 
 class StockDataFetcher:
     """Fetches stock data from Yahoo Finance and Alpha Vantage"""
 
     def __init__(self, alpha_vantage_key: Optional[str] = None):
         self.alpha_vantage_key = alpha_vantage_key
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger(__name__)
         self.rate_limit_delay = (
             12  # seconds between Alpha Vantage calls (5 per minute limit)
         )

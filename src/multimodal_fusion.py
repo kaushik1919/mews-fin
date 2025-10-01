@@ -7,7 +7,6 @@ machine learning models.
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
@@ -27,12 +26,21 @@ except ImportError:  # pragma: no cover - transformers is optional
     AutoModel = None  # type: ignore
     AutoTokenizer = None  # type: ignore
 
-try:  # Optional cross-modal fusion module
-    from src.research.cross_modal import CrossAttentionFusion
-except ImportError:  # pragma: no cover - research extensions optional
-    CrossAttentionFusion = None  # type: ignore
+try:  # Optional dependency for GNN-based risk features
+    from src.graph_models import GNNRiskPredictor
+except ImportError:  # pragma: no cover - torch geometric optional
+    GNNRiskPredictor = None  # type: ignore
 
-LOGGER = logging.getLogger(__name__)
+from src.fusion import (
+    BaseFusion,
+    CrossAttentionFusion as FusionCrossAttention,
+    GatedFusion,
+    SimpleConcatFusion,
+)
+
+from src.utils.logging import get_logger
+
+LOGGER = get_logger(__name__)
 
 
 @dataclass
@@ -62,6 +70,8 @@ class MultiModalFeatureFusion:
         device: Optional[str] = None,
         fusion_strategy: str = "concat",
         cross_attention_kwargs: Optional[Dict[str, Any]] = None,
+        enable_gnn: bool = True,
+        gnn_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.embedding_model_name = embedding_model_name
         self.device = device or (
@@ -70,9 +80,12 @@ class MultiModalFeatureFusion:
         self._tokenizer = None
         self._model = None
         self.embedding_dim = None
-        self.fusion_strategy = fusion_strategy
         self.cross_attention_kwargs = cross_attention_kwargs or {}
-        self._cross_attention_model = None
+        self.fusion_strategy = "concat"
+        self._fusion_impl = self._build_fusion_strategy(fusion_strategy)
+        self.enable_gnn = enable_gnn
+        self.gnn_kwargs = gnn_kwargs or {}
+        self._gnn_predictor = None
 
     # ---------------------------------------------------------------------
     # Public API
@@ -97,16 +110,39 @@ class MultiModalFeatureFusion:
                 symbol_column=inputs.news_symbol_column,
                 datetime_column=inputs.news_datetime_column,
             )
-            base_df = self._merge_features(base_df, news_features)
 
-            if (
-                self.fusion_strategy == "cross_attention"
-                and CrossAttentionFusion is not None
-                and not news_features.empty
-            ):
-                cross_df = self._apply_cross_attention(base_df, news_features)
-                if cross_df is not None and not cross_df.empty:
-                    base_df = self._merge_features(base_df, cross_df)
+            fusion_features: Optional[pd.DataFrame] = None
+            if news_features is not None and not news_features.empty:
+                try:
+                    fusion_features = self._fusion_impl.fuse(base_df, news_features)
+                except ImportError as exc:
+                    LOGGER.warning(
+                        "Fusion strategy '%s' unavailable (%s); falling back to simple concatenation.",
+                        self.fusion_strategy,
+                        exc,
+                    )
+                    self.fusion_strategy = "concat"
+                    self._fusion_impl = SimpleConcatFusion()
+                    fusion_features = self._fusion_impl.fuse(base_df, news_features)
+                except Exception as exc:  # pragma: no cover - defensive guard
+                    LOGGER.warning(
+                        "Fusion strategy '%s' failed with error: %s", self.fusion_strategy, exc
+                    )
+                    if self.fusion_strategy != "concat":
+                        self.fusion_strategy = "concat"
+                        self._fusion_impl = SimpleConcatFusion()
+                        fusion_features = self._fusion_impl.fuse(base_df, news_features)
+
+            if fusion_features is not None:
+                feature_cols = [
+                    col for col in fusion_features.columns if col not in self._fusion_impl.key_columns
+                ]
+                if feature_cols:
+                    base_df = self._merge_features(base_df, fusion_features)
+                else:
+                    base_df = self._merge_features(base_df, news_features)
+            elif news_features is not None and not news_features.empty:
+                base_df = self._merge_features(base_df, news_features)
 
         graph_features = self._build_graph_features(
             base_df if inputs.graph_source is None else inputs.graph_source
@@ -117,6 +153,31 @@ class MultiModalFeatureFusion:
         base_df = base_df.sort_values(["Symbol", "Date"])
         base_df = base_df.reset_index(drop=True)
         return base_df
+
+    # ------------------------------------------------------------------
+    # Strategy configuration
+    # ------------------------------------------------------------------
+    def _build_fusion_strategy(self, strategy: str) -> BaseFusion:
+        strategy_key = (strategy or "concat").lower()
+        self.fusion_strategy = strategy_key
+
+        if strategy_key == "concat":
+            return SimpleConcatFusion()
+        if strategy_key == "cross_attention":
+            return FusionCrossAttention(
+                key_columns=("Symbol", "Date"),
+                device=self.device,
+                **self.cross_attention_kwargs,
+            )
+        if strategy_key == "gated":
+            return GatedFusion()
+
+        LOGGER.warning(
+            "Unknown fusion strategy '%s'; defaulting to simple concatenation.",
+            strategy,
+        )
+        self.fusion_strategy = "concat"
+        return SimpleConcatFusion()
 
     # ------------------------------------------------------------------
     # News embeddings
@@ -193,56 +254,6 @@ class MultiModalFeatureFusion:
         )
         return aggregated
 
-    def _apply_cross_attention(
-        self,
-        base_df: pd.DataFrame,
-        news_df: pd.DataFrame,
-    ) -> Optional[pd.DataFrame]:
-        if CrossAttentionFusion is None:
-            return None
-
-        key_cols = ["Symbol", "Date"]
-        tab_cols = [
-            col
-            for col in base_df.columns
-            if col not in key_cols and pd.api.types.is_numeric_dtype(base_df[col])
-        ]
-        text_cols = [
-            col
-            for col in news_df.columns
-            if col not in key_cols and pd.api.types.is_numeric_dtype(news_df[col])
-        ]
-
-        if not tab_cols or not text_cols:
-            return None
-
-        tabular_view = base_df[key_cols + tab_cols].copy()
-        text_view = news_df[key_cols + text_cols].copy()
-
-        if self._cross_attention_model is None:
-            init_kwargs: Dict[str, Any] = {
-                "tabular_dim": len(tab_cols),
-                "text_dim": len(text_cols),
-            }
-            init_kwargs.update(self.cross_attention_kwargs)
-            try:
-                self._cross_attention_model = CrossAttentionFusion(**init_kwargs)
-            except ImportError:
-                return None
-
-        try:
-            fused = self._cross_attention_model.fuse_dataframes(
-                tabular_df=tabular_view,
-                text_df=text_view,
-                key_columns=("Symbol", "Date"),
-                device=self.device,
-            )
-        except Exception as exc:  # pragma: no cover - safety guard
-            LOGGER.warning("Cross attention fusion failed: %s", exc)
-            return None
-
-        return fused
-
     def _load_embedding_model(self) -> None:
         """Lazy-load the transformer model for embeddings."""
 
@@ -262,56 +273,83 @@ class MultiModalFeatureFusion:
     def _build_graph_features(
         self, df: pd.DataFrame, window: int = 60
     ) -> Optional[pd.DataFrame]:
-        """Construct graph centrality features using rolling correlations."""
+        centrality_df: Optional[pd.DataFrame] = None
+        if nx is not None:
+            if not {"Symbol", "Date", "Returns"}.issubset(df.columns):
+                LOGGER.warning("Insufficient columns for graph features")
+            else:
+                df_sorted = df.sort_values(["Date", "Symbol"]).copy()
+                df_sorted["Date"] = pd.to_datetime(df_sorted["Date"])
 
-        if nx is None:
-            LOGGER.warning("networkx not available, skipping graph features")
+                returns_wide = df_sorted.pivot_table(
+                    index="Date", columns="Symbol", values="Returns", aggfunc="mean"
+                ).sort_index()
+
+                feature_rows = []
+                for date in returns_wide.index:
+                    window_slice = returns_wide.loc[:date].tail(window)
+                    if (
+                        window_slice.shape[0] < max(10, window // 2)
+                        or window_slice.shape[1] < 3
+                    ):
+                        continue
+
+                    corr_matrix = window_slice.corr().fillna(0)
+                    graph = nx.from_pandas_adjacency(corr_matrix)
+                    try:
+                        centrality = nx.eigenvector_centrality_numpy(graph, weight="weight")
+                    except Exception:  # pragma: no cover - numerical issues
+                        centrality = nx.degree_centrality(graph)
+                    clustering = nx.clustering(graph, weight="weight")
+
+                    for symbol in corr_matrix.columns:
+                        feature_rows.append(
+                            {
+                                "Symbol": symbol,
+                                "Date": date,
+                                "graph_eigenvector": centrality.get(symbol, 0.0),
+                                "graph_clustering": clustering.get(symbol, 0.0),
+                            }
+                        )
+
+                if feature_rows:
+                    centrality_df = pd.DataFrame(feature_rows)
+                    centrality_df.sort_values(["Symbol", "Date"], inplace=True)
+        else:
+            LOGGER.warning("networkx not available, skipping graph centrality features")
+
+        gnn_features: Optional[pd.DataFrame] = None
+        if self.enable_gnn:
+            if GNNRiskPredictor is None:
+                LOGGER.warning("torch-geometric not available, skipping GNN risk features")
+            else:
+                try:
+                    predictor = self._get_gnn_predictor()
+                    gnn_features = predictor.generate_features(df)
+                except ImportError as exc:
+                    LOGGER.warning("GNN risk predictor unavailable (%s)", exc)
+                except Exception as exc:  # pragma: no cover - defensive guard
+                    LOGGER.warning("GNN risk predictor failed with error: %s", exc)
+
+        frames = [frame for frame in (centrality_df, gnn_features) if frame is not None and not frame.empty]
+        if not frames:
             return None
 
-        if not {"Symbol", "Date", "Returns"}.issubset(df.columns):
-            LOGGER.warning("Insufficient columns for graph features")
-            return None
+        merged = frames[0]
+        for frame in frames[1:]:
+            merged = merged.merge(frame, on=["Symbol", "Date"], how="outer")
 
-        df_sorted = df.sort_values(["Date", "Symbol"]).copy()
-        df_sorted["Date"] = pd.to_datetime(df_sorted["Date"])
+        merged.sort_values(["Symbol", "Date"], inplace=True)
+        return merged
 
-        returns_wide = df_sorted.pivot_table(
-            index="Date", columns="Symbol", values="Returns", aggfunc="mean"
-        ).sort_index()
-
-        feature_rows = []
-        for date in returns_wide.index:
-            window_slice = returns_wide.loc[:date].tail(window)
-            if (
-                window_slice.shape[0] < max(10, window // 2)
-                or window_slice.shape[1] < 3
-            ):
-                continue
-
-            corr_matrix = window_slice.corr().fillna(0)
-            graph = nx.from_pandas_adjacency(corr_matrix)
-            try:
-                centrality = nx.eigenvector_centrality_numpy(graph, weight="weight")
-            except Exception:  # pragma: no cover - numerical issues
-                centrality = nx.degree_centrality(graph)
-            clustering = nx.clustering(graph, weight="weight")
-
-            for symbol in corr_matrix.columns:
-                feature_rows.append(
-                    {
-                        "Symbol": symbol,
-                        "Date": date,
-                        "graph_eigenvector": centrality.get(symbol, 0.0),
-                        "graph_clustering": clustering.get(symbol, 0.0),
-                    }
-                )
-
-        if not feature_rows:
-            return None
-
-        feature_df = pd.DataFrame(feature_rows)
-        feature_df.sort_values(["Symbol", "Date"], inplace=True)
-        return feature_df
+    def _get_gnn_predictor(self):
+        if not self.enable_gnn:
+            raise RuntimeError("GNN predictor requested while disabled")
+        if self._gnn_predictor is None:
+            if GNNRiskPredictor is None:
+                raise ImportError("torch-geometric is required for GNN risk features")
+            self._gnn_predictor = GNNRiskPredictor(**self.gnn_kwargs)
+        return self._gnn_predictor
 
     # ------------------------------------------------------------------
     # Utilities

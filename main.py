@@ -5,7 +5,6 @@ Coordinates all components and provides CLI interface
 
 import argparse
 import json
-import logging
 import os
 import sys
 from datetime import datetime, timedelta
@@ -27,6 +26,7 @@ try:
     from src.sec_downloader import SECFilingsDownloader
     from src.sentiment_analyzer import SentimentAnalyzer
     from src.visualizer import RiskVisualizer
+    from src.utils.logging import get_logger
     from src.research import (
         GraphFeatureAblation,
         ResearchEvaluator,
@@ -57,7 +57,8 @@ class MarketRiskSystem:
 
         # Setup logging
         self.config.setup_logging()
-        self.logger = logging.getLogger(__name__)
+        self.config.setup_mlflow()
+        self.logger = get_logger(__name__)
 
         # Validate configuration
         config_valid = self.config.validate_config()

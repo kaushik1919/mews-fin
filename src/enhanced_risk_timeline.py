@@ -3,7 +3,6 @@ Enhanced Risk Timeline Visualizer
 Optimized interactive risk timeline with better performance and insights
 """
 
-import logging
 import os
 import warnings
 from datetime import datetime, timedelta
@@ -14,12 +13,14 @@ import pandas as pd
 
 warnings.filterwarnings("ignore")
 
+from src.utils.logging import get_logger
+
 
 class EnhancedRiskTimelineVisualizer:
     """Creates optimized interactive risk timeline visualizations"""
 
     def __init__(self, output_dir: Optional[str] = None):
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger(__name__)
         self.output_dir = output_dir or "outputs"
         os.makedirs(self.output_dir, exist_ok=True)
 

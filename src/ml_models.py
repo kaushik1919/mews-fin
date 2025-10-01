@@ -4,24 +4,41 @@ Implements Random Forest, Logistic Regression, XGBoost, and SVM models with GPU 
 """
 
 import json
-import logging
+import math
 import os
 import pickle
+import tempfile
 import warnings
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 
+try:  # pragma: no cover - optional dependency
+    import mlflow  # type: ignore
+except ImportError:  # pragma: no cover
+    mlflow = None  # type: ignore
+
 try:
-    from src.research.regime_ensemble import (
+    from src.ensemble import (
         RegimeAdaptiveEnsemble,
-        VolatilityRegimeDetector,
+        StaticWeightedEnsemble,
     )
-except ImportError:  # pragma: no cover - research extensions optional
+except ImportError:  # pragma: no cover - ensemble utilities should be available
     RegimeAdaptiveEnsemble = None  # type: ignore
-    VolatilityRegimeDetector = None  # type: ignore
+    StaticWeightedEnsemble = None  # type: ignore
+
+from src.utils.logging import get_logger
+
+try:  # pragma: no cover - uncertainty utilities are optional
+    from src.uncertainty.calibration import (
+        ProbabilityCalibrator,
+        save_reliability_diagram,
+    )
+except ImportError:  # pragma: no cover
+    ProbabilityCalibrator = None  # type: ignore
+    save_reliability_diagram = None  # type: ignore
 
 warnings.filterwarnings("ignore")
 
@@ -52,7 +69,7 @@ class MLModelTrainer:
 
     def __init__(self, random_state: int = 42):
         self.random_state = random_state
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger(__name__)
         self.models: Dict[str, Any] = {}
         self.feature_names: List[str] = []
 
@@ -213,7 +230,7 @@ class RiskPredictor:
     """Machine Learning models for market risk prediction"""
 
     def __init__(self):
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger(__name__)
         self.models = {}
         self.scalers = {}
         self.feature_importance = {}
@@ -224,8 +241,9 @@ class RiskPredictor:
         self.ensemble_threshold: float = 0.5
         self.ensemble_weights: List[Dict[str, float]] = []
         self.dynamic_ensemble = None
-        self.regime_detector = None
-        self.training_metadata: Optional[pd.DataFrame] = None
+        self.use_regime_meta_model = True
+        self.regime_options = {"enabled": True}
+        self.training_metadata = None
         os.makedirs(self.model_dir, exist_ok=True)
 
     def prepare_modeling_data(
@@ -338,6 +356,19 @@ class RiskPredictor:
 
         return features_df, target, list(features_df.columns)
 
+    def set_regime_adaptive_options(self, options: Optional[Dict[str, Any]]) -> None:
+        """Configure regime-adaptive ensemble parameters applied during training."""
+
+        if options is None:
+            self.regime_options = {"enabled": True}
+            return
+
+        configured = dict(options)
+        configured.setdefault("enabled", True)
+        self.regime_options = configured
+        if "use_meta_model" in configured:
+            self.use_regime_meta_model = bool(configured["use_meta_model"])
+
     def _optimize_threshold(
         self,
         y_true: np.ndarray,
@@ -394,6 +425,8 @@ class RiskPredictor:
         self.ensemble_weights = []
         self.ensemble_threshold = 0.5
         self.feature_names = feature_names
+        self.calibrators = {}
+        self.calibration_artifacts = {}
 
         try:
             import joblib
@@ -403,6 +436,7 @@ class RiskPredictor:
                 classification_report,
                 confusion_matrix,
                 accuracy_score,
+                brier_score_loss,
                 roc_auc_score,
             )
             from sklearn.model_selection import (
@@ -767,18 +801,50 @@ class RiskPredictor:
                 )
             )
 
-        weight_values = np.array(
-            [max(component[3], 1e-3) for component in ensemble_components],
+        probability_map = {
+            component[0]: component[2] for component in ensemble_components
+        }
+        score_map = {
+            component[0]: component[3] for component in ensemble_components
+        }
+
+        if StaticWeightedEnsemble is not None:
+            static_ensemble = StaticWeightedEnsemble()
+            static_ensemble.fit(probability_map, model_scores=score_map)
+            ensemble_probabilities = static_ensemble.predict(probability_map)
+            weight_lookup = static_ensemble.get_weights()
+        else:  # pragma: no cover - fallback path
+            weight_values = np.array(
+                [max(component[3], 1e-3) for component in ensemble_components],
+                dtype=float,
+            )
+            weight_lookup = {
+                component[0]: float(weight)
+                for component, weight in zip(ensemble_components, weight_values)
+            }
+            weight_values = weight_values / weight_values.sum()
+            stacked_probabilities = np.vstack(
+                [component[2] for component in ensemble_components]
+            )
+            ensemble_probabilities = np.average(
+                stacked_probabilities, axis=0, weights=weight_values
+            )
+
+        normalized_weights = np.array(
+            [weight_lookup.get(component[0], 0.0) for component in ensemble_components],
             dtype=float,
         )
-        normalized_weights = weight_values / weight_values.sum()
+        weight_sum = normalized_weights.sum()
+        if weight_sum <= 0:
+            normalized_weights = np.ones(len(ensemble_components), dtype=float)
+            normalized_weights = normalized_weights / normalized_weights.sum()
+        else:
+            normalized_weights = normalized_weights / weight_sum
 
-        stacked_probabilities = np.vstack(
-            [component[2] for component in ensemble_components]
-        )
-        ensemble_probabilities = np.average(
-            stacked_probabilities, axis=0, weights=normalized_weights
-        )
+        weight_lookup = {
+            component[0]: float(weight)
+            for component, weight in zip(ensemble_components, normalized_weights)
+        }
         ensemble_threshold, ensemble_fbeta = self._optimize_threshold(
             y_test, ensemble_probabilities
         )
@@ -826,33 +892,27 @@ class RiskPredictor:
             ),
         )
 
-        if (
-            RegimeAdaptiveEnsemble is not None
-            and VolatilityRegimeDetector is not None
-            and self.training_metadata is not None
-        ):
+        if RegimeAdaptiveEnsemble is not None and self.training_metadata is not None:
             try:
                 validation_metadata = self.training_metadata.loc[X_test.index].copy()
-                if "Returns" not in validation_metadata.columns:
-                    price_col = "Close" if "Close" in validation_metadata.columns else "Adj Close"
-                    if price_col in validation_metadata.columns:
-                        validation_metadata["Returns"] = (
-                            validation_metadata.groupby("Symbol")[price_col]
-                            .pct_change()
-                            .fillna(0.0)
-                        )
-
-                detector = VolatilityRegimeDetector()
-                regimes = detector.fit_transform(validation_metadata)
-
-                probability_map = {
-                    component[0]: component[2] for component in ensemble_components
-                }
-                adaptive = RegimeAdaptiveEnsemble()
-                adaptive.fit(probability_map, y_test, regimes)
-                self.dynamic_ensemble = adaptive
-                self.regime_detector = detector
-                results["ensemble"]["regime_weights"] = adaptive.to_json()
+                ensemble_options = dict(self.regime_options or {})
+                regime_enabled = ensemble_options.pop("enabled", True)
+                if regime_enabled:
+                    use_meta_flag = bool(
+                        ensemble_options.pop("use_meta_model", self.use_regime_meta_model)
+                    )
+                    adaptive = RegimeAdaptiveEnsemble(
+                        use_meta_model=use_meta_flag,
+                        **ensemble_options,
+                    )
+                    adaptive.fit(probability_map, y_test, metadata=validation_metadata)
+                    self.dynamic_ensemble = adaptive
+                    self.use_regime_meta_model = use_meta_flag
+                    results["ensemble"]["regime_weights"] = adaptive.to_json()
+                else:
+                    self.logger.info("Regime-adaptive ensemble disabled via configuration")
+                    self.dynamic_ensemble = None
+                    results["ensemble"].pop("regime_weights", None)
             except Exception as exc:  # pragma: no cover - defensive
                 self.logger.warning(
                     "Failed to build regime-adaptive ensemble: %s", exc
@@ -881,25 +941,11 @@ class RiskPredictor:
 
         self.model_metrics = results
 
+        json_results = self._prepare_json_results(results)
+
         # Save results for Streamlit
         try:
             results_file = os.path.join("data", "model_results.json")
-
-            # Convert numpy arrays to lists for JSON serialization
-            json_results: Dict[str, Any] = {}
-            for model_name, metrics in results.items():
-                if isinstance(metrics, dict):
-                    json_results[model_name] = {}
-                    for key, value in metrics.items():
-                        if isinstance(value, np.ndarray):
-                            json_results[model_name][key] = value.tolist()
-                        elif hasattr(value, "tolist"):
-                            json_results[model_name][key] = value.tolist()
-                        else:
-                            json_results[model_name][key] = value
-                else:
-                    json_results[model_name] = metrics  # type: ignore
-
             with open(results_file, "w") as f:
                 json.dump(json_results, f, indent=2)
 
@@ -911,6 +957,15 @@ class RiskPredictor:
         save_dir = self.save_models()
         self.logger.info(
             f"🚀 All 4 models trained with GPU acceleration and saved to {save_dir}!"
+        )
+
+        self._log_training_run(
+            test_size=test_size,
+            random_state=random_state,
+            feature_names=feature_names,
+            results=results,
+            json_results=json_results,
+            model_dir=save_dir,
         )
 
         return results
@@ -996,25 +1051,15 @@ class RiskPredictor:
 
             dynamic_available = (
                 self.dynamic_ensemble is not None
-                and self.regime_detector is not None
                 and metadata is not None
             )
 
             if dynamic_available:
                 meta = metadata.copy()
-                if "Returns" not in meta.columns:
-                    price_col = "Close" if "Close" in meta.columns else "Adj Close"
-                    if price_col in meta.columns:
-                        meta = meta.sort_values(["Symbol", "Date"])
-                        meta["Returns"] = (
-                            meta.groupby("Symbol")[price_col]
-                            .pct_change()
-                            .fillna(0.0)
-                        )
                 try:
-                    regimes = self.regime_detector.fit_transform(meta)
                     ensemble_proba = self.dynamic_ensemble.predict(
-                        probability_map, regimes
+                        probability_map,
+                        metadata=meta,
                     )
                 except Exception as exc:  # pragma: no cover
                     self.logger.warning(
@@ -1209,6 +1254,216 @@ class RiskPredictor:
         except Exception as e:
             self.logger.error(f"Failed to load models: {e}")
             return False
+
+    @staticmethod
+    def _is_numeric(value: Any) -> bool:
+        return (
+            isinstance(value, (int, float, np.integer, np.floating))
+            and not isinstance(value, bool)
+        )
+
+    def _json_safe(self, value: Any) -> Any:
+        if isinstance(value, dict):
+            return {str(key): self._json_safe(val) for key, val in value.items()}
+
+        if isinstance(value, (list, tuple, set)):
+            return [self._json_safe(item) for item in value]
+
+        if isinstance(value, np.ndarray):
+            return [self._json_safe(item) for item in value.tolist()]
+
+        if isinstance(value, (np.integer,)):
+            return int(value)
+
+        if isinstance(value, (np.floating,)):
+            return float(value)
+
+        if isinstance(value, (np.bool_,)):
+            return bool(value)
+
+        if isinstance(value, pd.Series):
+            return [self._json_safe(item) for item in value.tolist()]
+
+        if isinstance(value, pd.DataFrame):
+            return [self._json_safe(record) for record in value.to_dict(orient="records")]
+
+        if isinstance(value, (pd.Timestamp, datetime)):
+            return value.isoformat()
+
+        if isinstance(value, timedelta):
+            return value.total_seconds()
+
+        return value
+
+    def _prepare_json_results(self, results: Dict[str, Any]) -> Dict[str, Any]:
+        payload = self._json_safe(results)
+        if isinstance(payload, dict):
+            metadata = payload.get("metadata")
+            if not isinstance(metadata, dict):
+                metadata = {}
+            metadata.update(
+                {
+                    "generated_at": datetime.now(timezone.utc)
+                    .isoformat()
+                    .replace("+00:00", "Z"),
+                    "gpu": self._json_safe(self.gpu_info),
+                    "models": sorted(list(self.models.keys())),
+                }
+            )
+            payload["metadata"] = metadata
+        return payload
+
+    def _log_confusion_matrix(self, model_name: str, matrix: Any) -> None:
+        if mlflow is None:
+            return
+
+        try:
+            matrix_payload = self._json_safe({"confusion_matrix": matrix})
+            if isinstance(matrix_payload, dict):
+                mlflow.log_dict(
+                    matrix_payload,
+                    f"diagnostics/{model_name}_confusion_matrix.json",
+                )
+        except Exception as exc:  # pragma: no cover - auxiliary logging
+            self.logger.debug(
+                "Failed to log confusion matrix for %s: %s", model_name, exc
+            )
+
+    def _log_training_run(
+        self,
+    test_size: float,
+    random_state: Optional[int],
+        feature_names: List[str],
+        results: Dict[str, Any],
+        json_results: Dict[str, Any],
+        model_dir: str,
+    ) -> None:
+        if mlflow is None:
+            self.logger.debug("MLflow not available; skipping training run logging.")
+            return
+
+        def _log_into_active_run() -> None:
+            mlflow.set_tags(
+                {
+                    "component": "RiskPredictor",
+                    "run_type": "training",
+                    "models_trained": ",".join(sorted(self.models.keys())),
+                }
+            )
+
+            params = {
+                "test_size": test_size,
+                "random_state": random_state,
+                "num_features": len(feature_names),
+                "ensemble_threshold": self.ensemble_threshold,
+                "num_models": len(self.models),
+                "timestamp": datetime.now(timezone.utc)
+                .isoformat()
+                .replace("+00:00", "Z"),
+            }
+
+            try:
+                mlflow.log_params({k: v for k, v in params.items() if v is not None})
+            except Exception as exc:  # pragma: no cover - diagnostics
+                self.logger.debug("Failed to log parameters to MLflow: %s", exc)
+
+            if feature_names:
+                try:
+                    mlflow.log_dict(
+                        {"feature_names": feature_names},
+                        "artifacts/feature_names.json",
+                    )
+                except Exception as exc:
+                    self.logger.debug(
+                        "Failed to log feature names artifact: %s", exc
+                    )
+
+            try:
+                mlflow.log_dict(json_results, "artifacts/model_results.json")
+            except Exception as exc:
+                self.logger.debug("Failed to log model results artifact: %s", exc)
+
+            try:
+                mlflow.log_dict(
+                    self._json_safe(self.gpu_info), "artifacts/gpu_info.json"
+                )
+            except Exception as exc:
+                self.logger.debug("Failed to log GPU info artifact: %s", exc)
+
+            for model_name, metrics in results.items():
+                if not isinstance(metrics, dict):
+                    continue
+
+                for key, value in metrics.items():
+                    if not self._is_numeric(value):
+                        continue
+                    try:
+                        numeric_value = float(value)
+                        if not math.isfinite(numeric_value):
+                            continue
+                        mlflow.log_metric(f"{model_name}.{key}", numeric_value)
+                    except Exception as exc:
+                        self.logger.debug(
+                            "Failed to log metric %s.%s: %s", model_name, key, exc
+                        )
+
+                if "classification_report" in metrics and isinstance(
+                    metrics["classification_report"], dict
+                ):
+                    try:
+                        mlflow.log_dict(
+                            self._json_safe(metrics["classification_report"]),
+                            f"reports/{model_name}_classification_report.json",
+                        )
+                    except Exception as exc:
+                        self.logger.debug(
+                            "Failed to log classification report for %s: %s",
+                            model_name,
+                            exc,
+                        )
+
+                if "confusion_matrix" in metrics:
+                    self._log_confusion_matrix(
+                        model_name, metrics["confusion_matrix"]
+                    )
+
+                if "best_params" in metrics and isinstance(metrics["best_params"], dict):
+                    try:
+                        mlflow.log_dict(
+                            self._json_safe(metrics["best_params"]),
+                            f"params/{model_name}_best_params.json",
+                        )
+                    except Exception as exc:
+                        self.logger.debug(
+                            "Failed to log best params for %s: %s", model_name, exc
+                        )
+
+            if "test_data" in results and isinstance(results["test_data"], dict):
+                try:
+                    mlflow.log_dict(
+                        self._json_safe(results["test_data"]),
+                        "artifacts/test_data.json",
+                    )
+                except Exception as exc:
+                    self.logger.debug("Failed to log test data artifact: %s", exc)
+
+            if model_dir and os.path.isdir(model_dir):
+                try:
+                    mlflow.log_artifacts(model_dir, artifact_path="artifacts/models")
+                except Exception as exc:
+                    self.logger.debug(
+                        "Failed to log model directory artifacts: %s", exc
+                    )
+
+        try:
+            if mlflow.active_run() is None:
+                run_name = f"RiskPredictor_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+                with mlflow.start_run(run_name=run_name):
+                    _log_into_active_run()
+            else:
+                _log_into_active_run()
+        except Exception as exc:  # pragma: no cover - unexpected MLflow issues
+            self.logger.warning("Failed to log training run to MLflow: %s", exc)
 
     def get_feature_importance(
         self, model_type: str = "random_forest", top_n: int = 20

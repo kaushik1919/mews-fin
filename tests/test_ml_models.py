@@ -5,7 +5,8 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from src.ml_models import MLModelTrainer, ModelEnsemble
+from src.ml_models import MLModelTrainer, ModelEnsemble, RiskPredictor
+from src.ensemble.regime import RegimeAdaptiveEnsemble, VolatilityRegimeDetector
 
 
 class TestMLModelTrainer:
@@ -92,6 +93,113 @@ class TestModelEnsemble:
         predictions = ensemble.average_predictions(sample_predictions)
         
         assert all(0 <= pred <= 1 for pred in predictions)
+
+
+class TestRiskPredictorUtilities:
+    """Tests for RiskPredictor helper utilities."""
+
+    def test_prepare_json_results_serializes_numpy(self):
+        predictor = RiskPredictor()
+        predictor.models = {"random_forest": object()}
+        predictor.gpu_info = {"available": True, "device": "cpu", "name": "Test"}
+
+        results = {
+            "random_forest": {
+                "train_accuracy": np.float32(0.95),
+                "test_accuracy": np.float64(0.91),
+                "auc_score": np.float64(0.88),
+                "confusion_matrix": np.array([[12, 3], [4, 9]]),
+                "classification_report": {
+                    "0": {"precision": np.float32(0.7), "recall": np.float64(0.6)},
+                    "1": {"precision": np.float32(0.8), "recall": np.float64(0.75)},
+                },
+            },
+            "test_data": {
+                "y_test": np.array([0, 1, 0], dtype=np.int64),
+                "ensemble_threshold": np.float32(0.55),
+            },
+        }
+
+        json_results = predictor._prepare_json_results(results)
+
+        assert isinstance(json_results["random_forest"]["train_accuracy"], float)
+        assert json_results["random_forest"]["confusion_matrix"] == [[12, 3], [4, 9]]
+        assert "metadata" in json_results
+        assert json_results["metadata"]["models"] == ["random_forest"]
+        assert json_results["metadata"]["gpu"]["name"] == "Test"
+        assert json_results["test_data"]["y_test"] == [0, 1, 0]
+
+    def test_log_training_run_handles_missing_mlflow(self, tmp_path, monkeypatch):
+        predictor = RiskPredictor()
+        predictor.models = {"random_forest": object()}
+
+        results = {"random_forest": {"train_accuracy": 0.9}}
+        json_results = predictor._prepare_json_results(results)
+
+        model_dir = tmp_path / "model_dir"
+        model_dir.mkdir()
+
+        monkeypatch.setattr("src.ml_models.mlflow", None)
+
+        assert (
+            predictor._log_training_run(
+                test_size=0.2,
+                random_state=42,
+                feature_names=["feature_a", "feature_b"],
+                results=results,
+                json_results=json_results,
+                model_dir=str(model_dir),
+            )
+            is None
+        )
+
+    def test_regime_adaptive_ensemble_serialization(self):
+        rng = np.random.default_rng(0)
+        probabilities = {
+            "random_forest": rng.random(120),
+            "logistic_regression": rng.random(120),
+            "xgboost": rng.random(120),
+        }
+        targets = (rng.random(120) > 0.5).astype(int)
+        dates = pd.date_range("2024-01-01", periods=120, freq="D")
+        metadata = pd.DataFrame(
+            {
+                "Date": dates,
+                "Symbol": ["TEST"] * 120,
+                "Returns": rng.normal(0, 0.02, size=120),
+            }
+        )
+
+        ensemble = RegimeAdaptiveEnsemble()
+        ensemble.fit(probabilities, targets, metadata=metadata)
+        summary = ensemble.to_json()
+
+        assert "default" in summary
+        assert "regimes" in summary
+        assert summary["meta_model"]["enabled"] in {True, False}
+
+        preds = ensemble.predict(probabilities, metadata=metadata)
+        assert preds.shape == (120,)
+        assert np.all((preds >= 0) & (preds <= 1))
+
+
+class TestVolatilityRegimeDetector:
+    def test_detector_assigns_regimes(self):
+        rng = np.random.default_rng(1)
+        dates = pd.date_range("2024-01-01", periods=60, freq="D")
+        df = pd.DataFrame(
+            {
+                "Date": dates,
+                "Symbol": ["SYM"] * 60,
+                "Returns": rng.normal(0, 0.02, size=60),
+            }
+        )
+
+        detector = VolatilityRegimeDetector(lookback=10)
+        regimes = detector.fit_transform(df)
+
+        assert len(regimes) == len(df)
+        assert set(regimes.unique()) <= {"low_volatility", "moderate_volatility", "high_volatility"}
 
 
 @pytest.mark.integration

@@ -3,13 +3,14 @@ Enhanced Risk Analyzer
 Combines sentiment analysis with structured data for improved risk prediction
 """
 
-import logging
 import warnings
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+
+from src.utils.logging import get_logger
 
 warnings.filterwarnings("ignore")
 
@@ -18,7 +19,7 @@ class EnhancedRiskAnalyzer:
     """Advanced risk analysis combining multiple data sources with improved feature engineering"""
 
     def __init__(self):
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger(__name__)
 
     def create_enhanced_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """

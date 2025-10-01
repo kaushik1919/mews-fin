@@ -18,6 +18,7 @@ This guide summarizes the methodological additions introduced to position the Ma
 
 - **Sentiment Impact**: Hypothesis testing module compares fundamentals-only and sentiment-augmented models, reporting log-likelihood, LRT statistic, and $p$-values.
 - **Graph Features**: Automated ablation study isolates the value of correlation-driven graph metrics.
+- **Hypothesis Suite**: `src/hypothesis/` consolidates paired $t$-tests, permutation tests, Granger causality, and likelihood-ratio diagnostics, exporting Markdown/HTML tables under `outputs/hypothesis/`.
 
 ## Ethics & Robustness
 

@@ -4,7 +4,6 @@ Fetches news headlines from GNews API and other free sources
 """
 
 import json
-import logging
 import os
 import re
 import time
@@ -15,6 +14,8 @@ from urllib.parse import quote
 import numpy as np
 import pandas as pd
 import requests
+
+from src.utils.logging import get_logger
 
 try:
     from src.research.robustness import SentimentBiasDetector
@@ -30,7 +31,7 @@ class NewsDataCollector:
     ):
         self.gnews_api_key = gnews_api_key
         self.news_api_key = news_api_key
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger(__name__)
         self.rate_limit_delay = 6  # seconds between requests (10 per minute for GNews)
         self.bias_detector = (
             SentimentBiasDetector(sentiment_col="sentiment_score")
