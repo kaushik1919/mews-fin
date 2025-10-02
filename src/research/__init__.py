@@ -1,6 +1,5 @@
 """Research-focused extensions for the Market Risk Early Warning System."""
 
-from .regime_ensemble import RegimeAdaptiveEnsemble, VolatilityRegimeDetector
 from .cross_modal import CrossAttentionFusion
 from .evaluation import (
     BenchmarkSuite,
@@ -10,14 +9,15 @@ from .evaluation import (
     baseline_lstm,
 )
 from .hypothesis import (
-    SentimentImpactTester,
     GraphFeatureAblation,
+    SentimentImpactTester,
 )
-from .robustness import (
-    SentimentBiasReport,
-    RobustnessStressTester,
-)
+from .regime_ensemble import RegimeAdaptiveEnsemble, VolatilityRegimeDetector
 from .reporting import ResearchReportBuilder
+from .robustness import (
+    RobustnessStressTester,
+    SentimentBiasReport,
+)
 
 __all__ = [
     "RegimeAdaptiveEnsemble",

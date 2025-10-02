@@ -12,8 +12,8 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional
 import pandas as pd
 
 from src.baselines import (
-    BaselineResult,
     BaseBaseline,
+    BaselineResult,
     GARCHBaseline,
     LSTMBaseline,
     ValueAtRiskBaseline,

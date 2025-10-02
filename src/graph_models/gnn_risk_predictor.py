@@ -18,8 +18,8 @@ from src.utils.logging import get_logger
 
 try:  # pragma: no cover - optional dependency
     import torch
-    from torch import nn
     import torch.nn.functional as F
+    from torch import nn
 except ImportError:  # pragma: no cover - torch is optional at runtime
     torch = None  # type: ignore
     nn = object  # type: ignore

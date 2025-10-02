@@ -14,10 +14,13 @@ if __package__ in {None, ""}:
     if str(package_root) not in sys.path:
         sys.path.insert(0, str(package_root))
     from case_studies.runner import CaseStudyRunner  # type: ignore
-    from case_studies.scenarios import CaseStudyScenario, PREDEFINED_CASE_STUDIES  # type: ignore
+    from case_studies.scenarios import (  # type: ignore
+        PREDEFINED_CASE_STUDIES,
+        CaseStudyScenario,
+    )
 else:
     from .runner import CaseStudyRunner
-    from .scenarios import CaseStudyScenario, PREDEFINED_CASE_STUDIES
+    from .scenarios import PREDEFINED_CASE_STUDIES, CaseStudyScenario
 
 
 def _scenario_by_slug() -> dict[str, CaseStudyScenario]:

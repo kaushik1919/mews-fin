@@ -33,11 +33,12 @@ except ImportError:  # pragma: no cover - torch geometric optional
 
 from src.fusion import (
     BaseFusion,
-    CrossAttentionFusion as FusionCrossAttention,
+)
+from src.fusion import CrossAttentionFusion as FusionCrossAttention
+from src.fusion import (
     GatedFusion,
     SimpleConcatFusion,
 )
-
 from src.utils.logging import get_logger
 
 LOGGER = get_logger(__name__)

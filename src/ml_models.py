@@ -433,10 +433,10 @@ class RiskPredictor:
             from sklearn.ensemble import RandomForestClassifier
             from sklearn.linear_model import LogisticRegression
             from sklearn.metrics import (
-                classification_report,
-                confusion_matrix,
                 accuracy_score,
                 brier_score_loss,
+                classification_report,
+                confusion_matrix,
                 roc_auc_score,
             )
             from sklearn.model_selection import (
