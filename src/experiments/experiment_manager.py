@@ -7,13 +7,13 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, Optional
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Type
 
 import pandas as pd
 
 from src.baselines import (
-    BaseBaseline,
     BaselineResult,
+    BaseBaseline,
     GARCHBaseline,
     LSTMBaseline,
     ValueAtRiskBaseline,
@@ -84,7 +84,7 @@ def _slugify(value: str) -> str:
 class ExperimentManager:
     """Coordinate baseline runs, ablations, and MEWS model comparisons."""
 
-    BASELINE_REGISTRY: Dict[str, Any] = {
+    BASELINE_REGISTRY: Dict[str, Type[BaseBaseline]] = {
         "garch": GARCHBaseline,
         "garch_1_1": GARCHBaseline,
         "value_at_risk": ValueAtRiskBaseline,
@@ -248,7 +248,7 @@ class ExperimentManager:
         params.setdefault("returns_col", self.config.returns_col)
         if factory is LSTMBaseline:
             params.setdefault("target_col", self.config.target_col)
-        baseline = factory(**params)
+        baseline: BaseBaseline = factory(**params)
         return baseline
 
     def _default_baselines(self) -> List[Mapping[str, Any]]:
@@ -294,7 +294,7 @@ class ExperimentManager:
             mews_cfg.get("regime_adaptive") if isinstance(mews_cfg, Mapping) else None
         )
         if isinstance(regime_cfg, Mapping):
-            predictor.set_regime_adaptive_options(regime_cfg)
+            predictor.set_regime_adaptive_options(dict(regime_cfg))
         elif isinstance(regime_cfg, bool):
             predictor.set_regime_adaptive_options({"enabled": regime_cfg})
         else:

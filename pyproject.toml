@@ -39,6 +39,23 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
+exclude = '''
+(?x)(
+    ^src[\\/](?!experiments[\\/]).*
+)
+'''
+
+[[tool.mypy.overrides]]
+module = ["mlflow.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["src.experiments.*"]
+ignore_errors = false
+
+[[tool.mypy.overrides]]
+module = ["src.*"]
+ignore_errors = true
 
 [tool.pytest.ini_options]
 minversion = "7.0"
@@ -123,6 +140,7 @@ dev = [
     "pre-commit>=3.4.0",
     "bandit>=1.7.5",
     "safety>=2.3.5",
+    "types-PyYAML>=6.0.0",
 ]
 
 [project.urls]
