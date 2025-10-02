@@ -8,11 +8,7 @@ from typing import Iterable, List, Mapping, Optional
 
 import pandas as pd
 
-from .results import (
-    GrangerCausalityResult,
-    LikelihoodRatioResult,
-    PairedTestResult,
-)
+from .results import GrangerCausalityResult, LikelihoodRatioResult, PairedTestResult
 
 
 class HypothesisReportBuilder:

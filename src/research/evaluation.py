@@ -24,11 +24,7 @@ if TYPE_CHECKING:  # pragma: no cover - typing helpers
     import torch as _torch
 
 try:
-    from sklearn.metrics import (
-        brier_score_loss,
-        precision_score,
-        roc_auc_score,
-    )
+    from sklearn.metrics import brier_score_loss, precision_score, roc_auc_score
 except ImportError:  # pragma: no cover - dependency expected
     brier_score_loss = precision_score = roc_auc_score = None  # type: ignore
 

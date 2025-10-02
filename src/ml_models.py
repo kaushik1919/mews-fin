@@ -21,10 +21,7 @@ except ImportError:  # pragma: no cover
     mlflow = None  # type: ignore
 
 try:
-    from src.ensemble import (
-        RegimeAdaptiveEnsemble,
-        StaticWeightedEnsemble,
-    )
+    from src.ensemble import RegimeAdaptiveEnsemble, StaticWeightedEnsemble
 except ImportError:  # pragma: no cover - ensemble utilities should be available
     RegimeAdaptiveEnsemble = None  # type: ignore
     StaticWeightedEnsemble = None  # type: ignore

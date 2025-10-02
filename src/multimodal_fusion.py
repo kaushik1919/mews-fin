@@ -31,14 +31,9 @@ try:  # Optional dependency for GNN-based risk features
 except ImportError:  # pragma: no cover - torch geometric optional
     GNNRiskPredictor = None  # type: ignore
 
-from src.fusion import (
-    BaseFusion,
-)
+from src.fusion import BaseFusion
 from src.fusion import CrossAttentionFusion as FusionCrossAttention
-from src.fusion import (
-    GatedFusion,
-    SimpleConcatFusion,
-)
+from src.fusion import GatedFusion, SimpleConcatFusion
 from src.utils.logging import get_logger
 
 LOGGER = get_logger(__name__)
