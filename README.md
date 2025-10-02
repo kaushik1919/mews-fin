@@ -107,7 +107,7 @@ The template already carries a working demo `GNEWS_API_KEY` (from the `config/.e
 
 ```ini
 # .env
-GNEWS_API_KEY=0903e69179300b9e3117cdc721c14366
+GNEWS_API_KEY=your_gnews_key
 ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
 NEWS_API_KEY=optional_news_api_key
 ```
@@ -138,8 +138,6 @@ python build.py all
 ```
 
 ## 📊 System Architecture
-
-![MEWS end-to-end architecture](docs/figures/architecture.png)
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -269,7 +267,7 @@ The system generates:
 
 | Risk Timeline | Sentiment Risk Timeline |
 | --- | --- |
-| ![Annotated risk timeline](outputs/risk_timeline_static.png) | ![Market sentiment timeline](outputs/sentiment_analysis.png) |
+| ![Market sentiment timeline](outputs/sentiment_analysis.png) |
 
 ### Sample News Sentiment & Risk Snapshot
 
