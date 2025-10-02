@@ -43,11 +43,7 @@ class ValueAtRiskBaseline(BaseBaseline):
         metadata: Dict[str, Dict[str, Any]] = {}
 
         for symbol, group in working.groupby(symbol_col):
-            series = (
-                group.set_index(date_col)[self.returns_col]
-                .astype(float)
-                .dropna()
-            )
+            series = group.set_index(date_col)[self.returns_col].astype(float).dropna()
             if len(series) < self.window:
                 continue
 
@@ -88,9 +84,13 @@ class ValueAtRiskBaseline(BaseBaseline):
             }
 
         if not outputs:
-            raise ValueError("Value-at-Risk baseline requires sufficient historical data")
+            raise ValueError(
+                "Value-at-Risk baseline requires sufficient historical data"
+            )
 
         predictions = pd.concat(outputs, ignore_index=True)
         metadata["confidence_level"] = self.confidence
 
-        return BaselineResult(name=self.name, predictions=predictions, metadata=metadata)
+        return BaselineResult(
+            name=self.name, predictions=predictions, metadata=metadata
+        )

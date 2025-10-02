@@ -21,7 +21,9 @@ class BaseFusion(ABC):
                 f"DataFrame '{name}' is missing required key column(s): {missing}"
             )
 
-    def _numeric_columns(self, df: pd.DataFrame, exclude: Optional[Sequence[str]] = None) -> Sequence[str]:
+    def _numeric_columns(
+        self, df: pd.DataFrame, exclude: Optional[Sequence[str]] = None
+    ) -> Sequence[str]:
         exclude = exclude or ()
         return [
             col

@@ -104,7 +104,9 @@ class SentimentBiasAuditor:
                     self.logger.debug("Column %s not present in dataframe", column)
                     continue
 
-                series = df[column].astype(float).replace([np.inf, -np.inf], np.nan).dropna()
+                series = (
+                    df[column].astype(float).replace([np.inf, -np.inf], np.nan).dropna()
+                )
                 if series.empty:
                     continue
 
@@ -139,7 +141,9 @@ class SentimentBiasAuditor:
 
         comparisons: List[BiasComparison] = []
         finbert_array = (
-            np.concatenate(finbert_values) if finbert_values else np.array([], dtype=float)
+            np.concatenate(finbert_values)
+            if finbert_values
+            else np.array([], dtype=float)
         )
         vader_array = (
             np.concatenate(vader_values) if vader_values else np.array([], dtype=float)
@@ -166,7 +170,12 @@ class SentimentBiasAuditor:
             )
 
         group_summaries: List[Dict[str, Any]] = []
-        if group_col and group_col in df.columns and finbert_array.size and vader_array.size:
+        if (
+            group_col
+            and group_col in df.columns
+            and finbert_array.size
+            and vader_array.size
+        ):
             for group_value, group_df in df.groupby(group_col):
                 fin_values = self._collect_values(group_df, self.finbert_columns)
                 vad_values = self._collect_values(group_df, self.vader_columns)
@@ -195,7 +204,9 @@ class SentimentBiasAuditor:
         values: List[np.ndarray] = []
         for column in columns:
             if column in df.columns:
-                series = df[column].astype(float).replace([np.inf, -np.inf], np.nan).dropna()
+                series = (
+                    df[column].astype(float).replace([np.inf, -np.inf], np.nan).dropna()
+                )
                 if not series.empty:
                     values.append(series.to_numpy(dtype=float))
         if not values:

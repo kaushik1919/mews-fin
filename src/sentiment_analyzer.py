@@ -134,7 +134,12 @@ class SentimentAnalyzer:
         neg_score = max(-compound, 0.0)
         neu_score = max(0.0, 1.0 - (pos_score + neg_score))
 
-        return {"neg": neg_score, "neu": neu_score, "pos": pos_score, "compound": compound}
+        return {
+            "neg": neg_score,
+            "neu": neu_score,
+            "pos": pos_score,
+            "compound": compound,
+        }
 
     def analyze_news_sentiment(self, news_df: pd.DataFrame) -> pd.DataFrame:
         """

@@ -27,11 +27,15 @@ class GatedFusion(BaseFusion):
             return result
 
         tab_numeric_cols = self._numeric_columns(tabular_df, exclude=self.key_columns)
-        text_numeric_cols = self._numeric_columns(aligned_text, exclude=self.key_columns)
+        text_numeric_cols = self._numeric_columns(
+            aligned_text, exclude=self.key_columns
+        )
         if not tab_numeric_cols:
             return aligned_text
 
-        tab_numeric = tabular_df.loc[:, tab_numeric_cols].fillna(0.0).to_numpy(dtype=float)
+        tab_numeric = (
+            tabular_df.loc[:, tab_numeric_cols].fillna(0.0).to_numpy(dtype=float)
+        )
         text_numeric = (
             aligned_text.loc[:, text_numeric_cols].fillna(0.0).to_numpy(dtype=float)
             if text_numeric_cols
@@ -55,10 +59,14 @@ class GatedFusion(BaseFusion):
         )
         gated_text_df = pd.DataFrame(
             gated_text,
-            columns=[f"gated_text_{col}" for col in text_numeric_cols]
-            if text_numeric_cols
-            else ["gated_text_0"],
+            columns=(
+                [f"gated_text_{col}" for col in text_numeric_cols]
+                if text_numeric_cols
+                else ["gated_text_0"]
+            ),
         )
 
-        merged = pd.concat([result.reset_index(drop=True), gated_tab_df, gated_text_df], axis=1)
+        merged = pd.concat(
+            [result.reset_index(drop=True), gated_tab_df, gated_text_df], axis=1
+        )
         return merged

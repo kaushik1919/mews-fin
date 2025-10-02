@@ -126,7 +126,9 @@ class MultiModalFeatureFusion:
                     fusion_features = self._fusion_impl.fuse(base_df, news_features)
                 except Exception as exc:  # pragma: no cover - defensive guard
                     LOGGER.warning(
-                        "Fusion strategy '%s' failed with error: %s", self.fusion_strategy, exc
+                        "Fusion strategy '%s' failed with error: %s",
+                        self.fusion_strategy,
+                        exc,
                     )
                     if self.fusion_strategy != "concat":
                         self.fusion_strategy = "concat"
@@ -135,7 +137,9 @@ class MultiModalFeatureFusion:
 
             if fusion_features is not None:
                 feature_cols = [
-                    col for col in fusion_features.columns if col not in self._fusion_impl.key_columns
+                    col
+                    for col in fusion_features.columns
+                    if col not in self._fusion_impl.key_columns
                 ]
                 if feature_cols:
                     base_df = self._merge_features(base_df, fusion_features)
@@ -297,7 +301,9 @@ class MultiModalFeatureFusion:
                     corr_matrix = window_slice.corr().fillna(0)
                     graph = nx.from_pandas_adjacency(corr_matrix)
                     try:
-                        centrality = nx.eigenvector_centrality_numpy(graph, weight="weight")
+                        centrality = nx.eigenvector_centrality_numpy(
+                            graph, weight="weight"
+                        )
                     except Exception:  # pragma: no cover - numerical issues
                         centrality = nx.degree_centrality(graph)
                     clustering = nx.clustering(graph, weight="weight")
@@ -321,7 +327,9 @@ class MultiModalFeatureFusion:
         gnn_features: Optional[pd.DataFrame] = None
         if self.enable_gnn:
             if GNNRiskPredictor is None:
-                LOGGER.warning("torch-geometric not available, skipping GNN risk features")
+                LOGGER.warning(
+                    "torch-geometric not available, skipping GNN risk features"
+                )
             else:
                 try:
                     predictor = self._get_gnn_predictor()
@@ -331,7 +339,11 @@ class MultiModalFeatureFusion:
                 except Exception as exc:  # pragma: no cover - defensive guard
                     LOGGER.warning("GNN risk predictor failed with error: %s", exc)
 
-        frames = [frame for frame in (centrality_df, gnn_features) if frame is not None and not frame.empty]
+        frames = [
+            frame
+            for frame in (centrality_df, gnn_features)
+            if frame is not None and not frame.empty
+        ]
         if not frames:
             return None
 

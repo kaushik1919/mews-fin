@@ -71,7 +71,9 @@ class VolatilityRegimeDetector:
 
         regimes = pd.Series(index=df.index, dtype="object")
         regimes.loc[vol <= low_threshold] = "low_volatility"
-        regimes.loc[(vol > low_threshold) & (vol < high_threshold)] = "moderate_volatility"
+        regimes.loc[(vol > low_threshold) & (vol < high_threshold)] = (
+            "moderate_volatility"
+        )
         regimes.loc[vol >= high_threshold] = "high_volatility"
         regimes.fillna("moderate_volatility", inplace=True)
         return regimes
@@ -119,7 +121,9 @@ class RegimeAdaptiveEnsemble(BaseEnsemble):
         self.meta_model_solver = meta_model_solver
         self.meta_model_max_iter = meta_model_max_iter
         self.use_meta_model = bool(use_meta_model and LogisticRegression is not None)
-        if use_meta_model and LogisticRegression is None:  # pragma: no cover - diagnostics only
+        if (
+            use_meta_model and LogisticRegression is None
+        ):  # pragma: no cover - diagnostics only
             warnings.warn(
                 "Meta-model requested for RegimeAdaptiveEnsemble but scikit-learn is not available."
                 " Falling back to score-based weighting.",
@@ -168,7 +172,9 @@ class RegimeAdaptiveEnsemble(BaseEnsemble):
             weights = self._compute_regime_weights(names, regime_probs, regime_targets)
 
             if self.use_meta_model and len(np.unique(regime_targets)) > 1:
-                meta_weights = self._train_meta_model(regime_value, names, regime_probs, regime_targets)
+                meta_weights = self._train_meta_model(
+                    regime_value, names, regime_probs, regime_targets
+                )
                 if meta_weights is not None:
                     weights = meta_weights
 
@@ -217,7 +223,9 @@ class RegimeAdaptiveEnsemble(BaseEnsemble):
     def to_json(self) -> Mapping[str, Any]:
         payload: MutableMapping[str, Any] = {
             "default": dict(self.default_weights),
-            "regimes": {regime: dict(weights) for regime, weights in self.regime_weights.items()},
+            "regimes": {
+                regime: dict(weights) for regime, weights in self.regime_weights.items()
+            },
         }
         payload["meta_model"] = {
             "enabled": bool(self.meta_models),
@@ -243,7 +251,9 @@ class RegimeAdaptiveEnsemble(BaseEnsemble):
     ) -> pd.Series:
         if metadata is not None:
             if len(metadata) != len(index):
-                raise ValueError("Metadata length must match model probabilities when detecting regimes")
+                raise ValueError(
+                    "Metadata length must match model probabilities when detecting regimes"
+                )
             meta = metadata.reset_index(drop=True).copy()
             meta.index = index
             meta = self._ensure_returns_column(meta)
@@ -257,11 +267,15 @@ class RegimeAdaptiveEnsemble(BaseEnsemble):
         if self._last_regimes is not None:
             return self._last_regimes.reindex(index, fill_value="moderate_volatility")
 
-        raise ValueError("metadata or regimes must be provided to determine volatility regimes")
+        raise ValueError(
+            "metadata or regimes must be provided to determine volatility regimes"
+        )
 
     def _iter_regime_masks(self, regime_series: pd.Series):
         total = len(regime_series)
-        min_samples = max(self.min_regime_samples, int(self.min_regime_fraction * total))
+        min_samples = max(
+            self.min_regime_samples, int(self.min_regime_fraction * total)
+        )
         for regime_value in regime_series.unique():
             mask = regime_series == regime_value
             yield regime_value, mask, mask.sum() >= min_samples
@@ -349,7 +363,9 @@ class RegimeAdaptiveEnsemble(BaseEnsemble):
             return metadata
 
         price_candidates = [
-            col for col in ["Close", "Adj Close", "close", "adj_close", "price"] if col in metadata.columns
+            col
+            for col in ["Close", "Adj Close", "close", "adj_close", "price"]
+            if col in metadata.columns
         ]
         if not price_candidates:
             raise ValueError(
@@ -358,9 +374,13 @@ class RegimeAdaptiveEnsemble(BaseEnsemble):
 
         price_col = price_candidates[0]
         working = metadata.copy()
-        working = working.sort_values([self.detector.symbol_col, self.detector.date_col])
+        working = working.sort_values(
+            [self.detector.symbol_col, self.detector.date_col]
+        )
         working[returns_col] = (
-            working.groupby(self.detector.symbol_col)[price_col].pct_change().fillna(0.0)
+            working.groupby(self.detector.symbol_col)[price_col]
+            .pct_change()
+            .fillna(0.0)
         )
         working = working.sort_index()
         metadata[returns_col] = working.loc[metadata.index, returns_col]

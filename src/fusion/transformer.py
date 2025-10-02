@@ -66,24 +66,29 @@ if torch is not None:
                 nn.Linear(ff_hidden_dim, embed_dim),
             )
 
-        def forward(self, tab: torch.Tensor, text: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        def forward(
+            self, tab: torch.Tensor, text: torch.Tensor
+        ) -> Tuple[torch.Tensor, torch.Tensor]:
             tab_norm = self.tab_norm(tab)
             text_norm = self.text_norm(text)
 
             tab_query = tab_norm.unsqueeze(0)
             text_context = text_norm.unsqueeze(0)
-            attn_tab, _ = self.tab_to_text_attn(tab_query, text_context, text_context, need_weights=False)
+            attn_tab, _ = self.tab_to_text_attn(
+                tab_query, text_context, text_context, need_weights=False
+            )
             tab = tab + self.dropout(attn_tab.squeeze(0))
 
             text_query = text_norm.unsqueeze(0)
             tab_context = tab_norm.unsqueeze(0)
-            attn_text, _ = self.text_to_tab_attn(text_query, tab_context, tab_context, need_weights=False)
+            attn_text, _ = self.text_to_tab_attn(
+                text_query, tab_context, tab_context, need_weights=False
+            )
             text = text + self.dropout(attn_text.squeeze(0))
 
             tab = tab + self.tab_ffn(tab)
             text = text + self.text_ffn(text)
             return tab, text
-
 
     class _TransformerFusionEncoder(nn.Module):
         def __init__(
@@ -126,7 +131,6 @@ if torch is not None:
             text_embed = self.final_text_norm(text_embed)
             fused = torch.cat([tab_embed, text_embed], dim=-1)
             return self.out_proj(fused)
-
 
 else:  # pragma: no cover - torch unavailable fallback
     _TransformerFusionEncoder = None  # type: ignore
@@ -195,8 +199,12 @@ class TransformerFusion(BaseFusion):
         if aligned_text is None or aligned_text.empty:
             return tabular_df.loc[:, self.key_columns].copy()
 
-        tab_numeric_cols = list(self._numeric_columns(tabular_df, exclude=self.key_columns))
-        text_numeric_cols = list(self._numeric_columns(aligned_text, exclude=self.key_columns))
+        tab_numeric_cols = list(
+            self._numeric_columns(tabular_df, exclude=self.key_columns)
+        )
+        text_numeric_cols = list(
+            self._numeric_columns(aligned_text, exclude=self.key_columns)
+        )
 
         if not tab_numeric_cols or not text_numeric_cols:
             return tabular_df.loc[:, self.key_columns].copy()
@@ -209,13 +217,19 @@ class TransformerFusion(BaseFusion):
         tab_features = tab_sorted.loc[:, tab_numeric_cols].fillna(0.0)
         text_features = aligned_text.loc[:, text_numeric_cols].fillna(0.0)
 
-        self._initialise_model(tab_dim=len(tab_numeric_cols), text_dim=len(text_numeric_cols))
+        self._initialise_model(
+            tab_dim=len(tab_numeric_cols), text_dim=len(text_numeric_cols)
+        )
         assert self._model is not None  # for type checkers
         assert torch is not None
 
         device = next(self._model.parameters()).device
-        tab_tensor = torch.as_tensor(tab_features.to_numpy(dtype="float32"), device=device)
-        text_tensor = torch.as_tensor(text_features.to_numpy(dtype="float32"), device=device)
+        tab_tensor = torch.as_tensor(
+            tab_features.to_numpy(dtype="float32"), device=device
+        )
+        text_tensor = torch.as_tensor(
+            text_features.to_numpy(dtype="float32"), device=device
+        )
 
         with torch.no_grad():
             fused_tensor = self._model(tab_tensor, text_tensor)

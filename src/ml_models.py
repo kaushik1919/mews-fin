@@ -644,7 +644,9 @@ class RiskPredictor:
                         self.logger.info("XGBoost configured for GPU acceleration")
                 except TypeError:
                     xgb_base = None
-                    self.logger.info("GPU parameters unsupported; falling back to CPU for XGBoost")
+                    self.logger.info(
+                        "GPU parameters unsupported; falling back to CPU for XGBoost"
+                    )
                 except Exception:
                     xgb_base = None
                     self.logger.info("GPU acceleration failed, using CPU for XGBoost")
@@ -673,7 +675,12 @@ class RiskPredictor:
                         predictor="cpu_predictor",
                     )
                     xgb_grid = GridSearchCV(
-                        xgb_base, xgb_param_grid, cv=3, scoring="roc_auc", n_jobs=-1, verbose=1
+                        xgb_base,
+                        xgb_param_grid,
+                        cv=3,
+                        scoring="roc_auc",
+                        n_jobs=-1,
+                        verbose=1,
                     )
                     xgb_grid.fit(X_train, y_train)
                 else:
@@ -836,9 +843,7 @@ class RiskPredictor:
         probability_map = {
             component[0]: component[2] for component in ensemble_components
         }
-        score_map = {
-            component[0]: component[3] for component in ensemble_components
-        }
+        score_map = {component[0]: component[3] for component in ensemble_components}
 
         if StaticWeightedEnsemble is not None:
             static_ensemble = StaticWeightedEnsemble()
@@ -931,7 +936,9 @@ class RiskPredictor:
                 regime_enabled = ensemble_options.pop("enabled", True)
                 if regime_enabled:
                     use_meta_flag = bool(
-                        ensemble_options.pop("use_meta_model", self.use_regime_meta_model)
+                        ensemble_options.pop(
+                            "use_meta_model", self.use_regime_meta_model
+                        )
                     )
                     adaptive = RegimeAdaptiveEnsemble(
                         use_meta_model=use_meta_flag,
@@ -942,13 +949,13 @@ class RiskPredictor:
                     self.use_regime_meta_model = use_meta_flag
                     results["ensemble"]["regime_weights"] = adaptive.to_json()
                 else:
-                    self.logger.info("Regime-adaptive ensemble disabled via configuration")
+                    self.logger.info(
+                        "Regime-adaptive ensemble disabled via configuration"
+                    )
                     self.dynamic_ensemble = None
                     results["ensemble"].pop("regime_weights", None)
             except Exception as exc:  # pragma: no cover - defensive
-                self.logger.warning(
-                    "Failed to build regime-adaptive ensemble: %s", exc
-                )
+                self.logger.warning("Failed to build regime-adaptive ensemble: %s", exc)
 
         # Store test data for further analysis
         test_data = {
@@ -1082,8 +1089,7 @@ class RiskPredictor:
                 raise ValueError("No ensemble components available for prediction")
 
             dynamic_available = (
-                self.dynamic_ensemble is not None
-                and metadata is not None
+                self.dynamic_ensemble is not None and metadata is not None
             )
 
             if dynamic_available:
@@ -1289,10 +1295,9 @@ class RiskPredictor:
 
     @staticmethod
     def _is_numeric(value: Any) -> bool:
-        return (
-            isinstance(value, (int, float, np.integer, np.floating))
-            and not isinstance(value, bool)
-        )
+        return isinstance(
+            value, (int, float, np.integer, np.floating)
+        ) and not isinstance(value, bool)
 
     def _json_safe(self, value: Any) -> Any:
         if isinstance(value, dict):
@@ -1317,7 +1322,9 @@ class RiskPredictor:
             return [self._json_safe(item) for item in value.tolist()]
 
         if isinstance(value, pd.DataFrame):
-            return [self._json_safe(record) for record in value.to_dict(orient="records")]
+            return [
+                self._json_safe(record) for record in value.to_dict(orient="records")
+            ]
 
         if isinstance(value, (pd.Timestamp, datetime)):
             return value.isoformat()
@@ -1363,8 +1370,8 @@ class RiskPredictor:
 
     def _log_training_run(
         self,
-    test_size: float,
-    random_state: Optional[int],
+        test_size: float,
+        random_state: Optional[int],
         feature_names: List[str],
         results: Dict[str, Any],
         json_results: Dict[str, Any],
@@ -1406,9 +1413,7 @@ class RiskPredictor:
                         "artifacts/feature_names.json",
                     )
                 except Exception as exc:
-                    self.logger.debug(
-                        "Failed to log feature names artifact: %s", exc
-                    )
+                    self.logger.debug("Failed to log feature names artifact: %s", exc)
 
             try:
                 mlflow.log_dict(json_results, "artifacts/model_results.json")
@@ -1455,11 +1460,11 @@ class RiskPredictor:
                         )
 
                 if "confusion_matrix" in metrics:
-                    self._log_confusion_matrix(
-                        model_name, metrics["confusion_matrix"]
-                    )
+                    self._log_confusion_matrix(model_name, metrics["confusion_matrix"])
 
-                if "best_params" in metrics and isinstance(metrics["best_params"], dict):
+                if "best_params" in metrics and isinstance(
+                    metrics["best_params"], dict
+                ):
                     try:
                         mlflow.log_dict(
                             self._json_safe(metrics["best_params"]),

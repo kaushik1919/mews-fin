@@ -58,19 +58,18 @@ class GARCHBaseline(BaseBaseline):
         epsilon = 1e-8
 
         for symbol, group in working.groupby(symbol_col):
-            series = (
-                group.set_index(date_col)[self.returns_col]
-                .dropna()
-                .astype(float)
-            )
+            series = group.set_index(date_col)[self.returns_col].dropna().astype(float)
             if len(series) < self.min_observations or series.var() <= 0:
                 self.logger.debug(
-                    "Skipping symbol %s due to insufficient data for GARCH baseline", symbol
+                    "Skipping symbol %s due to insufficient data for GARCH baseline",
+                    symbol,
                 )
                 continue
 
             try:
-                scaled = series * 100.0  # GARCH expects percentage returns for stability
+                scaled = (
+                    series * 100.0
+                )  # GARCH expects percentage returns for stability
                 model = arch_model(
                     scaled,
                     vol="Garch",
@@ -116,4 +115,6 @@ class GARCHBaseline(BaseBaseline):
         metadata["confidence_level"] = self.confidence
         metadata["min_observations"] = self.min_observations
 
-        return BaselineResult(name=self.name, predictions=predictions, metadata=metadata)
+        return BaselineResult(
+            name=self.name, predictions=predictions, metadata=metadata
+        )

@@ -435,9 +435,7 @@ class MarketRiskSystem:
             for col in ["Date", "Symbol", "Returns", "Close", "Adj Close"]
             if col in self.integrated_data.columns
         ]
-        metadata = (
-            self.integrated_data[metadata_cols].copy() if metadata_cols else None
-        )
+        metadata = self.integrated_data[metadata_cols].copy() if metadata_cols else None
 
         # Generate predictions
         predictions, probabilities = self.ml_models.predict_risk(
@@ -691,12 +689,12 @@ class MarketRiskSystem:
                         if feat in merged_df.columns
                     ],
                     sentiment_features=[
-                        feat
-                        for feat in sentiment_features
-                        if feat in merged_df.columns
+                        feat for feat in sentiment_features if feat in merged_df.columns
                     ],
                 )
-                hypothesis_results["sentiment_vs_fundamentals"] = sentiment_result.__dict__
+                hypothesis_results["sentiment_vs_fundamentals"] = (
+                    sentiment_result.__dict__
+                )
             except Exception as exc:  # pragma: no cover - defensive
                 self.logger.warning("Hypothesis test failed: %s", exc)
 
@@ -719,11 +717,7 @@ class MarketRiskSystem:
                 if group_col not in self.news_data.columns:
                     group_col = "Symbol"
                 if group_col in self.news_data.columns:
-                    top_groups = (
-                        self.news_data[group_col]
-                        .value_counts()
-                        .index.tolist()
-                    )
+                    top_groups = self.news_data[group_col].value_counts().index.tolist()
                     if len(top_groups) >= 2:
                         detector = SentimentBiasDetector(sentiment_col=sentiment_col)
                         try:
@@ -740,7 +734,9 @@ class MarketRiskSystem:
         if self.ml_models.feature_names:
             stress_tester = RobustnessStressTester()
             feature_cols = [
-                col for col in self.ml_models.feature_names if col in self.integrated_data.columns
+                col
+                for col in self.ml_models.feature_names
+                if col in self.integrated_data.columns
             ]
             if feature_cols:
                 base_features = self.integrated_data[feature_cols].fillna(0)
@@ -750,7 +746,9 @@ class MarketRiskSystem:
                     if col in self.integrated_data.columns
                 ]
                 metadata = (
-                    self.integrated_data[metadata_cols].copy() if metadata_cols else None
+                    self.integrated_data[metadata_cols].copy()
+                    if metadata_cols
+                    else None
                 )
                 _, base_probs = self.ml_models.predict_risk(
                     base_features, metadata=metadata
@@ -768,9 +766,7 @@ class MarketRiskSystem:
                     "baseline": evaluator.benchmarks.evaluate_metrics(
                         labels, base_probs
                     ),
-                    "noisy": evaluator.benchmarks.evaluate_metrics(
-                        labels, noisy_probs
-                    ),
+                    "noisy": evaluator.benchmarks.evaluate_metrics(labels, noisy_probs),
                 }
 
         report_builder = ResearchReportBuilder()

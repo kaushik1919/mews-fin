@@ -44,17 +44,23 @@ class AdversarialNoiseTester:
 
         if columns is None:
             if self.numeric_only:
-                candidate_columns = working.select_dtypes(include=[np.number]).columns.tolist()
+                candidate_columns = working.select_dtypes(
+                    include=[np.number]
+                ).columns.tolist()
             else:
                 candidate_columns = [
-                    col for col in working.columns if pd.api.types.is_numeric_dtype(working[col])
+                    col
+                    for col in working.columns
+                    if pd.api.types.is_numeric_dtype(working[col])
                 ]
         else:
             candidate_columns = [col for col in columns if col in working.columns]
 
         if not candidate_columns:
             self.logger.warning("No columns available for adversarial noise injection")
-            return working, NoiseReport(noise_level=noise_level, affected_columns=(), random_state=random_state)
+            return working, NoiseReport(
+                noise_level=noise_level, affected_columns=(), random_state=random_state
+            )
 
         for column in candidate_columns:
             series = working[column].astype(float)
@@ -65,7 +71,9 @@ class AdversarialNoiseTester:
             if strategy == "gaussian":
                 noise = rng.normal(loc=0.0, scale=std * noise_level, size=len(series))
             elif strategy == "uniform":
-                noise = rng.uniform(low=-std * noise_level, high=std * noise_level, size=len(series))
+                noise = rng.uniform(
+                    low=-std * noise_level, high=std * noise_level, size=len(series)
+                )
             else:
                 raise ValueError(f"Unknown noise strategy: {strategy}")
 

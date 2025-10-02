@@ -45,7 +45,9 @@ class CaseStudyRunner:
     ) -> None:
         self.data_path = Path(data_path or "data/integrated_dataset.csv")
         self.predictions_path = Path(predictions_path or "outputs/risk_predictions.csv")
-        self.feature_groups_path = Path(feature_groups_path or "data/feature_groups.json")
+        self.feature_groups_path = Path(
+            feature_groups_path or "data/feature_groups.json"
+        )
         self.output_dir = Path(output_dir or "outputs/case_studies")
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -183,7 +185,9 @@ class CaseStudyRunner:
         if not predictions_df.empty:
             pred_df = predictions_df.copy()
             pred_df = pred_df.rename(columns={"Risk_Label": "Risk_Label_Pred"})
-            merge_cols = [col for col in pred_df.columns if col not in {"Date", "Symbol"}]
+            merge_cols = [
+                col for col in pred_df.columns if col not in {"Date", "Symbol"}
+            ]
             merged = pd.merge(
                 df,
                 pred_df,
@@ -266,7 +270,9 @@ class CaseStudyRunner:
         subset = df[(df["Date"] >= start) & (df["Date"] <= end)].copy()
 
         if scenario.symbols:
-            symbols = [sym for sym in scenario.symbols if sym in subset["Symbol"].unique()]
+            symbols = [
+                sym for sym in scenario.symbols if sym in subset["Symbol"].unique()
+            ]
             if not symbols:
                 symbols = list(subset["Symbol"].unique())
             subset = subset[subset["Symbol"].isin(symbols)]
@@ -299,7 +305,9 @@ class CaseStudyRunner:
         if pred_col is not None:
             warning_mask = warning_mask | (events[pred_col] == 1)
 
-        risk_label_series = events["Risk_Label"] if "Risk_Label" in events.columns else None
+        risk_label_series = (
+            events["Risk_Label"] if "Risk_Label" in events.columns else None
+        )
         downturn_mask = (
             (events["Drawdown"] <= -0.05)
             | (events["Actual_Return"] <= -0.02)
@@ -323,12 +331,19 @@ class CaseStudyRunner:
         candidate_cols = [
             col
             for col in self.numeric_feature_columns
-            if col in scenario_df.columns and pd.api.types.is_numeric_dtype(scenario_df[col])
+            if col in scenario_df.columns
+            and pd.api.types.is_numeric_dtype(scenario_df[col])
         ]
 
         if not candidate_cols:
-            numeric_cols = scenario_df.select_dtypes(include=[np.number]).columns.tolist()
-            candidate_cols = [col for col in numeric_cols if col not in {"Risk_Probability", "Risk_Prediction"}]
+            numeric_cols = scenario_df.select_dtypes(
+                include=[np.number]
+            ).columns.tolist()
+            candidate_cols = [
+                col
+                for col in numeric_cols
+                if col not in {"Risk_Probability", "Risk_Prediction"}
+            ]
 
         stats_mean = scenario_df[candidate_cols].mean()
         stats_std = scenario_df[candidate_cols].std().replace(0, np.nan)
@@ -387,7 +402,9 @@ class CaseStudyRunner:
         sns.set_style("whitegrid")
 
         fig, axes = plt.subplots(2, 1, figsize=(14, 10), sharex=True)
-        palette = sns.color_palette("Set2", n_colors=len(scenario_df["Symbol"].unique()))
+        palette = sns.color_palette(
+            "Set2", n_colors=len(scenario_df["Symbol"].unique())
+        )
         symbol_colors = {
             symbol: palette[idx % len(palette)]
             for idx, symbol in enumerate(sorted(scenario_df["Symbol"].unique()))
@@ -445,7 +462,9 @@ class CaseStudyRunner:
         for marker_date, label in scenario.marker_dates():
             marker_ts = pd.Timestamp(marker_date)
             for ax in axes:
-                ax.axvline(marker_ts, color="gray", linestyle=":", linewidth=1.0, alpha=0.8)
+                ax.axvline(
+                    marker_ts, color="gray", linestyle=":", linewidth=1.0, alpha=0.8
+                )
                 ax.text(
                     marker_ts,
                     ax.get_ylim()[1],
@@ -484,7 +503,9 @@ class CaseStudyRunner:
                 )
 
         axes[1].xaxis.set_major_locator(mdates.AutoDateLocator(minticks=6, maxticks=12))
-        axes[1].xaxis.set_major_formatter(mdates.ConciseDateFormatter(axes[1].xaxis.get_major_locator()))
+        axes[1].xaxis.set_major_formatter(
+            mdates.ConciseDateFormatter(axes[1].xaxis.get_major_locator())
+        )
         fig.tight_layout()
 
         output_path = self.output_dir / f"{scenario.slug}_risk_vs_downturn.png"
@@ -511,28 +532,42 @@ class CaseStudyRunner:
         downturn_events = int(events_df["downturn_flag"].sum())
         combined_events = int(events_df["combined_flag"].sum())
 
-        top_features_md = "\n".join(
-            f"- **{feature}**: {count} warnings"
-            for feature, count in feature_counts.most_common(10)
-        ) or "- _No feature triggers recorded._"
+        top_features_md = (
+            "\n".join(
+                f"- **{feature}**: {count} warnings"
+                for feature, count in feature_counts.most_common(10)
+            )
+            or "- _No feature triggers recorded._"
+        )
 
         trigger_rows = []
         for entry in triggers[:10]:
             date = pd.Timestamp(entry["Date"]).strftime("%Y-%m-%d")
             symbol = entry["Symbol"]
-            features = ", ".join(entry["features"][: scenario.top_feature_count]) or "N/A"
+            features = (
+                ", ".join(entry["features"][: scenario.top_feature_count]) or "N/A"
+            )
             trigger_rows.append(f"| {date} | {symbol} | {features} |")
 
         trigger_table = (
-            "| Date | Symbol | Top Features |\n| --- | --- | --- |\n" + "\n".join(trigger_rows)
-        ) if trigger_rows else "_No high-risk warnings detected within the scenario window._"
+            (
+                "| Date | Symbol | Top Features |\n| --- | --- | --- |\n"
+                + "\n".join(trigger_rows)
+            )
+            if trigger_rows
+            else "_No high-risk warnings detected within the scenario window._"
+        )
 
         plot_section = (
-            f"![Risk vs Downturn Plot]({plot_path.as_posix()})" if plot_path else "_Plot unavailable._"
+            f"![Risk vs Downturn Plot]({plot_path.as_posix()})"
+            if plot_path
+            else "_Plot unavailable._"
         )
 
         milestone_lines = (
-            "\n".join(f"- {marker} — {label}" for marker, label in scenario.marker_dates())
+            "\n".join(
+                f"- {marker} — {label}" for marker, label in scenario.marker_dates()
+            )
             if scenario.crisis_markers
             else "- _(No milestone annotations provided.)_"
         )

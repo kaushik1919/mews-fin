@@ -93,7 +93,11 @@ def baseline_garch_var(
             {
                 "Symbol": symbol,
                 "VaR": var_threshold,
-                "Date": symbol_returns.index[-1][1] if isinstance(symbol_returns.index, pd.MultiIndex) else symbol_returns.index[-1],
+                "Date": (
+                    symbol_returns.index[-1][1]
+                    if isinstance(symbol_returns.index, pd.MultiIndex)
+                    else symbol_returns.index[-1]
+                ),
             }
         )
 
@@ -115,7 +119,9 @@ def baseline_lstm(
     class LSTMRisk(nn.Module):
         def __init__(self, input_dim: int, hidden_dim: int, layers: int) -> None:
             super().__init__()
-            self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers=layers, batch_first=True)
+            self.lstm = nn.LSTM(
+                input_dim, hidden_dim, num_layers=layers, batch_first=True
+            )
             self.head = nn.Sequential(
                 nn.Linear(hidden_dim, hidden_dim // 2),
                 nn.ReLU(),
@@ -124,11 +130,13 @@ def baseline_lstm(
             )
 
     def forward(self, x: "_torch.Tensor") -> "_torch.Tensor":
-            _, (hn, _) = self.lstm(x)
-            return self.head(hn[-1])
+        _, (hn, _) = self.lstm(x)
+        return self.head(hn[-1])
 
     used_device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-    model = LSTMRisk(input_dim=sequences.shape[-1], hidden_dim=hidden_dim, layers=num_layers).to(used_device)
+    model = LSTMRisk(
+        input_dim=sequences.shape[-1], hidden_dim=hidden_dim, layers=num_layers
+    ).to(used_device)
 
     criterion = nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -231,9 +239,9 @@ class BenchmarkSuite:
             auc_diff = metrics["auc"] - ref_metrics["auc"]
             comparisons[model_name] = {
                 "auc_difference": auc_diff,
-                "significance_pvalue": float(stats.ttest_rel(
-                    [metrics["auc"]], [ref_metrics["auc"]]
-                ).pvalue),
+                "significance_pvalue": float(
+                    stats.ttest_rel([metrics["auc"]], [ref_metrics["auc"]]).pvalue
+                ),
             }
         return comparisons
 
@@ -256,7 +264,9 @@ class ResearchEvaluator:
         y_true = df[label_col].to_numpy()
         probabilities = df[probability_col].to_numpy()
         preds = (probabilities >= 0.5).astype(int)
-        metrics = self.benchmarks.evaluate_metrics(y_true, probabilities, preds, k=self.k_precision)
+        metrics = self.benchmarks.evaluate_metrics(
+            y_true, probabilities, preds, k=self.k_precision
+        )
         calibration = self.benchmarks.evaluate_calibration(y_true, probabilities)
         crises = self.benchmarks.evaluate_crisis_windows(df)
         return {

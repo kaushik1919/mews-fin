@@ -46,12 +46,15 @@ class SentimentImpactTester:
         sentiment_features: Iterable[str],
     ) -> HypothesisResult:
         if sm is None or stats is None:
-            raise ImportError("statsmodels and scipy are required for hypothesis testing")
+            raise ImportError(
+                "statsmodels and scipy are required for hypothesis testing"
+            )
 
         y = df[self.target_col].astype(int)
         X_base = sm.add_constant(df[list(fundamental_features)], has_constant="add")
         X_full = sm.add_constant(
-            df[list(fundamental_features) + list(sentiment_features)], has_constant="add"
+            df[list(fundamental_features) + list(sentiment_features)],
+            has_constant="add",
         )
 
         null_model = sm.Logit(y, X_base).fit(disp=False)
@@ -85,8 +88,12 @@ class GraphFeatureAblation:
         if roc_auc_score is None or train_test_split is None:
             raise ImportError("scikit-learn is required for ablation study")
 
-        feature_cols = [col for col in df.columns if col not in {self.target_col, "Date", "Symbol"}]
-        graph_features = [col for col in feature_cols if col.startswith(graph_feature_prefix)]
+        feature_cols = [
+            col for col in df.columns if col not in {self.target_col, "Date", "Symbol"}
+        ]
+        graph_features = [
+            col for col in feature_cols if col.startswith(graph_feature_prefix)
+        ]
         non_graph_features = [col for col in feature_cols if col not in graph_features]
 
         X_graph = df[non_graph_features + graph_features].fillna(0)
@@ -107,7 +114,9 @@ class GraphFeatureAblation:
         model_no_graph = LogisticRegression(max_iter=300, class_weight="balanced")
         model_no_graph.fit(Xng_train, yng_train)
 
-        auc_with_graph = roc_auc_score(yg_test, model_graph.predict_proba(Xg_test)[:, 1])
+        auc_with_graph = roc_auc_score(
+            yg_test, model_graph.predict_proba(Xg_test)[:, 1]
+        )
         auc_without_graph = roc_auc_score(
             yng_test, model_no_graph.predict_proba(Xng_test)[:, 1]
         )

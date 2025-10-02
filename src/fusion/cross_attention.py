@@ -36,19 +36,27 @@ class CrossAttentionFusion(BaseFusion):
         text_df: Optional[pd.DataFrame] = None,
     ) -> pd.DataFrame:
         if _CrossAttentionModule is None:
-            raise ImportError("PyTorch and the research cross-modal module are required for cross-attention fusion")
+            raise ImportError(
+                "PyTorch and the research cross-modal module are required for cross-attention fusion"
+            )
 
         aligned_text = self._align_text_frame(tabular_df, text_df)
         if aligned_text is None:
             return tabular_df.loc[:, self.key_columns].copy()
 
         tab_numeric_cols = self._numeric_columns(tabular_df, exclude=self.key_columns)
-        text_numeric_cols = self._numeric_columns(aligned_text, exclude=self.key_columns)
+        text_numeric_cols = self._numeric_columns(
+            aligned_text, exclude=self.key_columns
+        )
         if not tab_numeric_cols or not text_numeric_cols:
             return tabular_df.loc[:, self.key_columns].copy()
 
-        tab_subset = tabular_df.loc[:, list(self.key_columns) + list(tab_numeric_cols)].copy()
-        text_subset = aligned_text.loc[:, list(self.key_columns) + list(text_numeric_cols)].copy()
+        tab_subset = tabular_df.loc[
+            :, list(self.key_columns) + list(tab_numeric_cols)
+        ].copy()
+        text_subset = aligned_text.loc[
+            :, list(self.key_columns) + list(text_numeric_cols)
+        ].copy()
 
         if self._model is None:
             init_kwargs: Dict[str, Any] = {

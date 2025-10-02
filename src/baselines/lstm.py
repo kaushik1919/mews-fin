@@ -91,7 +91,9 @@ class LSTMBaseline(BaseBaseline):
         if torch is None or nn is None:
             raise ImportError("PyTorch is required for the LSTM baseline")
 
-        required_columns = set(self.feature_cols + [self.target_col, symbol_col, date_col])
+        required_columns = set(
+            self.feature_cols + [self.target_col, symbol_col, date_col]
+        )
         self._require_columns(df, required_columns)
         working = self._prepare_dataframe(df, date_col=date_col, symbol_col=symbol_col)
 
@@ -106,8 +108,12 @@ class LSTMBaseline(BaseBaseline):
             if not sequences:
                 continue
 
-            X_tensor = torch.tensor(np.stack(sequences), dtype=torch.float32, device=device)
-            y_tensor = torch.tensor(np.array(targets), dtype=torch.float32, device=device).unsqueeze(1)
+            X_tensor = torch.tensor(
+                np.stack(sequences), dtype=torch.float32, device=device
+            )
+            y_tensor = torch.tensor(
+                np.array(targets), dtype=torch.float32, device=device
+            ).unsqueeze(1)
 
             model = _LSTMClassifier(
                 input_size=X_tensor.shape[-1],
@@ -198,12 +204,16 @@ class LSTMBaseline(BaseBaseline):
                 metadata[symbol]["mc_std"] = float(np.mean(mc_std))
 
         if not outputs:
-            raise ValueError("LSTM baseline could not generate predictions for any symbols")
+            raise ValueError(
+                "LSTM baseline could not generate predictions for any symbols"
+            )
 
         predictions = pd.concat(outputs, ignore_index=True)
         metadata["sequence_length"] = self.sequence_length
 
-        return BaselineResult(name=self.name, predictions=predictions, metadata=metadata)
+        return BaselineResult(
+            name=self.name, predictions=predictions, metadata=metadata
+        )
 
     # ------------------------------------------------------------------
     # Helpers

@@ -73,14 +73,14 @@ class DelaySimulator:
                 grouped = working.groupby(list(group_columns), sort=False)
                 for column in affected_columns:
                     working[column] = (
-                        grouped[column]
-                        .shift(delay_days)
-                        .fillna(method="bfill")
+                        grouped[column].shift(delay_days).fillna(method="bfill")
                     )
             else:
                 working.sort_values(self.date_col, inplace=True)
                 for column in affected_columns:
-                    working[column] = working[column].shift(delay_days).fillna(method="bfill")
+                    working[column] = (
+                        working[column].shift(delay_days).fillna(method="bfill")
+                    )
 
         if missing_ratio > 0 and affected_columns:
             rng = np.random.default_rng(random_state)

@@ -104,14 +104,25 @@ class CrossAttentionFusion(nn.Module):
         self.eval()
 
         for _, row in joined.iterrows():
-            tab_vector = torch.tensor(row[tab_cols].fillna(0.0).values, dtype=torch.float32, device=used_device)
-            text_vector = torch.tensor(row[text_cols].fillna(0.0).values, dtype=torch.float32, device=used_device)
+            tab_vector = torch.tensor(
+                row[tab_cols].fillna(0.0).values,
+                dtype=torch.float32,
+                device=used_device,
+            )
+            text_vector = torch.tensor(
+                row[text_cols].fillna(0.0).values,
+                dtype=torch.float32,
+                device=used_device,
+            )
             with torch.no_grad():
                 fused = self.forward(tab_vector, text_vector)
             fused_rows.append(fused.cpu().numpy())
 
         fused_array = np.vstack(fused_rows)
-        fused_df = pd.DataFrame(fused_array, columns=[f"fusion_feature_{i}" for i in range(fused_array.shape[1])])
+        fused_df = pd.DataFrame(
+            fused_array,
+            columns=[f"fusion_feature_{i}" for i in range(fused_array.shape[1])],
+        )
         fused_df[symbol_col] = joined[symbol_col].values
         fused_df[date_col] = joined[date_col].values
         return fused_df

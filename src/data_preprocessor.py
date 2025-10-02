@@ -421,21 +421,18 @@ class DataPreprocessor:
                 high_vol_mask = df["Forward_Volatility"] > volatility_threshold
                 neg_return_mask = df["Forward_Return"] < return_threshold
 
-                df.loc[
-                    valid_mask & (high_vol_mask | neg_return_mask), "Risk_Label"
-                ] = 1
+                df.loc[valid_mask & (high_vol_mask | neg_return_mask), "Risk_Label"] = 1
 
-                vol_score = (
-                    df["Forward_Volatility"] / volatility_threshold
-                ).clip(lower=0, upper=2) / 2
-                return_score = (
-                    (-df["Forward_Return"] / -return_threshold).clip(lower=0, upper=2)
-                    / 2
-                )
+                vol_score = (df["Forward_Volatility"] / volatility_threshold).clip(
+                    lower=0, upper=2
+                ) / 2
+                return_score = (-df["Forward_Return"] / -return_threshold).clip(
+                    lower=0, upper=2
+                ) / 2
                 combined_score = ((vol_score + return_score) / 2).clip(0, 1)
-                df.loc[valid_mask, "Risk_Score"] = (
-                    combined_score.loc[valid_mask].fillna(0.0)
-                )
+                df.loc[valid_mask, "Risk_Score"] = combined_score.loc[
+                    valid_mask
+                ].fillna(0.0)
                 df.loc[~valid_mask, ["Forward_Return", "Forward_Volatility"]] = 0.0
             else:
                 self.logger.warning(
@@ -444,9 +441,7 @@ class DataPreprocessor:
                 )
 
         valid_observations = (
-            int(df["Risk_Label"].notna().sum())
-            if "Risk_Label" in df.columns
-            else 0
+            int(df["Risk_Label"].notna().sum()) if "Risk_Label" in df.columns else 0
         )
         high_risk_count = (
             int(df.loc[df["Risk_Label"].notna(), "Risk_Label"].sum())

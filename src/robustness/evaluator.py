@@ -100,7 +100,9 @@ class RobustnessEvaluator:
         perturbation_results: List[PerturbationOutcome] = []
 
         for config in perturbation_configs:
-            self.logger.info("Applying perturbation '%s' (%s)", config.name, config.kind)
+            self.logger.info(
+                "Applying perturbation '%s' (%s)", config.name, config.kind
+            )
             perturbed_df, details = self._apply_perturbation(config)
             metrics = self._evaluate_dataframe(perturbed_df, label=config.name)
             deltas = self._compute_metric_deltas(baseline_metrics, metrics)
@@ -117,7 +119,12 @@ class RobustnessEvaluator:
         bias_payload: Optional[Dict[str, Any]] = None
         if auditor is not None:
             self.logger.info("Running sentiment bias audit")
-            bias_results = auditor.audit(self.dataset, group_col=self.symbol_col if self.symbol_col in self.dataset.columns else None)
+            bias_results = auditor.audit(
+                self.dataset,
+                group_col=(
+                    self.symbol_col if self.symbol_col in self.dataset.columns else None
+                ),
+            )
             bias_payload = self._serialize_bias_report(bias_results)
 
         report = RobustnessReport(
@@ -138,12 +145,18 @@ class RobustnessEvaluator:
     # ------------------------------------------------------------------
     def _default_perturbations(self) -> Iterable[PerturbationConfig]:
         return [
-            PerturbationConfig(name="noise_5pct", kind="noise", params={"noise_level": 0.05}),
-            PerturbationConfig(name="noise_10pct", kind="noise", params={"noise_level": 0.10}),
+            PerturbationConfig(
+                name="noise_5pct", kind="noise", params={"noise_level": 0.05}
+            ),
+            PerturbationConfig(
+                name="noise_10pct", kind="noise", params={"noise_level": 0.10}
+            ),
             PerturbationConfig(name="delay_1d", kind="delay", params={"delay_days": 1}),
         ]
 
-    def _apply_perturbation(self, config: PerturbationConfig) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+    def _apply_perturbation(
+        self, config: PerturbationConfig
+    ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
         if config.kind == "noise":
             tester = AdversarialNoiseTester()
             perturbed, report = tester.apply(self.dataset, **config.params)
@@ -170,14 +183,22 @@ class RobustnessEvaluator:
         metrics = predictor.train_models(features_df, target, feature_names)
 
         metadata = predictor.training_metadata
-        meta_df = metadata.copy() if metadata is not None else pd.DataFrame(index=features_df.index)
+        meta_df = (
+            metadata.copy()
+            if metadata is not None
+            else pd.DataFrame(index=features_df.index)
+        )
 
         if self.date_col in df.columns and self.date_col not in meta_df.columns:
-            meta_df[self.date_col] = pd.to_datetime(df.loc[features_df.index, self.date_col])
+            meta_df[self.date_col] = pd.to_datetime(
+                df.loc[features_df.index, self.date_col]
+            )
         if self.symbol_col in df.columns and self.symbol_col not in meta_df.columns:
             meta_df[self.symbol_col] = df.loc[features_df.index, self.symbol_col]
 
-        _, probabilities = predictor.predict_risk(features_df, model_type="ensemble", metadata=meta_df)
+        _, probabilities = predictor.predict_risk(
+            features_df, model_type="ensemble", metadata=meta_df
+        )
 
         evaluation_frame = meta_df.copy()
         evaluation_frame["Risk_Probability"] = probabilities
@@ -187,8 +208,12 @@ class RobustnessEvaluator:
             evaluation_frame,
             probability_col="Risk_Probability",
             label_col=self.target_col,
-            date_col=self.date_col if self.date_col in evaluation_frame.columns else "Date",
-            symbol_col=self.symbol_col if self.symbol_col in evaluation_frame.columns else None,
+            date_col=(
+                self.date_col if self.date_col in evaluation_frame.columns else "Date"
+            ),
+            symbol_col=(
+                self.symbol_col if self.symbol_col in evaluation_frame.columns else None
+            ),
         )
 
         ensemble_metrics = metrics.get("ensemble", {})
@@ -212,13 +237,22 @@ class RobustnessEvaluator:
 
     def _extract_metric_summary(self, metrics: Dict[str, Any]) -> Dict[str, float]:
         summary: Dict[str, float] = {}
-        for key in ["auc_score", "test_accuracy", "fbeta_score", "cews_score", "cews_early_detection", "cews_false_alarm_penalty"]:
+        for key in [
+            "auc_score",
+            "test_accuracy",
+            "fbeta_score",
+            "cews_score",
+            "cews_early_detection",
+            "cews_false_alarm_penalty",
+        ]:
             value = metrics.get(key)
             if isinstance(value, (int, float)):
                 summary[key] = float(value)
         return summary
 
-    def _extract_all_metrics(self, metrics: Dict[str, Any]) -> Dict[str, Dict[str, float]]:
+    def _extract_all_metrics(
+        self, metrics: Dict[str, Any]
+    ) -> Dict[str, Dict[str, float]]:
         payload: Dict[str, Dict[str, float]] = {}
         for model_name, model_metrics in metrics.items():
             if not isinstance(model_metrics, dict):
@@ -245,7 +279,9 @@ class RobustnessEvaluator:
         for key in set(baseline_metrics.keys()) | set(candidate_metrics.keys()):
             base_value = baseline_metrics.get(key)
             cand_value = candidate_metrics.get(key)
-            if isinstance(base_value, (int, float)) and isinstance(cand_value, (int, float)):
+            if isinstance(base_value, (int, float)) and isinstance(
+                cand_value, (int, float)
+            ):
                 deltas[key] = float(cand_value - base_value)
         return deltas
 
@@ -260,7 +296,10 @@ class RobustnessEvaluator:
         }
         comparisons = [asdict(comp) for comp in payload.get("comparisons", [])]
         group_entries = [
-            {key: (float(value) if isinstance(value, (int, float)) else value) for key, value in record.items()}
+            {
+                key: (float(value) if isinstance(value, (int, float)) else value)
+                for key, value in record.items()
+            }
             for record in payload.get("group_summaries", [])
         ]
         return {
@@ -323,7 +362,9 @@ def run_cli(args: Optional[Sequence[str]] = None) -> RobustnessReport:
             try:
                 import yaml  # type: ignore
             except ImportError as exc:
-                raise ImportError("PyYAML is required to load feature group YAML files") from exc
+                raise ImportError(
+                    "PyYAML is required to load feature group YAML files"
+                ) from exc
             with fg_path.open("r", encoding="utf-8") as handle:
                 feature_groups = yaml.safe_load(handle)
         else:
@@ -338,13 +379,19 @@ def run_cli(args: Optional[Sequence[str]] = None) -> RobustnessReport:
         output_root=parsed.output,
     )
 
-    auditor = None if parsed.skip_bias else SentimentBiasAuditor(
-        finbert_columns=[col for col in dataset.columns if col.lower().endswith("_sentiment")],
-        vader_columns=[
-            col
-            for col in dataset.columns
-            if "sentiment" in col.lower() and col.lower().endswith("compound")
-        ],
+    auditor = (
+        None
+        if parsed.skip_bias
+        else SentimentBiasAuditor(
+            finbert_columns=[
+                col for col in dataset.columns if col.lower().endswith("_sentiment")
+            ],
+            vader_columns=[
+                col
+                for col in dataset.columns
+                if "sentiment" in col.lower() and col.lower().endswith("compound")
+            ],
+        )
     )
 
     return evaluator.run(auditor=auditor)

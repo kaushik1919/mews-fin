@@ -115,7 +115,9 @@ def _render_plotly(fig: go.Figure, **kwargs: Any) -> None:
     if isinstance(user_config, dict):
         default_config.update(user_config)
     elif user_config is not None:
-        warnings.warn("Ignoring non-dict Plotly config passed to _render_plotly", RuntimeWarning)
+        warnings.warn(
+            "Ignoring non-dict Plotly config passed to _render_plotly", RuntimeWarning
+        )
 
     kwargs.pop("use_container_width", None)
     st.plotly_chart(fig, config=default_config, **kwargs)
@@ -170,14 +172,20 @@ def _format_metric_value(value: Optional[float], digits: int = 3) -> str:
         return str(value)
 
 
-def _init_mlflow_client() -> Tuple[Optional["MlflowClient"], Optional[str], Optional[str]]:
+def _init_mlflow_client() -> (
+    Tuple[Optional["MlflowClient"], Optional[str], Optional[str]]
+):
     """Create an MLflow client pointed at the project's tracking directory."""
 
     try:
         import mlflow  # type: ignore
         from mlflow.tracking import MlflowClient  # type: ignore
     except ImportError:
-        return None, None, "MLflow isn't installed. Run `pip install mlflow` to enable the experiment tracker."
+        return (
+            None,
+            None,
+            "MLflow isn't installed. Run `pip install mlflow` to enable the experiment tracker.",
+        )
 
     tracking_dir = Path(Config.MLFLOW_TRACKING_DIR)
     if not tracking_dir.exists() or not any(tracking_dir.glob("*")):
@@ -231,7 +239,9 @@ def _load_mlflow_runs_table(
             else None
         )
         duration_seconds = (
-            (end_ts - start_ts).total_seconds() if start_ts is not None and end_ts is not None else None
+            (end_ts - start_ts).total_seconds()
+            if start_ts is not None and end_ts is not None
+            else None
         )
         duration_display = (
             f"{duration_seconds / 60:.1f}" if duration_seconds is not None else "—"
@@ -276,7 +286,9 @@ def _load_mlflow_runs_table(
 
 
 @st.cache_data(show_spinner=False)
-def _load_mlflow_json_artifact(run_id: str, artifact_path: str) -> Optional[Dict[str, Any]]:
+def _load_mlflow_json_artifact(
+    run_id: str, artifact_path: str
+) -> Optional[Dict[str, Any]]:
     """Download and parse a JSON artifact stored for a specific MLflow run."""
 
     try:
@@ -294,7 +306,9 @@ def _load_mlflow_json_artifact(run_id: str, artifact_path: str) -> Optional[Dict
 
     temp_dir = Path(tempfile.mkdtemp(prefix="mlflow-artifact-"))
     try:
-        local_path = Path(client.download_artifacts(run_id, artifact_path, str(temp_dir)))
+        local_path = Path(
+            client.download_artifacts(run_id, artifact_path, str(temp_dir))
+        )
         if local_path.is_dir():
             json_candidates = list(local_path.glob("*.json"))
             if json_candidates:
@@ -349,12 +363,17 @@ def _load_mlflow_model(run_id: str, model_filename: str) -> Optional[Any]:
 
 
 def _prepare_model_sample(
-    df: pd.DataFrame, model: Any, target_column: str = "Risk_Label", sample_size: int = 200
+    df: pd.DataFrame,
+    model: Any,
+    target_column: str = "Risk_Label",
+    sample_size: int = 200,
 ) -> Optional[pd.DataFrame]:
     """Align the dataframe to the model's feature ordering and subsample for SHAP."""
 
     feature_order = getattr(model, "feature_names_in_", None)
-    feature_matrix = prepare_feature_matrix(df, target_column=target_column, feature_order=feature_order)
+    feature_matrix = prepare_feature_matrix(
+        df, target_column=target_column, feature_order=feature_order
+    )
     if feature_matrix.empty:
         return None
 
@@ -1178,7 +1197,13 @@ def prepare_sentiment_dataframe(
             ]
             if numeric_cols:
                 sentiment_df = (
-                    sentiment_df.groupby([col for col in ["Symbol", "Date"] if col in sentiment_df.columns])[numeric_cols]
+                    sentiment_df.groupby(
+                        [
+                            col
+                            for col in ["Symbol", "Date"]
+                            if col in sentiment_df.columns
+                        ]
+                    )[numeric_cols]
                     .mean()
                     .reset_index()
                 )
@@ -1212,7 +1237,11 @@ def load_news_cache(max_rows: int = 500) -> Optional[pd.DataFrame]:
             if "symbol" in news_df.columns and "Symbol" not in news_df.columns:
                 news_df = news_df.rename(columns={"symbol": "Symbol"})
 
-            subset_cols = [col for col in ["Symbol", "Date", "title", "description", "content"] if col in news_df.columns]
+            subset_cols = [
+                col
+                for col in ["Symbol", "Date", "title", "description", "content"]
+                if col in news_df.columns
+            ]
             if subset_cols:
                 news_df = news_df[subset_cols]
             if len(news_df) > max_rows:
@@ -1257,7 +1286,9 @@ def run_light_robustness(
         sample = sample.sample(500, random_state=42)
 
     try:
-        evaluator = RobustnessEvaluator(dataset=sample, output_root=Path("outputs/robustness/streamlit"))
+        evaluator = RobustnessEvaluator(
+            dataset=sample, output_root=Path("outputs/robustness/streamlit")
+        )
         perturbations = [
             PerturbationConfig(
                 name=f"noise_{int(noise_level * 100)}pct",
@@ -1354,13 +1385,20 @@ def execute_stage_controls(
         summary_metrics = []
         summary_metrics.append({"label": "Rows", "value": f"{len(df):,}"})
         if "Symbol" in df.columns:
-            summary_metrics.append({"label": "Symbols", "value": f"{df['Symbol'].nunique():,}"})
+            summary_metrics.append(
+                {"label": "Symbols", "value": f"{df['Symbol'].nunique():,}"}
+            )
         if "Date" in df.columns:
             normalized = _normalize_datetime_column(df[["Date"]].copy())
             start_date = normalized["Date"].min()
             end_date = normalized["Date"].max()
             if pd.notna(start_date) and pd.notna(end_date):
-                summary_metrics.append({"label": "Date Range", "value": f"{start_date.date()} → {end_date.date()}"})
+                summary_metrics.append(
+                    {
+                        "label": "Date Range",
+                        "value": f"{start_date.date()} → {end_date.date()}",
+                    }
+                )
 
         if "Risk_Probability" in df.columns:
             summary_metrics.append(
@@ -1396,9 +1434,19 @@ def execute_stage_controls(
         stage_outputs.append(
             {
                 "title": "Data Stage – Overview",
-                "messages": ["Previewing cached integrated dataset. Adjust the other stages to recompute downstream analytics."],
+                "messages": [
+                    "Previewing cached integrated dataset. Adjust the other stages to recompute downstream analytics."
+                ],
                 "metrics": summary_metrics,
-                "dataframe": sample[[col for col in sample.columns if col in ["Date", "Symbol"] + sample.select_dtypes(include=[np.number]).columns.tolist()[:8]]],
+                "dataframe": sample[
+                    [
+                        col
+                        for col in sample.columns
+                        if col
+                        in ["Date", "Symbol"]
+                        + sample.select_dtypes(include=[np.number]).columns.tolist()[:8]
+                    ]
+                ],
             }
         )
         report_progress("Data")
@@ -1440,7 +1488,12 @@ def execute_stage_controls(
 
     if "Sentiment" in selected_stages:
         if sentiment_df is not None and not sentiment_df.empty:
-            numeric_cols = [col for col in sentiment_df.columns if col not in {"Date", "Symbol"} and pd.api.types.is_numeric_dtype(sentiment_df[col])]
+            numeric_cols = [
+                col
+                for col in sentiment_df.columns
+                if col not in {"Date", "Symbol"}
+                and pd.api.types.is_numeric_dtype(sentiment_df[col])
+            ]
             plot_col = numeric_cols[0] if numeric_cols else None
             sentiment_fig = None
             sentiment_messages = [
@@ -1451,20 +1504,30 @@ def execute_stage_controls(
                 sentiment_preview = sentiment_df.copy()
 
                 date_candidate = next(
-                    (candidate for candidate in ("Date", "date", "published_date") if candidate in sentiment_preview.columns),
+                    (
+                        candidate
+                        for candidate in ("Date", "date", "published_date")
+                        if candidate in sentiment_preview.columns
+                    ),
                     None,
                 )
 
                 if date_candidate and date_candidate != "Date":
-                    sentiment_preview = sentiment_preview.rename(columns={date_candidate: "Date"})
+                    sentiment_preview = sentiment_preview.rename(
+                        columns={date_candidate: "Date"}
+                    )
 
                 if "Date" in sentiment_preview.columns:
-                    sentiment_preview = _normalize_datetime_column(sentiment_preview, "Date")
+                    sentiment_preview = _normalize_datetime_column(
+                        sentiment_preview, "Date"
+                    )
                     sentiment_preview = sentiment_preview.dropna(subset=["Date"])
                     if not sentiment_preview.empty:
                         try:
                             timeline_preview = (
-                                sentiment_preview.groupby("Date")[plot_col].mean().reset_index()
+                                sentiment_preview.groupby("Date")[plot_col]
+                                .mean()
+                                .reset_index()
                             )
                             if not timeline_preview.empty:
                                 sentiment_fig = px.line(
@@ -1494,7 +1557,9 @@ def execute_stage_controls(
             stage_outputs.append(
                 {
                     "title": "Sentiment Stage – Aggregated Signals",
-                    "messages": ["No sentiment data available for the current configuration. Re-run the pipeline via CLI to populate the sentiment cache."],
+                    "messages": [
+                        "No sentiment data available for the current configuration. Re-run the pipeline via CLI to populate the sentiment cache."
+                    ],
                 }
             )
         report_progress("Sentiment")
@@ -1505,7 +1570,9 @@ def execute_stage_controls(
         if fusion_payload:
             new_cols = fusion_payload["new_columns"]
             caption = (
-                "New fused features (first 15 columns shown)" if new_cols else "Fusion produced no additional columns; showing blended sample"
+                "New fused features (first 15 columns shown)"
+                if new_cols
+                else "Fusion produced no additional columns; showing blended sample"
             )
             stage_outputs.append(
                 {
@@ -1514,7 +1581,14 @@ def execute_stage_controls(
                         "Fused outputs blend tabular indicators with optional news embeddings. Preview below reflects the selected strategy."
                     ],
                     "tables": [
-                        {"caption": caption, "data": pd.DataFrame({"Feature": new_cols}) if new_cols else None}
+                        {
+                            "caption": caption,
+                            "data": (
+                                pd.DataFrame({"Feature": new_cols})
+                                if new_cols
+                                else None
+                            ),
+                        }
                     ],
                     "dataframe": fusion_payload["fused"],
                 }
@@ -1523,7 +1597,9 @@ def execute_stage_controls(
             stage_outputs.append(
                 {
                     "title": "Fusion Stage",
-                    "messages": ["Fusion preview unavailable. Ensure Symbol and Date columns exist and at least one fusion strategy is selected."],
+                    "messages": [
+                        "Fusion preview unavailable. Ensure Symbol and Date columns exist and at least one fusion strategy is selected."
+                    ],
                 }
             )
         report_progress("Fusion")
@@ -1582,8 +1658,14 @@ def execute_stage_controls(
             y_pred = (y_prob >= risk_threshold).astype(int)
             evaluation_metrics = [
                 {"label": "AUC", "value": f"{roc_auc_score(y_true, y_prob):.3f}"},
-                {"label": "Precision", "value": f"{precision_score(y_true, y_pred, zero_division=0):.3f}"},
-                {"label": "Recall", "value": f"{recall_score(y_true, y_pred, zero_division=0):.3f}"},
+                {
+                    "label": "Precision",
+                    "value": f"{precision_score(y_true, y_pred, zero_division=0):.3f}",
+                },
+                {
+                    "label": "Recall",
+                    "value": f"{recall_score(y_true, y_pred, zero_division=0):.3f}",
+                },
             ]
             confusion_fig = create_confusion_matrix_plot(y_true, y_pred)
             stage_outputs.append(
@@ -1591,14 +1673,18 @@ def execute_stage_controls(
                     "title": "Evaluation Stage – Test Set Diagnostics",
                     "metrics": evaluation_metrics,
                     "figure": confusion_fig,
-                    "messages": ["Confusion matrix and summary metrics calculated from cached test predictions."],
+                    "messages": [
+                        "Confusion matrix and summary metrics calculated from cached test predictions."
+                    ],
                 }
             )
         else:
             stage_outputs.append(
                 {
                     "title": "Evaluation Stage",
-                    "messages": ["Test predictions were not cached. Re-run training to enable evaluation diagnostics."],
+                    "messages": [
+                        "Test predictions were not cached. Re-run training to enable evaluation diagnostics."
+                    ],
                 }
             )
         report_progress("Evaluation")
@@ -1613,7 +1699,9 @@ def execute_stage_controls(
             delay_days=delay_days,
         )
         if robustness_report:
-            baseline_metrics = robustness_report.get("baseline_metrics", {}).get("ensemble", {})
+            baseline_metrics = robustness_report.get("baseline_metrics", {}).get(
+                "ensemble", {}
+            )
             perturbations = robustness_report.get("perturbations", [])
             robustness_metrics = []
             if baseline_metrics:
@@ -1624,7 +1712,9 @@ def execute_stage_controls(
                                 "label": metric_key.replace("_", " ").title(),
                                 "value": f"{baseline_metrics[metric_key]:.3f}",
                                 "delta": (
-                                    f"Noise {noise_level:.0%}" if metric_key == "auc_score" else None
+                                    f"Noise {noise_level:.0%}"
+                                    if metric_key == "auc_score"
+                                    else None
                                 ),
                             }
                         )
@@ -1661,7 +1751,9 @@ def execute_stage_controls(
             stage_outputs.append(
                 {
                     "title": "Robustness Stage",
-                    "messages": ["No robustness reports available and on-the-fly evaluation failed."],
+                    "messages": [
+                        "No robustness reports available and on-the-fly evaluation failed."
+                    ],
                 }
             )
         report_progress("Robustness")
@@ -1680,7 +1772,9 @@ def render_stage_outputs(stage_outputs: Iterable[Dict[str, Any]]) -> None:
             cols = st.columns(len(metrics))
             for col, metric in zip(cols, metrics):
                 delta_value = metric.get("delta") or ""
-                col.metric(metric.get("label", ""), metric.get("value", ""), delta_value)
+                col.metric(
+                    metric.get("label", ""), metric.get("value", ""), delta_value
+                )
 
         for table in entry.get("tables", []) or []:
             data = table.get("data")
@@ -1742,7 +1836,11 @@ def display_benchmark_results(summary: Dict[str, Any]) -> None:
         if "mews_model" in run:
             mews_info = run["mews_model"]
             metrics_path = mews_info.get("metrics")
-            st.markdown("- MEWS predictions stored at: `{}`".format(mews_info.get("predictions", "-")))
+            st.markdown(
+                "- MEWS predictions stored at: `{}`".format(
+                    mews_info.get("predictions", "-")
+                )
+            )
             if metrics_path:
                 st.markdown(f"- Metrics JSON: `{metrics_path}`")
 
@@ -1781,7 +1879,9 @@ def display_case_study_results(results: Iterable[Any]) -> None:
             st.image(str(result.plot_path), caption="Risk vs Downturn")
 
         if result.top_features:
-            feature_df = pd.DataFrame(result.top_features, columns=["Feature", "Frequency"])
+            feature_df = pd.DataFrame(
+                result.top_features, columns=["Feature", "Frequency"]
+            )
             _render_dataframe(feature_df)
 
         if result.report_path and result.report_path.exists():
@@ -1797,8 +1897,13 @@ def load_predictions_cache() -> Optional[pd.DataFrame]:
     try:
         predictions = pd.read_csv(predictions_path)
         predictions = _normalize_datetime_column(predictions, "Date")
-        if "Actual_Risk_Label" in predictions.columns and "Risk_Label" not in predictions.columns:
-            predictions = predictions.rename(columns={"Actual_Risk_Label": "Risk_Label"})
+        if (
+            "Actual_Risk_Label" in predictions.columns
+            and "Risk_Label" not in predictions.columns
+        ):
+            predictions = predictions.rename(
+                columns={"Actual_Risk_Label": "Risk_Label"}
+            )
         return predictions
     except Exception:
         return None
@@ -1816,22 +1921,42 @@ def prepare_case_study_dataset(
     if predictions_df is not None and not predictions_df.empty:
         predictions = predictions_df.copy()
         predictions = _normalize_datetime_column(predictions, "Date")
-        predictions = predictions.drop_duplicates(subset=["Date", "Symbol"], keep="last")
+        predictions = predictions.drop_duplicates(
+            subset=["Date", "Symbol"], keep="last"
+        )
         merged = merged.merge(
-            predictions[[col for col in predictions.columns if col in {"Date", "Symbol", "Risk_Prediction", "Risk_Probability", "Risk_Label"}]],
+            predictions[
+                [
+                    col
+                    for col in predictions.columns
+                    if col
+                    in {
+                        "Date",
+                        "Symbol",
+                        "Risk_Prediction",
+                        "Risk_Probability",
+                        "Risk_Label",
+                    }
+                ]
+            ],
             on=["Date", "Symbol"],
             how="left",
             suffixes=("", "_pred"),
         )
 
-        prob_columns = [col for col in merged.columns if col.startswith("Risk_Probability")]
+        prob_columns = [
+            col for col in merged.columns if col.startswith("Risk_Probability")
+        ]
         if prob_columns:
             merged["Risk_Probability"] = merged[prob_columns].bfill(axis=1).iloc[:, 0]
             for col in prob_columns:
                 if col != "Risk_Probability":
                     merged = merged.drop(columns=col)
 
-        if "Risk_Prediction_pred" in merged.columns and "Risk_Prediction" not in merged.columns:
+        if (
+            "Risk_Prediction_pred" in merged.columns
+            and "Risk_Prediction" not in merged.columns
+        ):
             merged = merged.rename(columns={"Risk_Prediction_pred": "Risk_Prediction"})
 
     start = pd.Timestamp(scenario.start_date)
@@ -1855,7 +1980,10 @@ def prepare_case_study_dataset(
     else:
         subset["Drawdown"] = 0.0
 
-    if "Risk_Probability" not in subset.columns or subset["Risk_Probability"].isna().all():
+    if (
+        "Risk_Probability" not in subset.columns
+        or subset["Risk_Probability"].isna().all()
+    ):
         subset["Risk_Probability"] = subset.groupby("Symbol")["Risk_Label"].transform(
             lambda s: s.rolling(window=3, min_periods=1).mean()
         )
@@ -1968,6 +2096,7 @@ def create_case_study_plot(
     )
     return fig
 
+
 def main():
     """Main Streamlit app"""
 
@@ -2008,7 +2137,9 @@ def main():
     available_symbols = (
         sorted(df["Symbol"].dropna().unique()) if "Symbol" in df.columns else []
     )
-    default_symbols = available_symbols[:5] if len(available_symbols) > 5 else available_symbols
+    default_symbols = (
+        available_symbols[:5] if len(available_symbols) > 5 else available_symbols
+    )
     selected_symbols = st.sidebar.multiselect(
         "Select tickers",
         options=available_symbols,
@@ -2019,7 +2150,9 @@ def main():
             "narrowing coverage."
         ),
     )
-    _sidebar_recommendation("Start with 3–5 highly traded tickers to balance speed and context.")
+    _sidebar_recommendation(
+        "Start with 3–5 highly traded tickers to balance speed and context."
+    )
 
     sentiment_choice = st.sidebar.selectbox(
         "Sentiment model",
@@ -2029,7 +2162,9 @@ def main():
             "captures finance-specific tone and changes downstream fusion features accordingly."
         ),
     )
-    _sidebar_recommendation("FinBERT provides the most reliable finance-domain sentiment.")
+    _sidebar_recommendation(
+        "FinBERT provides the most reliable finance-domain sentiment."
+    )
 
     selected_stages = st.sidebar.multiselect(
         "Pipeline stages",
@@ -2052,7 +2187,9 @@ def main():
             "Removing models hides their metrics and speeds up plotting for lightweight reviews."
         ),
     )
-    _sidebar_recommendation("Track the full suite when benchmarking the ensemble’s uplift.")
+    _sidebar_recommendation(
+        "Track the full suite when benchmarking the ensemble’s uplift."
+    )
 
     fusion_options = ["concat", "cross_attention", "gated"]
     fusion_display = {
@@ -2070,7 +2207,9 @@ def main():
             "Concat is the fastest baseline; cross-attention and gated fusion better capture cross-modal interplay."
         ),
     )
-    _sidebar_recommendation("Use Concat for quick iteration; switch to Cross Attention for richer experiments.")
+    _sidebar_recommendation(
+        "Use Concat for quick iteration; switch to Cross Attention for richer experiments."
+    )
 
     ensemble_options = ["Static", "Regime Adaptive"]
     ensemble_choice = st.sidebar.selectbox(
@@ -2082,7 +2221,9 @@ def main():
             "shifts weights with volatility regimes to chase extra lift at the cost of complexity."
         ),
     )
-    _sidebar_recommendation("Begin with Static weighting, then trial Regime Adaptive once metrics are stable.")
+    _sidebar_recommendation(
+        "Begin with Static weighting, then trial Regime Adaptive once metrics are stable."
+    )
 
     st.sidebar.markdown("### Thresholds")
     risk_threshold = st.sidebar.slider(
@@ -2096,7 +2237,9 @@ def main():
             "warnings (higher recall) while higher values cut false positives but may miss early signals."
         ),
     )
-    _sidebar_recommendation("0.50 is a balanced starting point; lower it during stress testing for sensitivity.")
+    _sidebar_recommendation(
+        "0.50 is a balanced starting point; lower it during stress testing for sensitivity."
+    )
 
     cews_threshold = st.sidebar.slider(
         "CEWS alert threshold",
@@ -2109,7 +2252,9 @@ def main():
             "Raising the bar highlights only the strongest signals."
         ),
     )
-    _sidebar_recommendation("0.65 catches material swings without flooding the dashboard with minor blips.")
+    _sidebar_recommendation(
+        "0.65 catches material swings without flooding the dashboard with minor blips."
+    )
 
     st.sidebar.markdown("### Robustness Stress")
     robustness_noise = st.sidebar.slider(
@@ -2123,7 +2268,9 @@ def main():
             "simulate data quality degradation and should only be used when probing robustness."
         ),
     )
-    _sidebar_recommendation("5% noise reveals fragility without overwhelming the signal.")
+    _sidebar_recommendation(
+        "5% noise reveals fragility without overwhelming the signal."
+    )
     robustness_delay = st.sidebar.slider(
         "Reporting delay (days)",
         min_value=0,
@@ -2155,7 +2302,9 @@ def main():
     if "case_study_results" not in st.session_state:
         st.session_state["case_study_results"] = None
 
-    case_study_map = {scenario.name: scenario.slug for scenario in PREDEFINED_CASE_STUDIES}
+    case_study_map = {
+        scenario.name: scenario.slug for scenario in PREDEFINED_CASE_STUDIES
+    }
 
     # Prepare derived datasets for advanced visualizations
     y_true_pred = get_test_predictions(results)
@@ -2178,7 +2327,7 @@ def main():
         tab_case_studies,
         tab_model_results,
         tab_results_explorer,
-    tab_experiment_tracker,
+        tab_experiment_tracker,
         tab_explainability,
         tab_multimodal,
         tab_feature_analysis,
@@ -2220,12 +2369,21 @@ def main():
         )
 
         if filtered_df.empty:
-            st.warning("No data available for the chosen tickers. Expand your selection to run the pipeline.")
+            st.warning(
+                "No data available for the chosen tickers. Expand your selection to run the pipeline."
+            )
         elif not selected_stages:
-            st.info("Select at least one pipeline stage in the sidebar to preview analytics.")
+            st.info(
+                "Select at least one pipeline stage in the sidebar to preview analytics."
+            )
         else:
-            sentiment_df = prepare_sentiment_dataframe(sentiment_choice, selected_symbols)
-            robustness_config = {"noise": robustness_noise / 100.0, "delay": robustness_delay}
+            sentiment_df = prepare_sentiment_dataframe(
+                sentiment_choice, selected_symbols
+            )
+            robustness_config = {
+                "noise": robustness_noise / 100.0,
+                "delay": robustness_delay,
+            }
             run_summary = {
                 "symbols": selected_symbols,
                 "sentiment": sentiment_choice,
@@ -2237,14 +2395,20 @@ def main():
                 "delay_days": robustness_delay,
             }
 
-            if st.button("Run Pipeline with Current Settings", key="run_pipeline_button"):
+            if st.button(
+                "Run Pipeline with Current Settings", key="run_pipeline_button"
+            ):
                 progress_bar = st.progress(0.0)
                 progress_status = st.empty()
                 progress_status.info("Initializing pipeline run…")
 
-                def _on_stage_complete(stage_name: str, completed: int, total: int) -> None:
+                def _on_stage_complete(
+                    stage_name: str, completed: int, total: int
+                ) -> None:
                     percent = completed / total if total else 1.0
-                    progress_status.info(f"Completed {stage_name} ({completed}/{total})")
+                    progress_status.info(
+                        f"Completed {stage_name} ({completed}/{total})"
+                    )
                     progress_bar.progress(min(1.0, percent))
 
                 outputs = execute_stage_controls(
@@ -2274,30 +2438,40 @@ def main():
                 reset_streamlit_caches()
                 st.session_state["pipeline_refresh_notice"] = True
                 progress_bar.progress(1.0)
-                progress_status.success("Pipeline run complete! Refreshing downstream tabs…")
+                progress_status.success(
+                    "Pipeline run complete! Refreshing downstream tabs…"
+                )
 
                 st.experimental_rerun()
 
             pipeline_results = st.session_state.get("pipeline_results")
             if pipeline_results and pipeline_results.get("stage_outputs"):
                 if st.session_state.pop("pipeline_refresh_notice", False):
-                    st.caption("✅ Downstream tabs refreshed with the latest pipeline artifacts.")
+                    st.caption(
+                        "✅ Downstream tabs refreshed with the latest pipeline artifacts."
+                    )
 
                 summary = pipeline_results.get("run_summary", {})
                 timestamp = pipeline_results.get("timestamp")
                 subtitle_parts = []
                 if summary.get("symbols"):
-                    subtitle_parts.append(
-                        f"Tickers: {', '.join(summary['symbols'])}"
-                    )
-                subtitle_parts.append(f"Fusion: {summary.get('fusion', fusion_choice).replace('_', ' ').title()}")
-                subtitle_parts.append(f"Ensemble: {summary.get('ensemble', ensemble_choice)}")
-                subtitle_parts.append(f"Risk Threshold: {summary.get('risk_threshold', risk_threshold):.2f}")
+                    subtitle_parts.append(f"Tickers: {', '.join(summary['symbols'])}")
+                subtitle_parts.append(
+                    f"Fusion: {summary.get('fusion', fusion_choice).replace('_', ' ').title()}"
+                )
+                subtitle_parts.append(
+                    f"Ensemble: {summary.get('ensemble', ensemble_choice)}"
+                )
+                subtitle_parts.append(
+                    f"Risk Threshold: {summary.get('risk_threshold', risk_threshold):.2f}"
+                )
                 subtitle = " • ".join(subtitle_parts)
                 st.success(f"Last run {timestamp} — {subtitle}")
                 render_stage_outputs(pipeline_results["stage_outputs"])
             else:
-                st.info("Configure parameters and press the run button to see pipeline analytics.")
+                st.info(
+                    "Configure parameters and press the run button to see pipeline analytics."
+                )
 
         st.markdown("---")
         st.subheader("Benchmarks & Case Studies")
@@ -2306,7 +2480,9 @@ def main():
         with col_left:
             if st.button("Run Benchmark Suite", key="run_benchmarks_button"):
                 with st.spinner("Running baseline comparisons on a sampled dataset…"):
-                    st.session_state["benchmark_results"] = run_benchmarks(filtered_df, ensemble_choice)
+                    st.session_state["benchmark_results"] = run_benchmarks(
+                        filtered_df, ensemble_choice
+                    )
 
         with col_right:
             selected_case_names = st.multiselect(
@@ -2318,7 +2494,9 @@ def main():
 
             queued_case_names = st.session_state.pop("case_studies_queue", None)
             if queued_case_names:
-                valid_case_names = [name for name in queued_case_names if name in case_study_map]
+                valid_case_names = [
+                    name for name in queued_case_names if name in case_study_map
+                ]
                 if valid_case_names:
                     with st.spinner("Refreshing case studies with latest results…"):
                         slugs = [case_study_map[name] for name in valid_case_names]
@@ -2326,7 +2504,9 @@ def main():
 
             if st.button("Run Case Studies", key="run_case_studies_button"):
                 if not selected_case_names:
-                    st.warning("Pick one or more case studies before running the replay.")
+                    st.warning(
+                        "Pick one or more case studies before running the replay."
+                    )
                 else:
                     slugs = [case_study_map[name] for name in selected_case_names]
                     with st.spinner("Replaying selected scenarios…"):
@@ -2345,13 +2525,21 @@ def main():
 
     with tab_case_studies:
         st.subheader("Crisis Replays")
-        st.caption("Replay historical stress events to see how MEWS tracked rising risk versus actual market drawdowns.")
+        st.caption(
+            "Replay historical stress events to see how MEWS tracked rising risk versus actual market drawdowns."
+        )
 
         scenario_whitelist = {"gfc_2008", "covid_crash", "fed_hikes"}
-        scenario_options = [scenario for scenario in PREDEFINED_CASE_STUDIES if scenario.slug in scenario_whitelist]
+        scenario_options = [
+            scenario
+            for scenario in PREDEFINED_CASE_STUDIES
+            if scenario.slug in scenario_whitelist
+        ]
 
         if not scenario_options:
-            st.warning("No predefined case studies available. Check `src/case_studies/scenarios.py` for configurations.")
+            st.warning(
+                "No predefined case studies available. Check `src/case_studies/scenarios.py` for configurations."
+            )
         else:
             scenario_map = {scenario.name: scenario for scenario in scenario_options}
             scenario_name = st.selectbox("Scenario", list(scenario_map.keys()))
@@ -2360,10 +2548,14 @@ def main():
             st.markdown(f"_{selected_scenario.description}_")
 
             predictions_cache = load_predictions_cache()
-            subset, timeline = prepare_case_study_dataset(df, selected_scenario, predictions_cache)
+            subset, timeline = prepare_case_study_dataset(
+                df, selected_scenario, predictions_cache
+            )
 
             if timeline.empty:
-                st.info("No cached data available for this scenario. Run the full pipeline to populate integrated datasets and predictions.")
+                st.info(
+                    "No cached data available for this scenario. Run the full pipeline to populate integrated datasets and predictions."
+                )
             else:
                 min_date = timeline["Date"].min().to_pydatetime()
                 max_date = timeline["Date"].max().to_pydatetime()
@@ -2395,7 +2587,10 @@ def main():
                     peak_risk = float(timeline_filtered["Risk_Probability"].max())
                     deepest_drawdown = float(timeline_filtered["Drawdown"].min())
                     warning_rate = float(
-                        (subset_filtered["Risk_Probability"] >= selected_scenario.risk_threshold).mean()
+                        (
+                            subset_filtered["Risk_Probability"]
+                            >= selected_scenario.risk_threshold
+                        ).mean()
                         if not subset_filtered.empty
                         else 0.0
                     )
@@ -2409,15 +2604,28 @@ def main():
                         help="Share of days where risk probability exceeded the scenario threshold.",
                     )
 
-                    case_fig = create_case_study_plot(timeline_filtered, selected_scenario, selected_scenario.risk_threshold)
+                    case_fig = create_case_study_plot(
+                        timeline_filtered,
+                        selected_scenario,
+                        selected_scenario.risk_threshold,
+                    )
                     if case_fig is not None:
                         case_fig.update_xaxes(range=[range_start, range_end])
                         _render_plotly(case_fig)
-                        st.caption("Use the slider above to zoom into specific phases of the crisis timeline.")
+                        st.caption(
+                            "Use the slider above to zoom into specific phases of the crisis timeline."
+                        )
 
                     preview_cols = [
                         col
-                        for col in ["Date", "Symbol", "Risk_Probability", "Risk_Label", "Drawdown", "Risk_Prediction"]
+                        for col in [
+                            "Date",
+                            "Symbol",
+                            "Risk_Probability",
+                            "Risk_Label",
+                            "Drawdown",
+                            "Risk_Prediction",
+                        ]
                         if col in subset_filtered.columns
                     ]
                     with st.expander("Show sample data points"):
@@ -2536,9 +2744,7 @@ def main():
                     )
 
                 if event_rows:
-                    _render_dataframe(
-                        pd.DataFrame(event_rows)
-                    )
+                    _render_dataframe(pd.DataFrame(event_rows))
                     st.caption(
                         "Positive early warning scores indicate the system raised alerts before the event window."
                     )
@@ -2554,7 +2760,9 @@ def main():
     with tab_results_explorer:
         st.subheader("Results Explorer")
 
-        research_payload = results.get("research_artifacts") if isinstance(results, dict) else None
+        research_payload = (
+            results.get("research_artifacts") if isinstance(results, dict) else None
+        )
         if not research_payload:
             st.info(
                 "Run the full pipeline from the CLI to populate experiment metrics, ablations, and robustness diagnostics."
@@ -2584,7 +2792,9 @@ def main():
             if overall_metrics:
                 metric_cols = st.columns(3)
                 metric_cols[0].metric("AUC", _fmt_metric(overall_metrics.get("auc")))
-                metric_cols[1].metric("Brier Score", _fmt_metric(overall_metrics.get("brier")))
+                metric_cols[1].metric(
+                    "Brier Score", _fmt_metric(overall_metrics.get("brier"))
+                )
                 metric_cols[2].metric(
                     "Precision@50", _fmt_metric(overall_metrics.get("precision_at_k"))
                 )
@@ -2626,7 +2836,9 @@ def main():
             if experiment_rows:
                 experiments_download = pd.DataFrame(experiment_rows)
                 experiments_display = experiments_download.copy()
-                for col in [c for c in experiments_display.columns if c != "Experiment"]:
+                for col in [
+                    c for c in experiments_display.columns if c != "Experiment"
+                ]:
                     experiments_display[col] = experiments_display[col].apply(
                         lambda val: _fmt_metric(val)
                     )
@@ -2647,11 +2859,15 @@ def main():
                     .rename(columns={"index": "Crisis"})
                 )
                 crisis_download = crisis_download.rename(
-                    columns=lambda col: col if col == "Crisis" else col.replace("_", " ").title()
+                    columns=lambda col: (
+                        col if col == "Crisis" else col.replace("_", " ").title()
+                    )
                 )
                 crisis_display = crisis_download.copy()
                 for col in [c for c in crisis_display.columns if c != "Crisis"]:
-                    crisis_display[col] = crisis_display[col].apply(lambda val: _fmt_metric(val))
+                    crisis_display[col] = crisis_display[col].apply(
+                        lambda val: _fmt_metric(val)
+                    )
                 _render_dataframe(crisis_display)
                 _render_download_buttons(
                     crisis_download,
@@ -2680,15 +2896,20 @@ def main():
                         }
                     )
                     sentiment_display = sentiment_download.copy()
-                    for col in ["Base Log-Likelihood", "Full Log-Likelihood", "Likelihood Ratio", "p-value"]:
+                    for col in [
+                        "Base Log-Likelihood",
+                        "Full Log-Likelihood",
+                        "Likelihood Ratio",
+                        "p-value",
+                    ]:
                         if col in sentiment_display.columns:
                             sentiment_display[col] = sentiment_display[col].apply(
                                 lambda val: _fmt_metric(val)
                             )
                     if "Reject Null?" in sentiment_display.columns:
-                        sentiment_display["Reject Null?"] = sentiment_display["Reject Null?"].map(
-                            {True: "Yes", False: "No"}
-                        )
+                        sentiment_display["Reject Null?"] = sentiment_display[
+                            "Reject Null?"
+                        ].map({True: "Yes", False: "No"})
                     _render_dataframe(sentiment_display)
                     _render_download_buttons(
                         sentiment_download,
@@ -2711,7 +2932,9 @@ def main():
                     )
                     graph_display = graph_download.copy()
                     for col in graph_display.columns:
-                        graph_display[col] = graph_display[col].apply(lambda val: _fmt_metric(val))
+                        graph_display[col] = graph_display[col].apply(
+                            lambda val: _fmt_metric(val)
+                        )
                     _render_dataframe(graph_display)
                     _render_download_buttons(
                         graph_download,
@@ -2755,7 +2978,9 @@ def main():
                     xaxis_title="Predicted Probability",
                     yaxis_title="Observed Frequency",
                     height=350,
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                    legend=dict(
+                        orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+                    ),
                 )
                 _render_plotly(cal_fig)
                 _render_download_buttons(
@@ -2767,8 +2992,14 @@ def main():
                 st.write("Calibration data unavailable.")
 
             st.markdown("#### Robustness Comparisons")
-            bias_result = robustness_results.get("sentiment_bias") if robustness_results else None
-            noise_result = robustness_results.get("adversarial_noise") if robustness_results else None
+            bias_result = (
+                robustness_results.get("sentiment_bias") if robustness_results else None
+            )
+            noise_result = (
+                robustness_results.get("adversarial_noise")
+                if robustness_results
+                else None
+            )
 
             if bias_result:
                 bias_download = pd.DataFrame([bias_result]).rename(
@@ -2783,11 +3014,20 @@ def main():
                     }
                 )
                 bias_display = bias_download.copy()
-                for col in ["Mean Sentiment (A)", "Mean Sentiment (B)", "KS Statistic", "p-value"]:
+                for col in [
+                    "Mean Sentiment (A)",
+                    "Mean Sentiment (B)",
+                    "KS Statistic",
+                    "p-value",
+                ]:
                     if col in bias_display.columns:
-                        bias_display[col] = bias_display[col].apply(lambda val: _fmt_metric(val))
+                        bias_display[col] = bias_display[col].apply(
+                            lambda val: _fmt_metric(val)
+                        )
                 if "Significant?" in bias_display.columns:
-                    bias_display["Significant?"] = bias_display["Significant?"].map({True: "Yes", False: "No"})
+                    bias_display["Significant?"] = bias_display["Significant?"].map(
+                        {True: "Yes", False: "No"}
+                    )
                 st.markdown("**Sentiment Bias Diagnostics**")
                 _render_dataframe(bias_display)
                 _render_download_buttons(
@@ -2810,11 +3050,15 @@ def main():
                     noise_download = pd.DataFrame(noise_rows)
                     noise_display = noise_download.copy()
                     for col in [c for c in noise_display.columns if c != "Scenario"]:
-                        noise_display[col] = noise_display[col].apply(lambda val: _fmt_metric(val))
+                        noise_display[col] = noise_display[col].apply(
+                            lambda val: _fmt_metric(val)
+                        )
                     st.markdown("**Adversarial Noise Sensitivity**")
                     _render_dataframe(noise_display)
 
-                    value_columns = [c for c in noise_download.columns if c != "Scenario"]
+                    value_columns = [
+                        c for c in noise_download.columns if c != "Scenario"
+                    ]
                     if value_columns:
                         noise_long = noise_download.melt(
                             id_vars="Scenario",
@@ -2829,7 +3073,16 @@ def main():
                             color="Scenario",
                             barmode="group",
                         )
-                        noise_fig.update_layout(height=360, legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                        noise_fig.update_layout(
+                            height=360,
+                            legend=dict(
+                                orientation="h",
+                                yanchor="bottom",
+                                y=1.02,
+                                xanchor="right",
+                                x=1,
+                            ),
+                        )
                         _render_plotly(noise_fig)
 
                     _render_download_buttons(
@@ -2876,7 +3129,9 @@ def main():
         st.subheader("MLflow Experiment Tracker")
 
         if not MLFLOW_AVAILABLE:
-            st.warning("MLflow isn't installed, so experiment tracking is disabled for this session.")
+            st.warning(
+                "MLflow isn't installed, so experiment tracking is disabled for this session."
+            )
             st.markdown(
                 "Install the optional dependency to enable this tab, then rerun the app after logging a pipeline run."
             )
@@ -2886,8 +3141,8 @@ def main():
             if mlflow_error:
                 st.info(mlflow_error)
             else:
-                runs_df, run_lookup, ordered_run_ids, runs_error = _load_mlflow_runs_table(
-                    client, experiment_id
+                runs_df, run_lookup, ordered_run_ids, runs_error = (
+                    _load_mlflow_runs_table(client, experiment_id)
                 )
                 if runs_error:
                     st.error(runs_error)
@@ -2897,15 +3152,17 @@ def main():
                     )
                 else:
                     st.markdown("#### Recent Runs")
-                    display_df = runs_df[[
-                        "Run ID",
-                        "Run",
-                        "Status",
-                        "Start",
-                        "Duration (min)",
-                        "Ensemble AUC",
-                        "Brier",
-                    ]].copy()
+                    display_df = runs_df[
+                        [
+                            "Run ID",
+                            "Run",
+                            "Status",
+                            "Start",
+                            "Duration (min)",
+                            "Ensemble AUC",
+                            "Brier",
+                        ]
+                    ].copy()
                     _render_dataframe(display_df)
 
                     run_label_map: Dict[str, str] = {}
@@ -2926,16 +3183,25 @@ def main():
                     if not option_labels:
                         st.info("No completed run metadata is available yet.")
                     else:
-                        selected_label = st.selectbox("Run for model card", option_labels, index=0)
+                        selected_label = st.selectbox(
+                            "Run for model card", option_labels, index=0
+                        )
                         selected_run_id = run_label_map[selected_label]
                         run_meta = run_lookup[selected_run_id]
-                        run_results = _load_mlflow_json_artifact(
-                            selected_run_id, "artifacts/model_results.json"
-                        ) or {}
+                        run_results = (
+                            _load_mlflow_json_artifact(
+                                selected_run_id, "artifacts/model_results.json"
+                            )
+                            or {}
+                        )
                         if not isinstance(run_results, dict):
                             run_results = {}
 
-                        ensemble_metrics = run_results.get("ensemble", {}) if isinstance(run_results, dict) else {}
+                        ensemble_metrics = (
+                            run_results.get("ensemble", {})
+                            if isinstance(run_results, dict)
+                            else {}
+                        )
 
                         st.markdown("### Model Card")
 
@@ -2965,16 +3231,22 @@ def main():
 
                         metric_cols = st.columns(4)
                         metric_cols[0].metric(
-                            "Ensemble AUC", _format_metric_value(ensemble_metrics.get("auc_score"))
+                            "Ensemble AUC",
+                            _format_metric_value(ensemble_metrics.get("auc_score")),
                         )
                         metric_cols[1].metric(
-                            "Accuracy", _format_metric_value(ensemble_metrics.get("test_accuracy"))
+                            "Accuracy",
+                            _format_metric_value(ensemble_metrics.get("test_accuracy")),
                         )
                         metric_cols[2].metric(
-                            "Fβ Score", _format_metric_value(ensemble_metrics.get("fbeta_score"))
+                            "Fβ Score",
+                            _format_metric_value(ensemble_metrics.get("fbeta_score")),
                         )
                         metric_cols[3].metric(
-                            "Threshold", _format_metric_value(ensemble_metrics.get("optimal_threshold"))
+                            "Threshold",
+                            _format_metric_value(
+                                ensemble_metrics.get("optimal_threshold")
+                            ),
                         )
 
                         meta_cols = st.columns(2)
@@ -2992,9 +3264,14 @@ def main():
                             weights = ensemble_metrics.get("weights")
                             if isinstance(weights, dict) and weights:
                                 weights_df = pd.DataFrame(
-                                    [{"Model": key.upper(), "Weight": value} for key, value in weights.items()]
+                                    [
+                                        {"Model": key.upper(), "Weight": value}
+                                        for key, value in weights.items()
+                                    ]
                                 )
-                                weights_df["Weight"] = weights_df["Weight"].apply(_format_metric_value)
+                                weights_df["Weight"] = weights_df["Weight"].apply(
+                                    _format_metric_value
+                                )
                                 st.markdown("**Ensemble Weights**")
                                 _render_dataframe(weights_df)
                             else:
@@ -3008,7 +3285,8 @@ def main():
                             if model_name in {"metadata", "test_data"}:
                                 continue
                             if not any(
-                                key in model_metrics for key in ("auc_score", "test_accuracy", "fbeta_score")
+                                key in model_metrics
+                                for key in ("auc_score", "test_accuracy", "fbeta_score")
                             ):
                                 continue
                             model_rows.append(
@@ -3024,7 +3302,9 @@ def main():
                             models_df = pd.DataFrame(model_rows)
                             models_display = models_df.copy()
                             for col in ["AUC", "Accuracy", "Fβ"]:
-                                models_display[col] = models_display[col].apply(_format_metric_value)
+                                models_display[col] = models_display[col].apply(
+                                    _format_metric_value
+                                )
                             st.markdown("**Per-model Metrics**")
                             _render_dataframe(models_display)
 
@@ -3032,7 +3312,10 @@ def main():
 
                         with st.expander("MLflow Parameters", expanded=False):
                             if params:
-                                params_df = pd.DataFrame(sorted(params.items()), columns=["Parameter", "Value"])
+                                params_df = pd.DataFrame(
+                                    sorted(params.items()),
+                                    columns=["Parameter", "Value"],
+                                )
                                 _render_dataframe(params_df)
                             else:
                                 st.write("No parameters logged for this run.")
@@ -3040,17 +3323,21 @@ def main():
                         tags = run_meta.get("tags") or {}
                         if tags:
                             with st.expander("MLflow Tags", expanded=False):
-                                tags_df = pd.DataFrame(sorted(tags.items()), columns=["Tag", "Value"])
+                                tags_df = pd.DataFrame(
+                                    sorted(tags.items()), columns=["Tag", "Value"]
+                                )
                                 _render_dataframe(tags_df)
 
                         st.markdown("### SHAP Feature Impact")
                         shap_candidates = [
                             name
                             for name, metrics in run_results.items()
-                            if isinstance(metrics, dict) and name not in {"metadata", "test_data"}
+                            if isinstance(metrics, dict)
+                            and name not in {"metadata", "test_data"}
                         ]
                         shap_label_map = {
-                            name.replace("_", " ").title(): name for name in shap_candidates
+                            name.replace("_", " ").title(): name
+                            for name in shap_candidates
                         }
                         if shap_label_map:
                             shap_selected_label = st.selectbox(
@@ -3060,7 +3347,9 @@ def main():
                             )
                             shap_model_key = shap_label_map[shap_selected_label]
                             with st.spinner("Computing SHAP summary..."):
-                                shap_df = _compute_run_shap_global(selected_run_id, shap_model_key, df)
+                                shap_df = _compute_run_shap_global(
+                                    selected_run_id, shap_model_key, df
+                                )
                             if shap_df is not None and not shap_df.empty:
                                 top_shap = shap_df.head(20)
                                 shap_fig = go.Figure(
@@ -3082,7 +3371,9 @@ def main():
                                     "SHAP values unavailable. Ensure the SHAP library is installed and the chosen model artifact exists in MLflow."
                                 )
                         else:
-                            st.info("No model artifacts available for SHAP visualisation in this run.")
+                            st.info(
+                                "No model artifacts available for SHAP visualisation in this run."
+                            )
 
                         st.markdown("### Run Comparison")
                         default_compare = option_labels[: min(3, len(option_labels))]
@@ -3116,20 +3407,17 @@ def main():
                             if not comparison_df.empty:
                                 comparison_display = comparison_df.copy()
                                 for col in ["AUC", "Accuracy", "Fβ"]:
-                                    comparison_display[col] = comparison_display[col].apply(
-                                        _format_metric_value
-                                    )
+                                    comparison_display[col] = comparison_display[
+                                        col
+                                    ].apply(_format_metric_value)
                                 _render_dataframe(comparison_display)
 
-                                melted = (
-                                    comparison_df.melt(
-                                        id_vars="Run",
-                                        value_vars=["AUC", "Accuracy", "Fβ"],
-                                        var_name="Metric",
-                                        value_name="Value",
-                                    )
-                                    .dropna(subset=["Value"])
-                                )
+                                melted = comparison_df.melt(
+                                    id_vars="Run",
+                                    value_vars=["AUC", "Accuracy", "Fβ"],
+                                    var_name="Metric",
+                                    value_name="Value",
+                                ).dropna(subset=["Value"])
                                 if not melted.empty:
                                     compare_fig = px.bar(
                                         melted,
@@ -3140,11 +3428,19 @@ def main():
                                     )
                                     compare_fig.update_layout(
                                         height=420,
-                                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                                        legend=dict(
+                                            orientation="h",
+                                            yanchor="bottom",
+                                            y=1.02,
+                                            xanchor="right",
+                                            x=1,
+                                        ),
                                     )
                                     _render_plotly(compare_fig)
                         else:
-                            st.info("Select one or more runs to build a comparison chart.")
+                            st.info(
+                                "Select one or more runs to build a comparison chart."
+                            )
 
     with tab_explainability:
         st.subheader("Explainability Studio (SHAP & LIME)")
@@ -3205,7 +3501,9 @@ def main():
 
             shap_global = None
             if not SHAP_AVAILABLE:
-                st.info("Install the optional `shap` package to unlock global explanations (`pip install shap`).")
+                st.info(
+                    "Install the optional `shap` package to unlock global explanations (`pip install shap`)."
+                )
             else:
                 with st.spinner("Computing global SHAP importance..."):
                     shap_global = compute_global_shap_importance(model, shap_input)
@@ -3323,7 +3621,9 @@ def main():
             elif SHAP_AVAILABLE:
                 st.info("Local SHAP explanations unavailable for the selected sample.")
             else:
-                st.info("Install the optional `shap` package to enable local explanations (`pip install shap`).")
+                st.info(
+                    "Install the optional `shap` package to enable local explanations (`pip install shap`)."
+                )
 
             if lime_explanation is not None and not lime_explanation.empty:
                 lime_display = lime_explanation.nlargest(20, "abs_weight").iloc[::-1]
@@ -4080,7 +4380,9 @@ def main():
                 """
             )
 
-        with st.expander("What is CEWS (cross-modal early warning extension)?", expanded=False):
+        with st.expander(
+            "What is CEWS (cross-modal early warning extension)?", expanded=False
+        ):
             st.markdown(
                 """
                 **CEWS** measures how timely and trustworthy the alerts are. It rewards warnings that fire before a downturn and penalises false alarms.
@@ -4115,7 +4417,9 @@ def main():
                 """
             )
 
-        with st.expander("What is ensemble learning & regime adaptation?", expanded=False):
+        with st.expander(
+            "What is ensemble learning & regime adaptation?", expanded=False
+        ):
             st.markdown(
                 """
                 **Ensemble learning** mixes multiple models so their strengths add up. **Regime adaptation** changes those weights when the market mood flips.
@@ -4186,9 +4490,13 @@ def main():
     with tab_research:
         st.subheader("Research Addendum")
 
-        research_payload = results.get("research_artifacts") if isinstance(results, dict) else None
+        research_payload = (
+            results.get("research_artifacts") if isinstance(results, dict) else None
+        )
         if not research_payload:
-            st.info("Research artifacts will appear here after running the full pipeline on the CLI.")
+            st.info(
+                "Research artifacts will appear here after running the full pipeline on the CLI."
+            )
         else:
             st.success("Research artifacts generated from the latest pipeline run.")
 
@@ -4200,17 +4508,27 @@ def main():
             summary_cols = st.columns(3)
             summary_cols[0].metric(
                 "AUC",
-                f"{overall_metrics.get('auc', float('nan')):.3f}" if overall_metrics else "N/A",
+                (
+                    f"{overall_metrics.get('auc', float('nan')):.3f}"
+                    if overall_metrics
+                    else "N/A"
+                ),
             )
             summary_cols[1].metric(
                 "Brier Score",
-                f"{overall_metrics.get('brier', float('nan')):.3f}" if overall_metrics else "N/A",
+                (
+                    f"{overall_metrics.get('brier', float('nan')):.3f}"
+                    if overall_metrics
+                    else "N/A"
+                ),
             )
             summary_cols[2].metric(
                 "Precision@50",
-                f"{overall_metrics.get('precision_at_k', float('nan')):.3f}"
-                if overall_metrics
-                else "N/A",
+                (
+                    f"{overall_metrics.get('precision_at_k', float('nan')):.3f}"
+                    if overall_metrics
+                    else "N/A"
+                ),
             )
 
             st.markdown("#### Evaluation Metrics Overview")
@@ -4249,7 +4567,9 @@ def main():
                     xaxis_title="Predicted Probability",
                     yaxis_title="Observed Frequency",
                     height=350,
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                    legend=dict(
+                        orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+                    ),
                 )
                 _render_plotly(cal_fig)
             else:
@@ -4263,7 +4583,9 @@ def main():
                     .rename(columns={"index": "Crisis"})
                 )
                 crisis_df = crisis_df.rename(
-                    columns=lambda col: col if col == "Crisis" else col.replace("_", " ").title()
+                    columns=lambda col: (
+                        col if col == "Crisis" else col.replace("_", " ").title()
+                    )
                 )
                 _render_dataframe(crisis_df)
             else:
@@ -4278,7 +4600,9 @@ def main():
                     .rename(columns={"index": "Test"})
                 )
                 hypothesis_df = hypothesis_df.rename(
-                    columns=lambda col: col if col == "Test" else col.replace("_", " ").title()
+                    columns=lambda col: (
+                        col if col == "Test" else col.replace("_", " ").title()
+                    )
                 )
                 _render_dataframe(hypothesis_df)
             else:
@@ -4304,7 +4628,9 @@ def main():
                         .rename(columns={"index": "Scenario"})
                     )
                     noise_df = noise_df.rename(
-                        columns=lambda col: col if col == "Scenario" else col.replace("_", " ").title()
+                        columns=lambda col: (
+                            col if col == "Scenario" else col.replace("_", " ").title()
+                        )
                     )
                     _render_dataframe(noise_df)
 

@@ -104,7 +104,6 @@ if torch is not None and isinstance(nn, type) and Data is not None:
             out = self.out_linear(x)
             return out.squeeze(-1)
 
-
 else:  # pragma: no cover - fallback definition when torch is unavailable
     GraphRiskNet = None  # type: ignore
 
@@ -134,7 +133,11 @@ class GNNRiskPredictor:
         learning_rate: float = 1e-3,
         weight_decay: float = 5e-4,
         target_column: str = "Risk_Label",
-        fallback_target_columns: Sequence[str] = ("Risk_Score", "Volatility_20d", "Returns"),
+        fallback_target_columns: Sequence[str] = (
+            "Risk_Score",
+            "Volatility_20d",
+            "Returns",
+        ),
         device: Optional[str] = None,
         patience: int = 10,
         tolerance: float = 1e-5,
@@ -225,13 +228,16 @@ class GNNRiskPredictor:
             )
 
             if metadata.is_classification:
-                feature_frame["gnn_risk_class"] = (feature_frame["gnn_risk_score"] >= 0.5).astype(int)
+                feature_frame["gnn_risk_class"] = (
+                    feature_frame["gnn_risk_score"] >= 0.5
+                ).astype(int)
                 feature_frame["gnn_risk_margin"] = (
                     feature_frame["gnn_risk_score"] - 0.5
                 ).abs() * 2.0
             else:
                 feature_frame["gnn_risk_zscore"] = (
-                    feature_frame["gnn_risk_score"] - feature_frame["gnn_risk_score"].mean()
+                    feature_frame["gnn_risk_score"]
+                    - feature_frame["gnn_risk_score"].mean()
                 ) / (feature_frame["gnn_risk_score"].std(ddof=0) + 1e-6)
 
             if mc_stats is not None:
@@ -263,10 +269,14 @@ class GNNRiskPredictor:
         if Data is None or GCNConv is None or add_self_loops is None:
             raise ImportError("torch-geometric is required for the GNN risk predictor")
         if GraphRiskNet is None:
-            raise ImportError("GraphRiskNet could not be constructed because dependencies are missing")
+            raise ImportError(
+                "GraphRiskNet could not be constructed because dependencies are missing"
+            )
 
     def _resolve_target_column(self, df: pd.DataFrame) -> Optional[str]:
-        candidates: Tuple[Optional[str], ...] = (self.target_column,) + tuple(self.fallback_target_columns)
+        candidates: Tuple[Optional[str], ...] = (self.target_column,) + tuple(
+            self.fallback_target_columns
+        )
         for column in candidates:
             if not column:
                 continue
@@ -276,7 +286,9 @@ class GNNRiskPredictor:
                     return column
         return None
 
-    def _prepare_graph_data(self, window_df: pd.DataFrame) -> Optional[Tuple[object, GNNMetadata]]:
+    def _prepare_graph_data(
+        self, window_df: pd.DataFrame
+    ) -> Optional[Tuple[object, GNNMetadata]]:
         if window_df["Symbol"].nunique() < 3:
             return None
 
@@ -291,14 +303,21 @@ class GNNRiskPredictor:
         if "Returns" in window_df.columns:
             stats = (
                 window_df.groupby("Symbol")["Returns"]
-                .agg(mean_return="mean", vol_return="std", min_return="min", max_return="max")
+                .agg(
+                    mean_return="mean",
+                    vol_return="std",
+                    min_return="min",
+                    max_return="max",
+                )
                 .reset_index()
             )
             latest_slice = latest_slice.merge(stats, on="Symbol", how="left")
 
         target_column = self._resolve_target_column(latest_slice)
         if target_column is None:
-            self.logger.debug("Unable to locate numeric risk target for date %s", latest_date)
+            self.logger.debug(
+                "Unable to locate numeric risk target for date %s", latest_date
+            )
             return None
 
         corr_matrix = self._correlation_matrix(window_df)
@@ -315,18 +334,25 @@ class GNNRiskPredictor:
         numeric_cols = [
             col
             for col in latest_slice.columns
-            if col not in {"Symbol", "Date", target_column} and pd.api.types.is_numeric_dtype(latest_slice[col])
+            if col not in {"Symbol", "Date", target_column}
+            and pd.api.types.is_numeric_dtype(latest_slice[col])
         ]
         if not numeric_cols:
-            self.logger.debug("No numeric features available for GNN on %s", latest_date)
+            self.logger.debug(
+                "No numeric features available for GNN on %s", latest_date
+            )
             return None
 
-        feature_matrix = latest_slice[numeric_cols].fillna(0.0).to_numpy(dtype=np.float32)
+        feature_matrix = (
+            latest_slice[numeric_cols].fillna(0.0).to_numpy(dtype=np.float32)
+        )
         feature_matrix = self._standardize(feature_matrix)
         x_tensor = torch.tensor(feature_matrix, dtype=torch.float32)
 
         target_series = latest_slice[target_column].astype(float).fillna(0.0)
-        y_tensor = torch.tensor(target_series.to_numpy(dtype=np.float32), dtype=torch.float32)
+        y_tensor = torch.tensor(
+            target_series.to_numpy(dtype=np.float32), dtype=torch.float32
+        )
 
         unique_targets = np.unique(np.round(target_series.dropna(), decimals=4))
         is_classification = False
@@ -357,10 +383,16 @@ class GNNRiskPredictor:
         if "Returns" not in window_df.columns:
             return None
 
-        returns_wide = window_df.pivot_table(index="Date", columns="Symbol", values="Returns", aggfunc="mean")
-        returns_wide = returns_wide.sort_index().fillna(method="ffill").dropna(axis=1, how="all")
+        returns_wide = window_df.pivot_table(
+            index="Date", columns="Symbol", values="Returns", aggfunc="mean"
+        )
+        returns_wide = (
+            returns_wide.sort_index().fillna(method="ffill").dropna(axis=1, how="all")
+        )
 
-        if returns_wide.shape[1] < 3 or returns_wide.shape[0] < max(10, self.window // 3):
+        if returns_wide.shape[1] < 3 or returns_wide.shape[0] < max(
+            10, self.window // 3
+        ):
             return None
 
         corr_matrix = returns_wide.corr().fillna(0.0)
@@ -472,7 +504,9 @@ class GNNRiskPredictor:
 
             if validation_loss + self.tolerance < best_loss:
                 best_loss = validation_loss
-                best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+                best_state = {
+                    k: v.detach().cpu().clone() for k, v in model.state_dict().items()
+                }
                 patience_counter = 0
             else:
                 patience_counter += 1

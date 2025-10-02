@@ -30,14 +30,20 @@ class StaticWeightedEnsemble(BaseEnsemble):
         names, _ = self._stack_probabilities(model_probabilities)
 
         if self._provided_weights:
-            weight_vector = self._vector_from_mapping(names, self._provided_weights, self.floor_weight)
+            weight_vector = self._vector_from_mapping(
+                names, self._provided_weights, self.floor_weight
+            )
         elif model_scores:
-            weight_vector = self._vector_from_mapping(names, model_scores, self.floor_weight)
+            weight_vector = self._vector_from_mapping(
+                names, model_scores, self.floor_weight
+            )
         else:
             weight_vector = np.ones(len(names), dtype=float)
 
         weight_vector = self._normalize_weight_vector(weight_vector)
-        self.weights = {name: float(weight) for name, weight in zip(names, weight_vector)}
+        self.weights = {
+            name: float(weight) for name, weight in zip(names, weight_vector)
+        }
         return self
 
     def predict(

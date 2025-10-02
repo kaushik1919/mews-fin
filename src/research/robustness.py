@@ -59,7 +59,9 @@ class SentimentBiasDetector:
 
 
 class RobustnessStressTester:
-    def __init__(self, date_col: str = "Date", sentiment_col: str = "sentiment_score") -> None:
+    def __init__(
+        self, date_col: str = "Date", sentiment_col: str = "sentiment_score"
+    ) -> None:
         self.date_col = date_col
         self.sentiment_col = sentiment_col
 
@@ -72,7 +74,9 @@ class RobustnessStressTester:
     ) -> pd.DataFrame:
         rng = np.random.default_rng(random_state)
         working = df.copy()
-        numeric_cols = columns or working.select_dtypes(include=[np.number]).columns.tolist()
+        numeric_cols = (
+            columns or working.select_dtypes(include=[np.number]).columns.tolist()
+        )
         for col in numeric_cols:
             col_std = working[col].std()
             if np.isnan(col_std) or col_std == 0:
@@ -92,7 +96,9 @@ class RobustnessStressTester:
         if group_cols:
             working.sort_values(group_cols + [self.date_col], inplace=True)
             if self.sentiment_col in working.columns:
-                shifted = working.groupby(group_cols)[self.sentiment_col].shift(delay_days)
+                shifted = working.groupby(group_cols)[self.sentiment_col].shift(
+                    delay_days
+                )
                 working[self.sentiment_col] = shifted.fillna(method="bfill")
         else:
             working.sort_values(self.date_col, inplace=True)

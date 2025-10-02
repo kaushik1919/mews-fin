@@ -88,7 +88,6 @@ if torch is not None:
         std = stacked.std(axis=0)
         return mean, std
 
-
 else:  # pragma: no cover - torch unavailable
 
     def enable_dropout_layers(model):  # type: ignore[override]

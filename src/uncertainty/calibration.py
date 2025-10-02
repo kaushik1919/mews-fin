@@ -41,7 +41,9 @@ class ProbabilityCalibrator:
             raise ImportError("scikit-learn is required for probability calibration")
         self._model = LogisticRegression()
 
-    def fit(self, probabilities: np.ndarray, targets: np.ndarray) -> "ProbabilityCalibrator":
+    def fit(
+        self, probabilities: np.ndarray, targets: np.ndarray
+    ) -> "ProbabilityCalibrator":
         probs = np.asarray(probabilities).reshape(-1, 1)
         labels = np.asarray(targets).astype(int)
         self._model.fit(probs, labels)
@@ -52,11 +54,15 @@ class ProbabilityCalibrator:
         calibrated = self._model.predict_proba(probs)[:, 1]
         return calibrated
 
-    def calibration_curve(self, probabilities: np.ndarray, targets: np.ndarray, bins: int = 10) -> CalibrationCurve:
+    def calibration_curve(
+        self, probabilities: np.ndarray, targets: np.ndarray, bins: int = 10
+    ) -> CalibrationCurve:
         if calibration_curve is None:
             raise ImportError("scikit-learn is required for calibration curves")
         prob_true, prob_pred = calibration_curve(targets, probabilities, n_bins=bins)
-        return CalibrationCurve(probabilities_true=prob_true, probabilities_pred=prob_pred)
+        return CalibrationCurve(
+            probabilities_true=prob_true, probabilities_pred=prob_pred
+        )
 
 
 def compute_calibration_curve(
@@ -83,7 +89,9 @@ def save_reliability_diagram(
 
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.plot([0, 1], [0, 1], linestyle="--", color="gray", label="Perfect Calibration")
-    ax.plot(curve.probabilities_pred, curve.probabilities_true, marker="o", label="Model")
+    ax.plot(
+        curve.probabilities_pred, curve.probabilities_true, marker="o", label="Model"
+    )
     ax.set_xlabel("Predicted probability")
     ax.set_ylabel("Observed frequency")
     ax.set_title(title)

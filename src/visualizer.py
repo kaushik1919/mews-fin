@@ -168,12 +168,13 @@ class RiskVisualizer:
         if df.empty or "Date" not in df.columns:
             return df
 
-        if "news_sentiment_mean" in df.columns and df["news_sentiment_mean"].notna().any():
+        if (
+            "news_sentiment_mean" in df.columns
+            and df["news_sentiment_mean"].notna().any()
+        ):
             return df
 
-        sentiment_path = os.path.join(
-            self.output_dir, "news_sentiment_timeseries.csv"
-        )
+        sentiment_path = os.path.join(self.output_dir, "news_sentiment_timeseries.csv")
         if not os.path.exists(sentiment_path):
             self.logger.debug(
                 "Sentiment timeseries not found at %s; skipping sentiment enrichment",
@@ -194,9 +195,7 @@ class RiskVisualizer:
         if sentiment_df.empty or "Date" not in sentiment_df.columns:
             return df
 
-        sentiment_df["Date"] = pd.to_datetime(
-            sentiment_df["Date"], errors="coerce"
-        )
+        sentiment_df["Date"] = pd.to_datetime(sentiment_df["Date"], errors="coerce")
         sentiment_df = sentiment_df.dropna(subset=["Date"])
 
         if "Symbol" in sentiment_df.columns and symbols:
@@ -296,9 +295,9 @@ class RiskVisualizer:
         if candidate_sources:
             if "news_sentiment_mean" in enriched.columns:
                 for candidate in candidate_sources:
-                    enriched["news_sentiment_mean"] = enriched["news_sentiment_mean"].fillna(
-                        candidate
-                    )
+                    enriched["news_sentiment_mean"] = enriched[
+                        "news_sentiment_mean"
+                    ].fillna(candidate)
             else:
                 enriched["news_sentiment_mean"] = candidate_sources[0]
 
@@ -307,10 +306,9 @@ class RiskVisualizer:
             and "Symbol" in enriched.columns
             and enriched["news_sentiment_mean"].notna().any()
         ):
-            enriched["news_sentiment_mean"] = (
-                enriched.groupby("Symbol")["news_sentiment_mean"]
-                .transform(lambda s: s.fillna(method="ffill").fillna(method="bfill"))
-            )
+            enriched["news_sentiment_mean"] = enriched.groupby("Symbol")[
+                "news_sentiment_mean"
+            ].transform(lambda s: s.fillna(method="ffill").fillna(method="bfill"))
 
         if "external_sentiment_risk_probability" in enriched.columns:
             if "Risk_Probability" in enriched.columns:

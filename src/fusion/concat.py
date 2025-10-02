@@ -23,7 +23,9 @@ class SimpleConcatFusion(BaseFusion):
 
         # Drop any duplicate columns from text that already exist in tabular data.
         duplicate_cols = {
-            col for col in aligned_text.columns if col not in self.key_columns and col in tabular_df.columns
+            col
+            for col in aligned_text.columns
+            if col not in self.key_columns and col in tabular_df.columns
         }
         if duplicate_cols:
             aligned_text = aligned_text.drop(columns=list(duplicate_cols))

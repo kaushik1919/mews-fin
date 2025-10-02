@@ -101,7 +101,9 @@ class ExperimentManager:
         self.config = config
         self._provided_df = dataframe.copy() if dataframe is not None else None
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.output_dir = Path(config.output_dir) / f"{timestamp}_{_slugify(config.name)}"
+        self.output_dir = (
+            Path(config.output_dir) / f"{timestamp}_{_slugify(config.name)}"
+        )
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.logger = LOGGER
         self.logger.info("Experiment outputs will be stored in %s", self.output_dir)
@@ -126,8 +128,12 @@ class ExperimentManager:
         for ablation in self.config.ablations:
             name = str(ablation.get("name", "ablation"))
             ablation_df = self._apply_ablation(base_df, ablation)
-            baseline_overrides = ablation.get("baselines") if isinstance(ablation, Mapping) else None
-            mews_overrides = ablation.get("mews") if isinstance(ablation, Mapping) else None
+            baseline_overrides = (
+                ablation.get("baselines") if isinstance(ablation, Mapping) else None
+            )
+            mews_overrides = (
+                ablation.get("mews") if isinstance(ablation, Mapping) else None
+            )
             ablation_run = self._execute_run(
                 label=name,
                 df=ablation_df,
@@ -152,7 +158,9 @@ class ExperimentManager:
             return self._provided_df.copy()
 
         if not self.config.data_path:
-            raise ValueError("Experiment config missing 'data_path' and no dataframe provided")
+            raise ValueError(
+                "Experiment config missing 'data_path' and no dataframe provided"
+            )
 
         path = Path(self.config.data_path)
         if not path.exists():
@@ -206,7 +214,9 @@ class ExperimentManager:
                 self.output_dir / f"{label}_baselines.csv",
             )
             results["combined_baselines"] = combined_path
-            results["baselines"] = [self._result_summary(res) for res in baseline_results]
+            results["baselines"] = [
+                self._result_summary(res) for res in baseline_results
+            ]
         else:
             results["baselines"] = []
 
@@ -262,7 +272,9 @@ class ExperimentManager:
             if merged is None:
                 merged = preds
                 continue
-            merged = merged.merge(preds, on=key_cols, how="outer", suffixes=("", f"_{result.name}"))
+            merged = merged.merge(
+                preds, on=key_cols, how="outer", suffixes=("", f"_{result.name}")
+            )
         return merged if merged is not None else pd.DataFrame(columns=key_cols)
 
     def _run_mews(
@@ -278,7 +290,9 @@ class ExperimentManager:
             return None
 
         predictor = RiskPredictor()
-        regime_cfg = mews_cfg.get("regime_adaptive") if isinstance(mews_cfg, Mapping) else None
+        regime_cfg = (
+            mews_cfg.get("regime_adaptive") if isinstance(mews_cfg, Mapping) else None
+        )
         if isinstance(regime_cfg, Mapping):
             predictor.set_regime_adaptive_options(regime_cfg)
         elif isinstance(regime_cfg, bool):
@@ -318,7 +332,9 @@ class ExperimentManager:
 
         metadata_df = predictor.training_metadata
         if metadata_df is None or metadata_df.empty:
-            metadata_df = df.loc[features_df.index, [self.config.symbol_col, self.config.date_col]]
+            metadata_df = df.loc[
+                features_df.index, [self.config.symbol_col, self.config.date_col]
+            ]
         else:
             metadata_df = metadata_df[[self.config.symbol_col, self.config.date_col]]
 
@@ -340,7 +356,10 @@ class ExperimentManager:
             prediction_df,
             self.output_dir / f"{label}_mews_predictions.csv",
         )
-        metrics_path = self._write_json(self._to_serializable(metrics), self.output_dir / f"{label}_mews_metrics.json")
+        metrics_path = self._write_json(
+            self._to_serializable(metrics),
+            self.output_dir / f"{label}_mews_metrics.json",
+        )
 
         regime_payload: Optional[Dict[str, Any]] = None
         if predictor.dynamic_ensemble is not None:
@@ -388,11 +407,15 @@ class ExperimentManager:
             return {str(k): list(v) for k, v in data.items()}
         raise TypeError("feature_groups must be a mapping or path to mapping")
 
-    def _apply_ablation(self, df: pd.DataFrame, ablation: Mapping[str, Any]) -> pd.DataFrame:
+    def _apply_ablation(
+        self, df: pd.DataFrame, ablation: Mapping[str, Any]
+    ) -> pd.DataFrame:
         working = df.copy()
         drop_cols = ablation.get("drop_columns") or []
         if drop_cols:
-            working = working.drop(columns=[col for col in drop_cols if col in working.columns])
+            working = working.drop(
+                columns=[col for col in drop_cols if col in working.columns]
+            )
 
         keep_cols = ablation.get("keep_columns")
         if keep_cols:
@@ -425,7 +448,13 @@ class ExperimentManager:
         for col in numeric_cols:
             summary[f"mean_{col}"] = float(result.predictions[col].mean())
 
-        summary.update({f"meta_{k}": v for k, v in result.metadata.items() if not isinstance(v, dict)})
+        summary.update(
+            {
+                f"meta_{k}": v
+                for k, v in result.metadata.items()
+                if not isinstance(v, dict)
+            }
+        )
         return summary
 
     def _write_dataframe(self, df: pd.DataFrame, path: Path) -> str:

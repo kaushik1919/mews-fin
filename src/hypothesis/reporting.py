@@ -78,14 +78,16 @@ def _granger_results_to_df(results: List[GrangerCausalityResult]) -> pd.DataFram
     records = []
     for res in results:
         for lag_result in res.results:
-            records.append({
-                "Direction": res.direction,
-                "Lag": lag_result.lag,
-                "F-Statistic": lag_result.f_statistic,
-                "F P-Value": lag_result.f_pvalue,
-                "Chi2 Statistic": lag_result.chi2_statistic,
-                "Chi2 P-Value": lag_result.chi2_pvalue,
-            })
+            records.append(
+                {
+                    "Direction": res.direction,
+                    "Lag": lag_result.lag,
+                    "F-Statistic": lag_result.f_statistic,
+                    "F P-Value": lag_result.f_pvalue,
+                    "Chi2 Statistic": lag_result.chi2_statistic,
+                    "Chi2 P-Value": lag_result.chi2_pvalue,
+                }
+            )
     return pd.DataFrame(records)
 
 
@@ -142,7 +144,8 @@ def _build_html(
     meta_html = ""
     if metadata:
         rows = "".join(
-            f"<li><strong>{key}</strong>: {value}</li>" for key, value in metadata.items()
+            f"<li><strong>{key}</strong>: {value}</li>"
+            for key, value in metadata.items()
         )
         meta_html = f"<ul>{rows}</ul>"
 
@@ -185,10 +188,7 @@ def _dataframe_to_markdown(df: pd.DataFrame) -> str:
     separator = "| " + " | ".join(["---"] * len(columns)) + " |"
     rows = []
     for _, row in df.iterrows():
-        values = [
-            _format_value(row[col])
-            for col in columns
-        ]
+        values = [_format_value(row[col]) for col in columns]
         rows.append("| " + " | ".join(values) + " |")
     return "\n".join([header, separator, *rows])
 

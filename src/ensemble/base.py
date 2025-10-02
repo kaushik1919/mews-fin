@@ -16,11 +16,15 @@ class BaseEnsemble(ABC):
         self.weights: MutableMapping[str, float] = {}
 
     @abstractmethod
-    def fit(self, model_probabilities: Mapping[str, Iterable[float]], **kwargs: object) -> "BaseEnsemble":
+    def fit(
+        self, model_probabilities: Mapping[str, Iterable[float]], **kwargs: object
+    ) -> "BaseEnsemble":
         """Learn ensemble parameters from model probabilities."""
 
     @abstractmethod
-    def predict(self, model_probabilities: Mapping[str, Iterable[float]], **kwargs: object) -> np.ndarray:
+    def predict(
+        self, model_probabilities: Mapping[str, Iterable[float]], **kwargs: object
+    ) -> np.ndarray:
         """Combine probabilities into a single risk estimate."""
 
     def get_weights(self) -> Mapping[str, float]:
@@ -71,6 +75,6 @@ class BaseEnsemble(ABC):
         weight_mapping: Mapping[str, float],
         floor: float = 0.0,
     ) -> np.ndarray:
-        return np.array([
-            max(float(weight_mapping.get(name, 0.0)), floor) for name in names
-        ])
+        return np.array(
+            [max(float(weight_mapping.get(name, 0.0)), floor) for name in names]
+        )

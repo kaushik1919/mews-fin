@@ -36,13 +36,15 @@ class ResearchReportBuilder:
                         lines.append(f"- **{key}**: {value}")
             lines.append("")
 
-        lines.extend([
-            "## 2. Hypothesis Tests",
-            json.dumps(hypothesis_results, indent=2),
-            "",
-            "## 3. Robustness Checks",
-            json.dumps(robustness_results, indent=2),
-        ])
+        lines.extend(
+            [
+                "## 2. Hypothesis Tests",
+                json.dumps(hypothesis_results, indent=2),
+                "",
+                "## 3. Robustness Checks",
+                json.dumps(robustness_results, indent=2),
+            ]
+        )
 
         output_path = self.output_dir / filename
         output_path.write_text("\n".join(lines), encoding="utf-8")

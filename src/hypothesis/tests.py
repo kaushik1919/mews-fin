@@ -49,7 +49,9 @@ def paired_t_test(
     sent = _ensure_numpy(with_sentiment, "with_sentiment")
     base = _ensure_numpy(without_sentiment, "without_sentiment")
     if sent.shape != base.shape:
-        raise ValueError("with_sentiment and without_sentiment must have matching shapes")
+        raise ValueError(
+            "with_sentiment and without_sentiment must have matching shapes"
+        )
 
     statistic, p_value = stats.ttest_rel(sent, base, nan_policy="omit")
     diffs = sent - base
@@ -88,7 +90,9 @@ def permutation_test(
     sent = _ensure_numpy(with_sentiment, "with_sentiment")
     base = _ensure_numpy(without_sentiment, "without_sentiment")
     if sent.shape != base.shape:
-        raise ValueError("with_sentiment and without_sentiment must have matching shapes")
+        raise ValueError(
+            "with_sentiment and without_sentiment must have matching shapes"
+        )
 
     diffs = sent - base
     observed = float(diffs.mean())
@@ -146,18 +150,28 @@ def granger_causality(
     if max_lag <= 0:
         raise ValueError("max_lag must be positive")
 
-    data = pd.DataFrame({
-        "fundamentals": fundamentals.values,
-        "sentiment": sentiment.values,
-    })
-    test_output = grangercausalitytests(data[["fundamentals", "sentiment"]], maxlag=max_lag, verbose=False)
+    data = pd.DataFrame(
+        {
+            "fundamentals": fundamentals.values,
+            "sentiment": sentiment.values,
+        }
+    )
+    test_output = grangercausalitytests(
+        data[["fundamentals", "sentiment"]], maxlag=max_lag, verbose=False
+    )
 
     lag_results: list[GrangerLagResult] = []
     for lag, results in test_output.items():
         f_test = results[0].get("ssr_ftest") if isinstance(results, tuple) else None
-        chi_test = results[0].get("ssr_chi2test") if isinstance(results, tuple) else None
-        f_stat, f_pvalue = (float(f_test[0]), float(f_test[1])) if f_test else (np.nan, np.nan)
-        chi_stat, chi_pvalue = (float(chi_test[0]), float(chi_test[1])) if chi_test else (None, None)
+        chi_test = (
+            results[0].get("ssr_chi2test") if isinstance(results, tuple) else None
+        )
+        f_stat, f_pvalue = (
+            (float(f_test[0]), float(f_test[1])) if f_test else (np.nan, np.nan)
+        )
+        chi_stat, chi_pvalue = (
+            (float(chi_test[0]), float(chi_test[1])) if chi_test else (None, None)
+        )
         lag_results.append(
             GrangerLagResult(
                 lag=int(lag),
@@ -168,7 +182,9 @@ def granger_causality(
             )
         )
 
-    return GrangerCausalityResult(direction=direction, max_lag=max_lag, results=lag_results)
+    return GrangerCausalityResult(
+        direction=direction, max_lag=max_lag, results=lag_results
+    )
 
 
 def likelihood_ratio_test(
@@ -192,10 +208,14 @@ def likelihood_ratio_test(
 
     if degrees_freedom is None:
         if alt_df is None or null_df is None:
-            raise ValueError("degrees_freedom must be provided when model degrees are unknown")
+            raise ValueError(
+                "degrees_freedom must be provided when model degrees are unknown"
+            )
         degrees_freedom = int(alt_df - null_df)
     if degrees_freedom <= 0:
-        raise ValueError("degrees_freedom must be positive for the likelihood ratio test")
+        raise ValueError(
+            "degrees_freedom must be positive for the likelihood ratio test"
+        )
 
     lr_stat = 2.0 * (alt_ll - null_ll)
     p_value = float(stats.chi2.sf(lr_stat, degrees_freedom))
