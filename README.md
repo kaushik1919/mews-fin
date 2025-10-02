@@ -2,8 +2,6 @@
 
 A professional-grade machine learning system for predicting market risk using free data sources. Features GPU acceleration, real-time sentiment analysis, and an interactive web dashboard.
 
-> **Research framing:** MEWS is designed as a reproducible research stack that fuses market microstructure data, textual sentiment, and correlation graphs to stress-test systemic risk hypotheses. The pipeline supports crisis replays, ablation experiments, and robustness diagnostics so you can defend findings with publication-ready evidence.
-
 ## ✨ Features
 
 - 🤖 **4 ML Models**: Random Forest, XGBoost, SVM, and Logistic Regression with ensemble predictions
