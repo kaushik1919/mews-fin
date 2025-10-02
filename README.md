@@ -265,8 +265,8 @@ The system generates:
 
 ### Sample Visuals
 
-| Risk Timeline | Sentiment Risk Timeline |
-| --- | --- |
+| Sentiment Risk Timeline |
+| --- |
 | ![Market sentiment timeline](outputs/sentiment_analysis.png) |
 
 ### Sample News Sentiment & Risk Snapshot
