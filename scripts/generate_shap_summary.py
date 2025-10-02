@@ -1,4 +1,5 @@
 """Generate a SHAP summary plot for the latest trained model."""
+
 from __future__ import annotations
 
 import sys
@@ -9,7 +10,6 @@ import numpy as np
 import pandas as pd
 import shap
 from matplotlib import pyplot as plt
-
 
 DATASET_PATH = Path("data/dataset_with_risk_labels.csv")
 MODEL_ROOT = Path("models")
@@ -24,7 +24,9 @@ def _latest_model_dir() -> Path:
     return max(candidates, key=lambda path: path.name)
 
 
-def _load_feature_matrix(df: pd.DataFrame, feature_names: np.ndarray | None) -> pd.DataFrame:
+def _load_feature_matrix(
+    df: pd.DataFrame, feature_names: np.ndarray | None
+) -> pd.DataFrame:
     numeric_df = df.select_dtypes(include=[np.number]).copy()
     if TARGET_COLUMN in numeric_df.columns:
         numeric_df = numeric_df.drop(columns=[TARGET_COLUMN])
@@ -66,7 +68,11 @@ def main() -> int:
         raise ValueError("No numeric features available to compute SHAP values.")
 
     sample_size = min(len(features), 500)
-    sample = features.sample(sample_size, random_state=42) if len(features) > sample_size else features
+    sample = (
+        features.sample(sample_size, random_state=42)
+        if len(features) > sample_size
+        else features
+    )
 
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(sample)

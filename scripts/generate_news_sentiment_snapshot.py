@@ -12,11 +12,11 @@ import os
 import sys
 from dataclasses import dataclass
 from datetime import date, timedelta
+from pathlib import Path
 from typing import Iterable, List, Optional, Tuple
 
 import pandas as pd
 from dotenv import load_dotenv
-from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -36,7 +36,9 @@ class SnapshotConfig:
     plot_path: str = "outputs/sentiment_analysis.png"
 
 
-def _extract_latest_rows(df: pd.DataFrame, group_key: str, date_col: str) -> pd.DataFrame:
+def _extract_latest_rows(
+    df: pd.DataFrame, group_key: str, date_col: str
+) -> pd.DataFrame:
     """Return the most recent row per group based on *date_col*."""
 
     if df.empty:
@@ -105,7 +107,9 @@ def collect_news_sentiment(
 
     sentiment_daily = analyzer.aggregate_sentiment_by_date(scored)
     if sentiment_daily.empty:
-        return (pd.DataFrame(), pd.DataFrame()) if include_aggregated else sentiment_daily
+        return (
+            (pd.DataFrame(), pd.DataFrame()) if include_aggregated else sentiment_daily
+        )
 
     renamed = sentiment_daily.rename(
         columns={
@@ -121,8 +125,12 @@ def collect_news_sentiment(
 
     # Attach a representative headline for context (latest by published date)
     if "published_date" in scored.columns:
-        scored["published_date"] = pd.to_datetime(scored["published_date"], errors="coerce")
-        scored_sorted = scored.sort_values(["symbol", "published_date"], ascending=[True, False])
+        scored["published_date"] = pd.to_datetime(
+            scored["published_date"], errors="coerce"
+        )
+        scored_sorted = scored.sort_values(
+            ["symbol", "published_date"], ascending=[True, False]
+        )
         headline_df = scored_sorted.groupby("symbol", as_index=False).first()[
             ["symbol", "title", "url"]
         ]
@@ -143,9 +151,9 @@ def collect_news_sentiment(
 
     # Combined sentiment: average of SEC combined sentiment (when present) and the news mean
     if "combined_sec_sentiment" in renamed.columns:
-        renamed["Combined_Sentiment"] = renamed[["combined_sec_sentiment", "News_Sentiment"]].mean(
-            axis=1
-        )
+        renamed["Combined_Sentiment"] = renamed[
+            ["combined_sec_sentiment", "News_Sentiment"]
+        ].mean(axis=1)
         renamed["Combined_Sentiment"] = renamed["Combined_Sentiment"].fillna(
             renamed["News_Sentiment"]
         )
@@ -153,7 +161,9 @@ def collect_news_sentiment(
         renamed["Combined_Sentiment"] = renamed["News_Sentiment"]
 
     # Estimate risk probability using a sigmoid heuristic so that negative sentiment maps to higher risk
-    renamed["Risk_Probability"] = _heuristic_risk_probability(renamed["Combined_Sentiment"])
+    renamed["Risk_Probability"] = _heuristic_risk_probability(
+        renamed["Combined_Sentiment"]
+    )
 
     # Round for readability
     for col in [
@@ -217,7 +227,9 @@ def collect_news_sentiment(
     return latest
 
 
-def create_sentiment_timeline_plot(aggregated: pd.DataFrame, output_path: str) -> Optional[str]:
+def create_sentiment_timeline_plot(
+    aggregated: pd.DataFrame, output_path: str
+) -> Optional[str]:
     """Generate a dual-axis sentiment vs risk timeline chart."""
 
     if aggregated.empty:
@@ -230,9 +242,7 @@ def create_sentiment_timeline_plot(aggregated: pd.DataFrame, output_path: str) -
         working["Date"] = pd.to_datetime(working["Date"])
 
         if "Combined_Sentiment" in working.columns:
-            daily = (
-                working.groupby("Date")["Combined_Sentiment"].mean().reset_index()
-            )
+            daily = working.groupby("Date")["Combined_Sentiment"].mean().reset_index()
         else:
             daily = working.groupby("Date")["News_Sentiment"].mean().reset_index()
             daily = daily.rename(columns={daily.columns[1]: "Combined_Sentiment"})
@@ -241,7 +251,9 @@ def create_sentiment_timeline_plot(aggregated: pd.DataFrame, output_path: str) -
             return None
 
         daily = daily.sort_values("Date")
-        daily["Risk_Probability"] = _heuristic_risk_probability(daily["Combined_Sentiment"])
+        daily["Risk_Probability"] = _heuristic_risk_probability(
+            daily["Combined_Sentiment"]
+        )
 
         fig, ax1 = plt.subplots(figsize=(12, 6))
         ax2 = ax1.twinx()
@@ -326,7 +338,9 @@ def main(config: Optional[SnapshotConfig] = None) -> None:
     if not aggregated_df.empty:
         aggregated_df_sorted = aggregated_df.sort_values(["Date", "Symbol"])
         aggregated_df_sorted.to_csv(config.aggregated_output_path, index=False)
-        plot_path = create_sentiment_timeline_plot(aggregated_df_sorted, config.plot_path)
+        plot_path = create_sentiment_timeline_plot(
+            aggregated_df_sorted, config.plot_path
+        )
         if plot_path:
             print(f"Saved sentiment timeline to {plot_path}")
 
@@ -335,7 +349,9 @@ def main(config: Optional[SnapshotConfig] = None) -> None:
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate a news sentiment snapshot using GNews")
+    parser = argparse.ArgumentParser(
+        description="Generate a news sentiment snapshot using GNews"
+    )
     parser.add_argument(
         "--symbols",
         nargs="+",

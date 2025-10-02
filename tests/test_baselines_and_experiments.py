@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import json
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -39,7 +39,9 @@ def test_value_at_risk_baseline_thresholds():
     result = baseline.run(df)
 
     assert not result.predictions.empty
-    assert {"var_hist_threshold", "var_param_threshold"}.issubset(result.predictions.columns)
+    assert {"var_hist_threshold", "var_param_threshold"}.issubset(
+        result.predictions.columns
+    )
     assert result.metadata["confidence_level"] == 0.9
 
 
@@ -70,7 +72,9 @@ def test_experiment_manager_executes(tmp_path):
     df = _make_sample_frame(rows=120, symbols=1)
     config = ExperimentConfig(
         name="unit_test",
-        baselines=[{"type": "value_at_risk", "params": {"confidence": 0.9, "window": 20}}],
+        baselines=[
+            {"type": "value_at_risk", "params": {"confidence": 0.9, "window": 20}}
+        ],
         mews={"enabled": False},
         output_dir=str(tmp_path),
     )
@@ -79,7 +83,11 @@ def test_experiment_manager_executes(tmp_path):
 
     assert summary["experiment"] == "unit_test"
     assert summary["runs"]
-    combined_files = [run.get("combined_baselines") for run in summary["runs"] if run.get("combined_baselines")]
+    combined_files = [
+        run.get("combined_baselines")
+        for run in summary["runs"]
+        if run.get("combined_baselines")
+    ]
     assert combined_files
     for file_path in combined_files:
         assert Path(file_path).exists()

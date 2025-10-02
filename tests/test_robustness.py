@@ -82,7 +82,9 @@ def test_robustness_evaluator_runs_with_stub(monkeypatch, tmp_path):
             self.dynamic_ensemble = None
             self.regime_detector = None
 
-        def prepare_modeling_data(self, df, feature_groups=None, target_col="Risk_Label"):
+        def prepare_modeling_data(
+            self, df, feature_groups=None, target_col="Risk_Label"
+        ):
             features = df[["feature"]].copy()
             target = df[target_col].to_numpy()
             self.training_metadata = df[["Date", "Symbol"]].copy()
@@ -108,8 +110,12 @@ def test_robustness_evaluator_runs_with_stub(monkeypatch, tmp_path):
     evaluator = RobustnessEvaluator(dataset=df, output_root=tmp_path)
     report = evaluator.run(
         perturbations=[
-            PerturbationConfig(name="noise_zero", kind="noise", params={"noise_level": 0.0}),
-            PerturbationConfig(name="delay_zero", kind="delay", params={"delay_days": 0}),
+            PerturbationConfig(
+                name="noise_zero", kind="noise", params={"noise_level": 0.0}
+            ),
+            PerturbationConfig(
+                name="delay_zero", kind="delay", params={"delay_days": 0}
+            ),
         ],
         auditor=SentimentBiasAuditor(
             finbert_columns=["feature"],

@@ -49,7 +49,11 @@ def test_granger_causality_identifies_signal():
     sentiment = rng.normal(size=n)
     fundamentals = np.zeros(n)
     for idx in range(1, n):
-        fundamentals[idx] = 0.6 * fundamentals[idx - 1] + 0.4 * sentiment[idx - 1] + rng.normal(scale=0.5)
+        fundamentals[idx] = (
+            0.6 * fundamentals[idx - 1]
+            + 0.4 * sentiment[idx - 1]
+            + rng.normal(scale=0.5)
+        )
 
     result = granger_causality(
         sentiment_series=sentiment,
@@ -100,11 +104,13 @@ def test_report_builder_creates_outputs(tmp_path: Path):
     )
 
     rng = np.random.default_rng(21)
-    df = pd.DataFrame({
-        "y": rng.binomial(1, 0.5, size=120),
-        "x1": rng.normal(size=120),
-        "x2": rng.normal(size=120),
-    })
+    df = pd.DataFrame(
+        {
+            "y": rng.binomial(1, 0.5, size=120),
+            "x1": rng.normal(size=120),
+            "x2": rng.normal(size=120),
+        }
+    )
     null_model = sm.Logit(df["y"], sm.add_constant(df[["x1"]])).fit(disp=False)
     alt_model = sm.Logit(df["y"], sm.add_constant(df[["x1", "x2"]])).fit(disp=False)
     lr_result = likelihood_ratio_test(
