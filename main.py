@@ -24,6 +24,10 @@ try:
     from src.data_preprocessor import DataPreprocessor
     from src.ml_models import RiskPredictor
     from src.news_collector import NewsDataCollector
+    from src.sec_downloader import SECFilingsDownloader
+    from src.sentiment_analyzer import SentimentAnalyzer
+    from src.visualizer import RiskVisualizer
+    from src.utils.logging import get_logger
     from src.research import (
         GraphFeatureAblation,
         ResearchEvaluator,
@@ -32,10 +36,6 @@ try:
         SentimentBiasDetector,
         SentimentImpactTester,
     )
-    from src.sec_downloader import SECFilingsDownloader
-    from src.sentiment_analyzer import SentimentAnalyzer
-    from src.utils.logging import get_logger
-    from src.visualizer import RiskVisualizer
 except ImportError as e:
     print(f"Import error: {e}")
     print(

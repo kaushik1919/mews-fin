@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import warnings
 from typing import Any, Iterable, Mapping, MutableMapping, Optional
+
+import warnings
 
 import numpy as np
 import pandas as pd

@@ -405,12 +405,7 @@ def _compute_run_shap_global(
 
 
 from src.backtester import RiskBacktester
-from src.case_studies import PREDEFINED_CASE_STUDIES, CaseStudyRunner, CaseStudyScenario
-from src.config import Config
-from src.experiments import ExperimentConfig, ExperimentManager
 from src.metrics import compute_cews_score
-from src.multimodal_fusion import FusionInputs, MultiModalFeatureFusion
-from src.robustness import PerturbationConfig, RobustnessEvaluator
 from src.xai_utils import (
     LIME_AVAILABLE,
     SHAP_AVAILABLE,
@@ -418,6 +413,12 @@ from src.xai_utils import (
     compute_lime_explanation,
     compute_local_shap_explanation,
 )
+
+from src.case_studies import CaseStudyRunner, CaseStudyScenario, PREDEFINED_CASE_STUDIES
+from src.config import Config
+from src.experiments import ExperimentConfig, ExperimentManager
+from src.multimodal_fusion import FusionInputs, MultiModalFeatureFusion
+from src.robustness import PerturbationConfig, RobustnessEvaluator
 
 if TYPE_CHECKING:  # pragma: no cover - typing helpers
     from mlflow.tracking import MlflowClient  # type: ignore
