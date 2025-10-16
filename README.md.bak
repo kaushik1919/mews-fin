@@ -1,19 +1,19 @@
-#  Market Risk Early Warning System (MEWS)
+# 📊 Market Risk Early Warning System (MEWS)
 
 A professional-grade machine learning system for predicting market risk using free data sources. Features GPU acceleration, real-time sentiment analysis, and an interactive web dashboard.
 
-##  Features
+## ✨ Features
 
--  **4 ML Models**: Random Forest, XGBoost, SVM, and Logistic Regression with ensemble predictions
--  **GPU Acceleration**: CUDA support for faster training (optional)
--  **Real-time Sentiment**: News sentiment analysis with GNews API integration
--  **Interactive Dashboard**: Professional Streamlit web interface
--  **CI/CD Pipeline**: Automated testing, linting, and deployment
--  **Docker Support**: Containerized deployment for easy scaling
--  **Risk Timeline**: Historical risk visualization with statistical analysis
--  **Graph-Aware Risk Signals**: Correlation GNN features powered by PyTorch Geometric
+- 🤖 **4 ML Models**: Random Forest, XGBoost, SVM, and Logistic Regression with ensemble predictions
+- 🚀 **GPU Acceleration**: CUDA support for faster training (optional)
+- 📰 **Real-time Sentiment**: News sentiment analysis with GNews API integration
+- 📊 **Interactive Dashboard**: Professional Streamlit web interface
+- 🔄 **CI/CD Pipeline**: Automated testing, linting, and deployment
+- 🐳 **Docker Support**: Containerized deployment for easy scaling
+- 📈 **Risk Timeline**: Historical risk visualization with statistical analysis
+- 🕸️ **Graph-Aware Risk Signals**: Correlation GNN features powered by PyTorch Geometric
 
-##  Quick Start
+## 🚀 Quick Start
 
 ### Option 1: Using Build Script (Recommended)
 
@@ -72,7 +72,7 @@ python main.py --full-pipeline
 streamlit run streamlit_app.py
 ```
 
-##  Command-Line Interface
+## 🖥️ Command-Line Interface
 
 Once the dependencies are installed (via `python build.py setup-dev`, `pip install -r requirements.txt`, or `pip install -e .`), you can drive the full system directly from the command line. The CLI is available either through the module entry point or the installed console script.
 
@@ -93,7 +93,7 @@ On Windows PowerShell, prefix virtual-environment scripts with `.\` (for example
 
 When `--full-pipeline` completes, the system runs a tenth "Research Addendum" stage that benchmarks MEWS against statistical baselines, performs hypothesis tests, evaluates robustness, and publishes Markdown/HTML summaries inside `outputs/research/`. See `docs/RESEARCH_GUIDE.md` for interpretation tips and citation-ready figures.
 
-##  Configuration
+## ⚙️ Configuration
 
 Copy the provided template to a root-level `.env` and confirm your keys:
 
@@ -116,7 +116,7 @@ Required API keys (all have free tiers):
 - **GNews API** ([Get key](https://gnews.io/)): 100 requests/day (already seeded in the template)
 - Optional: Alpha Vantage, News API, FRED API
 
-##  Development & Testing
+## 🧪 Development & Testing
 
 ```bash
 # Install development dependencies
@@ -135,21 +135,21 @@ python build.py format
 python build.py all
 ```
 
-##  System Architecture
+## 📊 System Architecture
 
 ```
-        
-   Data Sources         Processing           ML & Output   
-        
- Yahoo Finance    Data Cleaning    ML Models       
- Alpha Vantage        Feature Eng.         Risk Prediction 
- SEC EDGAR        Sentiment Anal.  Visualization   
- News APIs            Data Integration     Backtesting     
- Market Data          Risk Labeling        Reports         
-        
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Data Sources  │    │   Processing    │    │   ML & Output   │
+├─────────────────┤    ├─────────────────┤    ├─────────────────┤
+│ Yahoo Finance   │───▶│ Data Cleaning   │───▶│ ML Models       │
+│ Alpha Vantage   │    │ Feature Eng.    │    │ Risk Prediction │
+│ SEC EDGAR       │───▶│ Sentiment Anal. │───▶│ Visualization   │
+│ News APIs       │    │ Data Integration│    │ Backtesting     │
+│ Market Data     │    │ Risk Labeling   │    │ Reports         │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-##  System Components
+## 🔧 System Components
 
 ### Core Modules
 
@@ -257,7 +257,7 @@ The builder returns paths for both Markdown and HTML documents that can be cited
 - **Risk Prediction**: Binary classification with probability scores
 - **Rate Limiting**: Respects API constraints automatically
 
-##  Example Outputs
+## 📈 Example Outputs
 
 The system generates:
 
@@ -273,7 +273,7 @@ The system generates:
 | --- | --- | --- | --- | --- | --- |
 | GOOGL | 2025-10-01 | 0.917 | 0.891 | 0.888 | 0.04 |
 | MSFT | 2025-10-01 | 0.919 | 0.893 | 0.864 | 0.05 |
-| NVDA | 2025-10-01 |  |  | 0.864 | 0.05 |
+| NVDA | 2025-10-01 | — | — | 0.864 | 0.05 |
 
 *NVDA currently has no recent SEC filing in the cached dataset, so only headline-driven sentiment is shown.*
 
@@ -304,7 +304,7 @@ The system generates:
 - `news_sentiment_timeseries.csv`: Recent headline sentiment timeline used for README visuals
 - Model files (`.joblib` format)
 
-##  Model Performance
+## 🎯 Model Performance
 
 The system includes two main models:
 
@@ -323,7 +323,7 @@ The system includes two main models:
 - Feature importance
 - Cross-validation scores
 
-##  Research-Grade Enhancements
+## 🧠 Research-Grade Enhancements
 
 - **Regime-Adaptive Ensemble:** Learns volatility-aware weights across Random Forest, Logistic Regression, XGBoost, and SVM models.
 - **Cross-Attention Fusion:** Optional transformer-based fusion layer that combines textual sentiment embeddings with tabular indicators via `CrossAttentionFusion`.
@@ -332,7 +332,7 @@ The system includes two main models:
 - **Robustness & Bias Checks:** Diagnose sentiment skew and evaluate adversarial scenarios (noise or delayed news) with `SentimentBiasDetector` and `RobustnessStressTester`.
 - **Research Reports:** Auto-generated Markdown/HTML summaries in `outputs/research/` ready for citation (see `docs/RESEARCH_GUIDE.md`).
 
-##  Unique & Novel Contributions
+## 🧬 Unique & Novel Contributions
 
 - **Volatility-Regime Smarts:** A regime-adaptive ensemble continuously learns optimal weights as market volatility shifts, improving crisis detection.
 - **Multimodal Attention Fusion:** Cross-attention bridges language models and tabular indicators so textual sentiment directly modulates numerical signals.
@@ -340,7 +340,7 @@ The system includes two main models:
 - **Integrated Causal Diagnostics:** Likelihood-ratio tests, graph feature ablations, and sentiment bias audits are bundled into the default pipeline to validate signal provenance.
 - **Hands-Free Research Artifacts:** MEWS exports Markdown and HTML reports with methodology, figures, and robustness narratives ready for peer review.
 
-##  Backtesting
+## 🔍 Backtesting
 
 The system validates predictions against major market events:
 
@@ -359,20 +359,20 @@ The system validates predictions against major market events:
 - Systemic risk indicators
 - Contagion detection
 
-##  Development
+## 🛠️ Development
 
 ### Project Structure
 ```
 mews-fin/
- src/                 # Core modules
- data/                # Raw and processed data
- models/              # Trained ML models
- outputs/             # Visualizations and reports
- config/              # Configuration files
- notebooks/           # Jupyter notebooks (optional)
- main.py              # Main orchestrator
- requirements.txt     # Dependencies
- README.md            # This file
+├── src/                 # Core modules
+├── data/                # Raw and processed data
+├── models/              # Trained ML models
+├── outputs/             # Visualizations and reports
+├── config/              # Configuration files
+├── notebooks/           # Jupyter notebooks (optional)
+├── main.py              # Main orchestrator
+├── requirements.txt     # Dependencies
+└── README.md            # This file
 ```
 
 ### Adding New Features
@@ -394,7 +394,7 @@ python -m src.ml_models
 python main.py --symbols AAPL --start-date 2023-01-01 --end-date 2023-06-30
 ```
 
-##  Documentation
+## 📚 Documentation
 
 ### Key Parameters
 
@@ -416,7 +416,7 @@ python main.py --symbols AAPL --start-date 2023-01-01 --end-date 2023-06-30
 - **Recommended**: 8GB RAM for full pipeline
 - **Storage**: ~1GB for 5 years of data (50 stocks)
 
-##  Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create feature branch (`git checkout -b feature/new-feature`)
@@ -424,15 +424,15 @@ python main.py --symbols AAPL --start-date 2023-01-01 --end-date 2023-06-30
 4. Push to branch (`git push origin feature/new-feature`)
 5. Create Pull Request
 
-##  License
+## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-##  Disclaimer
+## ⚠️ Disclaimer
 
 This system is for educational and research purposes only. Not intended for live trading or investment advice. Always conduct your own research and consult with financial advisors before making investment decisions.
 
-##  Support
+## 🆘 Support
 
 For issues and questions:
 1. Check existing GitHub issues
