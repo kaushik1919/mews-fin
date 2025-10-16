@@ -1,3 +1,100 @@
+name: CI (Python 3.9)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+          # Ensure CI tools are present even if not in dev requirements
+          pip install --upgrade \
+            black isort mypy bandit pytest pytest-cov coverage
+
+      - name: Show tool versions
+        run: |
+          python --version
+          pip --version
+          black --version
+          isort --version
+          mypy --version
+          bandit --version
+          pytest --version
+
+      - name: Lint with Black (check only)
+        run: |
+          black --check .
+
+      - name: Check imports with isort (check only)
+        run: |
+          isort . --profile black --check-only
+
+      - name: Type check with mypy
+        env:
+          PYTHONPATH: src
+        run: |
+          # Adjust targets as needed
+          if [ -d src ]; then TARGETS="src"; fi
+          if [ -d tests ]; then TARGETS="$TARGETS tests"; fi
+          if [ -z "$TARGETS" ]; then TARGETS="."; fi
+          mypy $TARGETS
+
+      - name: Security scan with Bandit
+        run: |
+          # Exclude tests directory by default
+          if [ -d src ]; then TARGET_DIR=src; else TARGET_DIR=.; fi
+          bandit -r "$TARGET_DIR" -x tests -q
+
+      - name: Run tests with pytest and coverage
+        env:
+          PYTHONPATH: src
+        run: |
+          pytest -q --maxfail=1 --disable-warnings -W ignore::DeprecationWarning \
+            --cov=src --cov-report=xml:coverage.xml --cov-report=term
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+          flags: python
+          fail_ci_if_error: false
+          verbose: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      # No docs build step included to keep CI fast and quiet
+
 name: CI/CD Pipeline
 
 on:
