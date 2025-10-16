@@ -21,6 +21,7 @@ class Config:
     ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
     GNEWS_API_KEY = os.getenv("GNEWS_API_KEY")
     NEWS_API_KEY = os.getenv("NEWS_API_KEY")
+    HTTP_TIMEOUT = float(os.getenv("HTTP_TIMEOUT", 30))
 
     # Data Configuration
     START_DATE = os.getenv("START_DATE", "2021-01-01")
@@ -102,6 +103,7 @@ class Config:
     GNEWS_RATE_LIMIT = 10
     SEC_EDGAR_RATE_LIMIT = 10
     YAHOO_FINANCE_RATE_LIMIT = 2000  # Very generous, but be respectful
+    HF_MODEL_REVISION = os.getenv("HF_MODEL_REVISION", "main")
 
     @classmethod
     def setup_logging(cls):

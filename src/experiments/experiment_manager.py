@@ -470,8 +470,8 @@ class ExperimentManager:
         try:
             if hasattr(obj, "tolist"):
                 return obj.tolist()
-        except Exception:
-            pass
+        except Exception as exc:
+            self.logger.debug("Failed to convert object via tolist(): %s", exc)
         if isinstance(obj, set):
             return list(obj)
         raise TypeError(f"Object of type {type(obj)} is not JSON serializable")

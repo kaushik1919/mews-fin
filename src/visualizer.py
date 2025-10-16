@@ -787,8 +787,10 @@ class RiskVisualizer:
                         corr = abs(df[col].corr(df["Risk_Label"]))
                         if not np.isnan(corr):
                             correlations[col] = corr
-                    except:
-                        continue
+                    except Exception as exc:
+                        self.logger.debug(
+                            "Correlation computation failed for %s: %s", col, exc
+                        )
 
                 feature_importance = dict(
                     sorted(correlations.items(), key=lambda x: x[1], reverse=True)[:15]

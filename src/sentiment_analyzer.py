@@ -12,6 +12,8 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
+from src.config import Config
+
 warnings.filterwarnings("ignore")
 
 
@@ -44,9 +46,11 @@ class SentimentAnalyzer:
 
             # Use ProsusAI FinBERT model (free and good for financial text)
             model_name = "ProsusAI/finbert"
-            self.finbert_tokenizer = AutoTokenizer.from_pretrained(model_name)
+            self.finbert_tokenizer = AutoTokenizer.from_pretrained(
+                model_name, revision=Config.HF_MODEL_REVISION
+            )
             self.finbert_model = AutoModelForSequenceClassification.from_pretrained(
-                model_name
+                model_name, revision=Config.HF_MODEL_REVISION
             )
 
             # Set to evaluation mode

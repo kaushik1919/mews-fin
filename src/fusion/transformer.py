@@ -3,18 +3,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Optional, Tuple
 
 import pandas as pd
 
 from .base import BaseFusion
 
-try:  # pragma: no cover - torch is an optional dependency
+if TYPE_CHECKING:  # pragma: no cover - hints only
     import torch
     from torch import nn
-except ImportError:  # pragma: no cover
-    torch = None
-    nn = object  # type: ignore
+else:  # pragma: no cover - torch is an optional dependency at runtime
+    try:
+        import torch
+        from torch import nn
+    except ImportError:
+        torch = None  # type: ignore[assignment]
+        nn = object  # type: ignore[misc]
 
 
 @dataclass
@@ -220,8 +224,10 @@ class TransformerFusion(BaseFusion):
         self._initialise_model(
             tab_dim=len(tab_numeric_cols), text_dim=len(text_numeric_cols)
         )
-        assert self._model is not None  # for type checkers
-        assert torch is not None
+        if self._model is None:
+            raise RuntimeError("Fusion model failed to initialise")
+        if torch is None:
+            raise RuntimeError("PyTorch is required for fusion transformations")
 
         device = next(self._model.parameters()).device
         tab_tensor = torch.as_tensor(

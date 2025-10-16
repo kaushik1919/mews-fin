@@ -5,6 +5,7 @@ scipy>=1.8.0
 
 # Web scraping and APIs
 requests>=2.28.0
+defusedxml>=0.7.1
 yfinance>=0.2.0
 beautifulsoup4>=4.11.0
 sec-edgar-api>=1.1.0

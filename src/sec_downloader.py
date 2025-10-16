@@ -8,7 +8,6 @@ import logging
 import os
 import re
 import time
-import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
@@ -16,6 +15,9 @@ import numpy as np
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
+from defusedxml import ElementTree as ET
+
+from src.config import Config
 
 
 class SECFilingsDownloader:
@@ -45,7 +47,9 @@ class SECFilingsDownloader:
         try:
             # Use company tickers API
             tickers_url = "https://www.sec.gov/files/company_tickers.json"
-            response = requests.get(tickers_url, headers=self.headers)
+            response = requests.get(
+                tickers_url, headers=self.headers, timeout=Config.HTTP_TIMEOUT
+            )
 
             if response.status_code == 200:
                 tickers_data = response.json()
@@ -78,7 +82,9 @@ class SECFilingsDownloader:
         """
         try:
             url = f"{self.search_url}/CIK{cik}.json"
-            response = requests.get(url, headers=self.headers)
+            response = requests.get(
+                url, headers=self.headers, timeout=Config.HTTP_TIMEOUT
+            )
 
             if response.status_code != 200:
                 self.logger.error(
@@ -150,7 +156,9 @@ class SECFilingsDownloader:
 
             for url in possible_urls:
                 try:
-                    response = requests.get(url, headers=self.headers)
+                    response = requests.get(
+                        url, headers=self.headers, timeout=Config.HTTP_TIMEOUT
+                    )
 
                     if response.status_code == 200:
                         self.logger.info(f"Downloaded filing from {url}")
@@ -158,8 +166,13 @@ class SECFilingsDownloader:
 
                     time.sleep(self.rate_limit_delay)
 
-                except Exception as e:
-                    continue
+                except Exception as exc:
+                    self.logger.warning(
+                        "Download attempt for %s failed via %s: %s",
+                        accession_number,
+                        url,
+                        exc,
+                    )
 
             self.logger.warning(f"Could not download filing {accession_number}")
             return None
@@ -358,7 +371,6 @@ class SECFilingsDownloader:
 
             except Exception as e:
                 self.logger.error(f"Error processing {symbol}: {str(e)}")
-                continue
 
         df = pd.DataFrame(all_filings)
         self.logger.info(

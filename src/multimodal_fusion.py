@@ -31,6 +31,7 @@ try:  # Optional dependency for GNN-based risk features
 except ImportError:  # pragma: no cover - torch geometric optional
     GNNRiskPredictor = None  # type: ignore
 
+from src.config import Config
 from src.fusion import BaseFusion
 from src.fusion import CrossAttentionFusion as FusionCrossAttention
 from src.fusion import GatedFusion, SimpleConcatFusion
@@ -261,8 +262,12 @@ class MultiModalFeatureFusion:
             raise RuntimeError("transformers library is required for embeddings")
 
         LOGGER.info("Loading embedding model %s", self.embedding_model_name)
-        self._tokenizer = AutoTokenizer.from_pretrained(self.embedding_model_name)
-        self._model = AutoModel.from_pretrained(self.embedding_model_name)
+        self._tokenizer = AutoTokenizer.from_pretrained(
+            self.embedding_model_name, revision=Config.HF_MODEL_REVISION
+        )
+        self._model = AutoModel.from_pretrained(
+            self.embedding_model_name, revision=Config.HF_MODEL_REVISION
+        )
         self._model.to(self.device)  # type: ignore[union-attr]
         self._model.eval()
         self.embedding_dim = int(self._model.config.hidden_size)  # type: ignore[attr-defined]
@@ -293,7 +298,6 @@ class MultiModalFeatureFusion:
                         or window_slice.shape[1] < 3
                     ):
                         continue
-
                     corr_matrix = window_slice.corr().fillna(0)
                     graph = nx.from_pandas_adjacency(corr_matrix)
                     try:

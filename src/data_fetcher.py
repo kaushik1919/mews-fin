@@ -14,6 +14,7 @@ import pandas as pd
 import requests
 import yfinance as yf
 
+from src.config import Config
 from src.utils.logging import get_logger
 
 
@@ -113,7 +114,7 @@ class StockDataFetcher:
                 "apikey": self.alpha_vantage_key,
             }
 
-            response = requests.get(url, params=params)
+            response = requests.get(url, params=params, timeout=Config.HTTP_TIMEOUT)
             data = response.json()
 
             if "Error Message" in data or "Note" in data:
@@ -149,7 +150,7 @@ class StockDataFetcher:
                 "apikey": self.alpha_vantage_key,
             }
 
-            response = requests.get(url, params=params)
+            response = requests.get(url, params=params, timeout=Config.HTTP_TIMEOUT)
             data = response.json()
 
             if "Error Message" in data or "Note" in data:

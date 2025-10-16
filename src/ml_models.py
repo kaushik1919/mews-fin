@@ -6,7 +6,7 @@ Implements Random Forest, Logistic Regression, XGBoost, and SVM models with GPU 
 import json
 import math
 import os
-import pickle
+import pickle  # nosec B403 - local, trusted model artifacts
 import tempfile
 import warnings
 from datetime import datetime, timedelta, timezone
@@ -1239,14 +1239,14 @@ class RiskPredictor:
                 model_name = model_file.replace("_model.pkl", "")
                 model_path = os.path.join(model_dir, model_file)
                 with open(model_path, "rb") as f:
-                    self.models[model_name] = pickle.load(f)
+                    self.models[model_name] = pickle.load(f)  # nosec B301
                 self.logger.info(f"Loaded {model_name} model from {model_path}")
 
             # Load scalers
             scalers_file = os.path.join(model_dir, "scalers.pkl")
             if os.path.exists(scalers_file):
                 with open(scalers_file, "rb") as f:
-                    self.scalers = pickle.load(f)
+                    self.scalers = pickle.load(f)  # nosec B301
 
             # Load feature importance
             importance_file = os.path.join(model_dir, "feature_importance.json")

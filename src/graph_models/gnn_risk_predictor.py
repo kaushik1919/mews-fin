@@ -452,7 +452,8 @@ class GNNRiskPredictor:
         return np.nan_to_num(standardized, nan=0.0, posinf=0.0, neginf=0.0)
 
     def _build_model(self, input_dim: int) -> GraphRiskNet:
-        assert GraphRiskNet is not None  # For type checkers
+        if GraphRiskNet is None:
+            raise RuntimeError("GraphRiskNet implementation is unavailable")
         model = GraphRiskNet(
             input_dim=input_dim,
             hidden_channels=self.hidden_channels,
@@ -465,7 +466,8 @@ class GNNRiskPredictor:
     def _train_and_predict(
         self, data: object, metadata: GNNMetadata
     ) -> Tuple[np.ndarray, Optional[Dict[str, np.ndarray]]]:
-        assert torch is not None  # guarded by dependency checks
+        if torch is None:
+            raise RuntimeError("PyTorch is required for GNN risk prediction")
 
         torch.manual_seed(self.random_state)
         model = self._build_model(data.num_node_features).to(self.device)
