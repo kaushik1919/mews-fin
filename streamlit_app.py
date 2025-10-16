@@ -541,9 +541,7 @@ def fetch_gnews_sentiment(symbols, api_key, days=7):
 
                 # Handle API messages
                 if "information" in data:
-                    st.info(
-                        " Using GNews free plan - articles may have 12-hour delay"
-                    )
+                    st.info(" Using GNews free plan - articles may have 12-hour delay")
 
                 articles = data.get("articles", [])
                 st.success(f"Found {len(articles)} articles for {symbol}")
@@ -3973,9 +3971,7 @@ def main():
                                             " LOW"
                                             if avg_risk < 0.3
                                             else (
-                                                " MEDIUM"
-                                                if avg_risk < 0.7
-                                                else " HIGH"
+                                                " MEDIUM" if avg_risk < 0.7 else " HIGH"
                                             )
                                         )
                                         st.metric("Risk Level", risk_level)
@@ -4031,9 +4027,7 @@ def main():
 
                 # Risk insights
                 if risky_pct > 30:
-                    st.error(
-                        " **High Risk Period**: More than 30% of days were risky!"
-                    )
+                    st.error(" **High Risk Period**: More than 30% of days were risky!")
                 elif risky_pct > 20:
                     st.warning(" **Moderate Risk**: About 1 in 5 days were risky")
                 else:
