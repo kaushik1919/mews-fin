@@ -1,37 +1,47 @@
-name: CI (Python 3.9)
+name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, master ]
+    branches: [main]
 
 permissions:
   contents: read
   checks: write
   pull-requests: write
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-test:
+  lint-and-test:
+    name: Lint and Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.9
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: ${{ matrix.python-version }}
 
       - name: Cache pip
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          key: ${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-py${{ matrix.python-version }}-
+            ${{ runner.os }}-
 
       - name: Install dependencies
         shell: bash
@@ -39,59 +49,138 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
-          # Ensure CI tools are present even if not in dev requirements
+          # Ensure CI tooling is available regardless of project requirements
           pip install --upgrade \
-            black isort mypy bandit pytest pytest-cov coverage
+            "black[jupyter]" isort mypy bandit flake8 pytest pytest-cov coverage safety
+
+      - name: Download NLTK data
+        shell: bash
+        run: |
+          python -c "import nltk; nltk.download('vader_lexicon'); nltk.download('punkt')"
 
       - name: Show tool versions
+        shell: bash
         run: |
           python --version
           pip --version
           black --version
           isort --version
           mypy --version
+          flake8 --version
           bandit --version
           pytest --version
 
-      - name: Lint with Black (check only)
+      - name: Lint with flake8
+        shell: bash
         run: |
-          black --check .
+          set -e
+          flake8 src/ main.py streamlit_app.py --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 src/ main.py streamlit_app.py --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
 
-      - name: Check imports with isort (check only)
+      - name: Format check with black
+        shell: bash
         run: |
-          isort . --profile black --check-only
+          black --check src/ main.py streamlit_app.py tools/
+
+      - name: Import sorting check with isort
+        shell: bash
+        run: |
+          isort --profile black --check-only src/ main.py streamlit_app.py tools/
 
       - name: Type check with mypy
         env:
           PYTHONPATH: src
+        shell: bash
         run: |
-          # Adjust targets as needed
-          if [ -d src ]; then TARGETS="src"; fi
-          if [ -d tests ]; then TARGETS="$TARGETS tests"; fi
-          if [ -z "$TARGETS" ]; then TARGETS="."; fi
-          mypy $TARGETS
+          mypy src/ --ignore-missing-imports
 
       - name: Security scan with Bandit
+        shell: bash
         run: |
-          # Exclude tests directory by default
-          if [ -d src ]; then TARGET_DIR=src; else TARGET_DIR=.; fi
-          bandit -r "$TARGET_DIR" -x tests -q
+          bandit -r src/ -x tests -q
 
       - name: Run tests with pytest and coverage
         env:
           PYTHONPATH: src
+        shell: bash
         run: |
-          pytest -q --maxfail=1 --disable-warnings -W ignore::DeprecationWarning \
-            --cov=src --cov-report=xml:coverage.xml --cov-report=term
+          pytest tests/ --maxfail=1 --disable-warnings -W ignore::DeprecationWarning \
+            --cov=src --cov-report=xml --cov-report=term-missing:skip-covered
 
       - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.11'
         uses: codecov/codecov-action@v4
         with:
           files: ./coverage.xml
-          flags: python
+          flags: unittests
+          name: codecov
           fail_ci_if_error: false
-          verbose: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
-      # No docs build step included to keep CI fast and quiet
+  security:
+    name: Dependency Security Audit
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install safety
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install safety
+
+      - name: Check dependencies with Safety
+        shell: bash
+        continue-on-error: true
+        run: |
+          safety check --json --output safety-report.json
+
+      - name: Upload safety report
+        uses: actions/upload-artifact@v4
+        with:
+          name: safety-report
+          path: safety-report.json
+
+  build-docs:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    if: github.ref == 'refs/heads/main'
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install documentation dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Build documentation (quiet)
+        shell: bash
+        run: |
+          mkdocs build --strict --quiet
+
+      - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
 
