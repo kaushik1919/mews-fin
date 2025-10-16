@@ -93,10 +93,10 @@ class EnhancedRiskTimelineVisualizer:
                 cols=1,
                 shared_xaxes=True,
                 subplot_titles=[
-                    " Stock Prices & Risk Events",
-                    " Sentiment Analysis (News + SEC)",
-                    " Risk Probability Predictions",
-                    " Composite Risk Score",
+                    "📈 Stock Prices & Risk Events",
+                    "💭 Sentiment Analysis (News + SEC)",
+                    "📊 Risk Probability Predictions",
+                    "🎯 Composite Risk Score",
                 ],
                 vertical_spacing=0.04,
                 row_heights=[0.35, 0.25, 0.25, 0.15],
@@ -327,7 +327,7 @@ class EnhancedRiskTimelineVisualizer:
             # Update layout for better performance and appearance
             fig.update_layout(
                 title={
-                    "text": " Enhanced Market Risk Timeline Dashboard",
+                    "text": "🔍 Enhanced Market Risk Timeline Dashboard",
                     "x": 0.5,
                     "xanchor": "center",
                     "font": {"size": 24},
@@ -645,7 +645,7 @@ class EnhancedRiskTimelineVisualizer:
             )
 
             fig.update_layout(
-                title=" Risk Summary Dashboard", height=800, showlegend=False
+                title="📊 Risk Summary Dashboard", height=800, showlegend=False
             )
 
             # Save dashboard

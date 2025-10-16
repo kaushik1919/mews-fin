@@ -22,7 +22,7 @@ class ResearchReportBuilder:
         filename: str = "research_overview.md",
     ) -> Path:
         lines = [
-            "# Market Risk Early Warning System  Research Addendum",
+            "# Market Risk Early Warning System – Research Addendum",
             "",
             "## 1. Evaluation Summary",
         ]
@@ -65,7 +65,7 @@ class ResearchReportBuilder:
         <html>
         <head><title>MEWS Research Addendum</title></head>
         <body>
-        <h1>Market Risk Early Warning System  Research Addendum</h1>
+        <h1>Market Risk Early Warning System – Research Addendum</h1>
         <h2>Evaluation Summary</h2>
         {eval_table}
         <h2>Hypothesis Tests</h2>

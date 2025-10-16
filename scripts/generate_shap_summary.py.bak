@@ -86,7 +86,7 @@ def main() -> int:
     plt.savefig(OUTPUT_PATH, dpi=220, bbox_inches="tight")
     plt.close()
 
-    print(f" SHAP summary saved to {OUTPUT_PATH}")
+    print(f"✅ SHAP summary saved to {OUTPUT_PATH}")
     return 0
 
 

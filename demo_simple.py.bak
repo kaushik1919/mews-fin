@@ -14,7 +14,7 @@ from plotly.subplots import make_subplots
 def create_demo_visualization():
     """Create a demo visualization showing the MEWS capabilities"""
 
-    print(" MEWS System Demo - Risk Timeline Visualization")
+    print("🚀 MEWS System Demo - Risk Timeline Visualization")
     print("=" * 60)
 
     try:
@@ -25,14 +25,14 @@ def create_demo_visualization():
             df = pd.read_csv(data_path)
             df["Date"] = pd.to_datetime(df["Date"])
 
-            print(f" Dataset loaded: {len(df)} rows, {len(df.columns)} columns")
+            print(f"📊 Dataset loaded: {len(df)} rows, {len(df.columns)} columns")
 
             # Focus on a few symbols for demo
             symbols = ["AAPL", "MSFT", "GOOGL"]
             demo_df = df[df["Symbol"].isin(symbols)].copy()
 
-            print(f" Demo symbols: {symbols}")
-            print(f" Date range: {demo_df['Date'].min()} to {demo_df['Date'].max()}")
+            print(f"🏢 Demo symbols: {symbols}")
+            print(f"📅 Date range: {demo_df['Date'].min()} to {demo_df['Date'].max()}")
 
             # Create enhanced demo timeline
             fig = make_subplots(
@@ -40,9 +40,9 @@ def create_demo_visualization():
                 cols=1,
                 shared_xaxes=True,
                 subplot_titles=[
-                    " Stock Prices & Technical Indicators",
-                    " Volatility & Volume Analysis",
-                    " Risk Indicators & Signals",
+                    "📈 Stock Prices & Technical Indicators",
+                    "⚡ Volatility & Volume Analysis",
+                    "🎯 Risk Indicators & Signals",
                 ],
                 vertical_spacing=0.08,
                 row_heights=[0.4, 0.3, 0.3],
@@ -139,7 +139,7 @@ def create_demo_visualization():
             # Update layout
             fig.update_layout(
                 title={
-                    "text": " MEWS Risk Analysis Dashboard - Live Demo",
+                    "text": "🔍 MEWS Risk Analysis Dashboard - Live Demo",
                     "x": 0.5,
                     "xanchor": "center",
                     "font": {"size": 20},
@@ -193,10 +193,10 @@ def create_demo_visualization():
             output_path = "outputs/mews_demo_dashboard.html"
             fig.write_html(output_path, include_plotlyjs="cdn")
 
-            print(f"\n Demo dashboard created: {output_path}")
+            print(f"\n✅ Demo dashboard created: {output_path}")
 
             # Show some statistics
-            print(f"\n Key Statistics:")
+            print(f"\n📊 Key Statistics:")
             for symbol in symbols:
                 symbol_data = demo_df[demo_df["Symbol"] == symbol]
                 if not symbol_data.empty:
@@ -230,25 +230,25 @@ def create_demo_visualization():
                 ],
             }
 
-            print(f"\n Available Features:")
+            print(f"\n🔧 Available Features:")
             for category, features in feature_categories.items():
                 print(f"   {category}: {len(features)} features")
 
-            print(f"\n The MEWS system provides:")
-            print(f"    Multi-asset risk monitoring")
-            print(f"    Technical indicator analysis")
-            print(f"    Volatility tracking")
-            print(f"    Interactive visualizations")
-            print(f"    Real-time risk assessment")
+            print(f"\n🎯 The MEWS system provides:")
+            print(f"   ✅ Multi-asset risk monitoring")
+            print(f"   ✅ Technical indicator analysis")
+            print(f"   ✅ Volatility tracking")
+            print(f"   ✅ Interactive visualizations")
+            print(f"   ✅ Real-time risk assessment")
 
             return output_path
 
         else:
-            print(f" No data found at {data_path}")
+            print(f"❌ No data found at {data_path}")
             return None
 
     except Exception as e:
-        print(f" Demo failed: {str(e)}")
+        print(f"❌ Demo failed: {str(e)}")
         import traceback
 
         traceback.print_exc()

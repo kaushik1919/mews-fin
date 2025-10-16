@@ -992,7 +992,7 @@ class RiskPredictor:
         # Automatically save trained models
         save_dir = self.save_models()
         self.logger.info(
-            f" All 4 models trained with GPU acceleration and saved to {save_dir}!"
+            f"🚀 All 4 models trained with GPU acceleration and saved to {save_dir}!"
         )
 
         self._log_training_run(

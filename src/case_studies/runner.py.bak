@@ -257,7 +257,7 @@ class CaseStudyRunner:
 
         if start > end:
             LOGGER.warning(
-                "Scenario '%s' window %s%s does not overlap with dataset (%s%s); using available data range instead.",
+                "Scenario '%s' window %s–%s does not overlap with dataset (%s–%s); using available data range instead.",
                 scenario.name,
                 scenario_start.date(),
                 scenario_end.date(),
@@ -453,7 +453,7 @@ class CaseStudyRunner:
             ax.axhline(0, color="gray", linewidth=0.8, linestyle="--", alpha=0.6)
 
         axes[0].set_ylabel("Risk Probability")
-        axes[0].set_title(f"{scenario.name}  Predicted Risk vs Actual Downturn")
+        axes[0].set_title(f"{scenario.name} — Predicted Risk vs Actual Downturn")
         axes[0].legend(loc="upper left")
 
         axes[1].set_ylabel("Drawdown (%)")
@@ -566,7 +566,7 @@ class CaseStudyRunner:
 
         milestone_lines = (
             "\n".join(
-                f"- {marker}  {label}" for marker, label in scenario.marker_dates()
+                f"- {marker} — {label}" for marker, label in scenario.marker_dates()
             )
             if scenario.crisis_markers
             else "- _(No milestone annotations provided.)_"
@@ -580,7 +580,7 @@ class CaseStudyRunner:
 
         report_contents = f"""# {scenario.name} Case Study
 
-**Study window:** {start.date()}  {end.date()}  \
+**Study window:** {start.date()} → {end.date()}  \
 **Symbols analyzed:** {', '.join(symbols)}  \
 **Observations:** {len(scenario_df)} rows
 {data_note}

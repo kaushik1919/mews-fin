@@ -244,7 +244,7 @@ def _load_mlflow_runs_table(
             else None
         )
         duration_display = (
-            f"{duration_seconds / 60:.1f}" if duration_seconds is not None else ""
+            f"{duration_seconds / 60:.1f}" if duration_seconds is not None else "—"
         )
 
         metrics = dict(run.data.metrics)
@@ -260,7 +260,7 @@ def _load_mlflow_runs_table(
                 "Run ID": run.info.run_id,
                 "Run": run_name,
                 "Status": run.info.status.title(),
-                "Start": start_ts.strftime("%Y-%m-%d %H:%M") if start_ts else "",
+                "Start": start_ts.strftime("%Y-%m-%d %H:%M") if start_ts else "—",
                 "Duration (min)": duration_display,
                 "Ensemble AUC": _format_metric_value(primary_auc),
                 "Brier": _format_metric_value(brier),
@@ -434,7 +434,7 @@ except ImportError:
 # Page configuration
 st.set_page_config(
     page_title="Market Risk Early Warning System",
-    page_icon="",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -494,7 +494,7 @@ def load_cached_data():
     if os.path.exists(cache_file_with_risk):
         df = pd.read_csv(cache_file_with_risk)
         df = _normalize_datetime_column(df)
-        st.info(" Loaded dataset with pre-computed risk labels")
+        st.info("✅ Loaded dataset with pre-computed risk labels")
     elif os.path.exists(cache_file):
         df = pd.read_csv(cache_file)
         df = _normalize_datetime_column(df)
@@ -506,7 +506,7 @@ def load_cached_data():
                 predictor = RiskPredictor()
                 X, y, feature_names = predictor.prepare_modeling_data(df)
                 df["Risk_Label"] = y
-                st.info(" Generated risk labels for timeline analysis")
+                st.info("✅ Generated risk labels for timeline analysis")
             except Exception as e:
                 st.warning(f"Could not generate risk labels: {e}")
 
@@ -542,7 +542,7 @@ def fetch_gnews_sentiment(symbols, api_key, days=7):
                 # Handle API messages
                 if "information" in data:
                     st.info(
-                        " Using GNews free plan - articles may have 12-hour delay"
+                        "📰 Using GNews free plan - articles may have 12-hour delay"
                     )
 
                 articles = data.get("articles", [])
@@ -631,13 +631,13 @@ def analyze_news_sentiment(news_df):
             # Add human-readable sentiment labels
             compound = sent["compound"]
             if compound >= 0.05:
-                news_df.loc[i, "sentiment_label"] = "Positive "
+                news_df.loc[i, "sentiment_label"] = "Positive 📈"
             elif compound <= -0.05:
-                news_df.loc[i, "sentiment_label"] = "Negative "
+                news_df.loc[i, "sentiment_label"] = "Negative 📉"
             else:
-                news_df.loc[i, "sentiment_label"] = "Neutral "
+                news_df.loc[i, "sentiment_label"] = "Neutral ➡️"
 
-        st.success(f" Sentiment analysis completed for {len(news_df)} articles")
+        st.success(f"✅ Sentiment analysis completed for {len(news_df)} articles")
         return news_df
 
     except Exception as e:
@@ -983,15 +983,15 @@ def build_cews_input(df: pd.DataFrame) -> Optional[Tuple[pd.DataFrame, str]]:
 def explain_features():
     """Provide user-friendly explanations of key features"""
     explanations = {
-        "RSI (Price Momentum)": " Shows if a stock is overbought (>70) or oversold (<30). High values often signal price corrections.",
-        "MACD (Trend Indicator)": " Measures trend changes. When MACD crosses above signal line, it suggests upward momentum.",
-        "Bollinger Bands": " Shows price volatility. When price hits upper band, stock might be overvalued.",
-        "Moving Average": " Smoothed price over time. When current price is below moving average, it may signal downtrend.",
-        "Trading Volume": " Number of shares traded. High volume with price drops often signals strong selling pressure.",
-        "Price Volatility": " How much price swings up and down. High volatility = higher risk.",
-        "News Sentiment": " Positive/negative tone in news articles. Negative sentiment often precedes price drops.",
-        "Market Correlation": " How closely stock moves with overall market. High correlation = more affected by market crashes.",
-        "VIX (Fear Index)": " Market's expectation of volatility. VIX > 30 suggests high market fear.",
+        "RSI (Price Momentum)": "📈 Shows if a stock is overbought (>70) or oversold (<30). High values often signal price corrections.",
+        "MACD (Trend Indicator)": "📊 Measures trend changes. When MACD crosses above signal line, it suggests upward momentum.",
+        "Bollinger Bands": "📏 Shows price volatility. When price hits upper band, stock might be overvalued.",
+        "Moving Average": "📉 Smoothed price over time. When current price is below moving average, it may signal downtrend.",
+        "Trading Volume": "📦 Number of shares traded. High volume with price drops often signals strong selling pressure.",
+        "Price Volatility": "⚡ How much price swings up and down. High volatility = higher risk.",
+        "News Sentiment": "📰 Positive/negative tone in news articles. Negative sentiment often precedes price drops.",
+        "Market Correlation": "🔗 How closely stock moves with overall market. High correlation = more affected by market crashes.",
+        "VIX (Fear Index)": "😰 Market's expectation of volatility. VIX > 30 suggests high market fear.",
     }
     return explanations
 
@@ -1093,7 +1093,7 @@ def create_risk_timeline(df):
         )
 
         fig.update_layout(
-            title=" Market Risk Timeline - Easy to Read",
+            title="📊 Market Risk Timeline - Easy to Read",
             xaxis_title="Date",
             yaxis_title="Risk Level (0=Safe, 1=Very Risky)",
             height=500,
@@ -1396,7 +1396,7 @@ def execute_stage_controls(
                 summary_metrics.append(
                     {
                         "label": "Date Range",
-                        "value": f"{start_date.date()}  {end_date.date()}",
+                        "value": f"{start_date.date()} → {end_date.date()}",
                     }
                 )
 
@@ -1433,7 +1433,7 @@ def execute_stage_controls(
 
         stage_outputs.append(
             {
-                "title": "Data Stage  Overview",
+                "title": "Data Stage – Overview",
                 "messages": [
                     "Previewing cached integrated dataset. Adjust the other stages to recompute downstream analytics."
                 ],
@@ -1474,7 +1474,7 @@ def execute_stage_controls(
 
         stage_outputs.append(
             {
-                "title": "Preprocessing Stage  Data Quality Checks",
+                "title": "Preprocessing Stage – Data Quality Checks",
                 "messages": [
                     "Missing-value scan and quick numeric stats help you confirm inputs before modeling."
                 ],
@@ -1547,7 +1547,7 @@ def execute_stage_controls(
 
             stage_outputs.append(
                 {
-                    "title": "Sentiment Stage  Aggregated Signals",
+                    "title": "Sentiment Stage – Aggregated Signals",
                     "messages": sentiment_messages,
                     "figure": sentiment_fig,
                     "dataframe": sentiment_df.head(200),
@@ -1556,7 +1556,7 @@ def execute_stage_controls(
         else:
             stage_outputs.append(
                 {
-                    "title": "Sentiment Stage  Aggregated Signals",
+                    "title": "Sentiment Stage – Aggregated Signals",
                     "messages": [
                         "No sentiment data available for the current configuration. Re-run the pipeline via CLI to populate the sentiment cache."
                     ],
@@ -1576,7 +1576,7 @@ def execute_stage_controls(
             )
             stage_outputs.append(
                 {
-                    "title": f"Fusion Stage  Strategy: {fusion_payload['strategy'].replace('_', ' ').title()}",
+                    "title": f"Fusion Stage – Strategy: {fusion_payload['strategy'].replace('_', ' ').title()}",
                     "messages": [
                         "Fused outputs blend tabular indicators with optional news embeddings. Preview below reflects the selected strategy."
                     ],
@@ -1639,7 +1639,7 @@ def execute_stage_controls(
 
         stage_outputs.append(
             {
-                "title": "Training Stage  Model Performance",
+                "title": "Training Stage – Model Performance",
                 "metrics": training_metrics if training_metrics else None,
                 "dataframe": pd.DataFrame(detail_rows) if detail_rows else None,
                 "messages": [
@@ -1670,7 +1670,7 @@ def execute_stage_controls(
             confusion_fig = create_confusion_matrix_plot(y_true, y_pred)
             stage_outputs.append(
                 {
-                    "title": "Evaluation Stage  Test Set Diagnostics",
+                    "title": "Evaluation Stage – Test Set Diagnostics",
                     "metrics": evaluation_metrics,
                     "figure": confusion_fig,
                     "messages": [
@@ -1728,9 +1728,9 @@ def execute_stage_controls(
                         {
                             "Scenario": entry.get("name"),
                             "Kind": entry.get("kind"),
-                            "AUC": f"{deltas.get('auc_score', 0.0):+.3f}",
-                            "Accuracy": f"{deltas.get('test_accuracy', 0.0):+.3f}",
-                            "CEWS": f"{deltas.get('cews_score', 0.0):+.3f}",
+                            "ΔAUC": f"{deltas.get('auc_score', 0.0):+.3f}",
+                            "ΔAccuracy": f"{deltas.get('test_accuracy', 0.0):+.3f}",
+                            "ΔCEWS": f"{deltas.get('cews_score', 0.0):+.3f}",
                             "Noise": f"{noise_level:.0%}",
                             "Delay": f"{delay_days}d",
                         }
@@ -1739,7 +1739,7 @@ def execute_stage_controls(
 
             stage_outputs.append(
                 {
-                    "title": "Robustness Stage  Stress Test Summary",
+                    "title": "Robustness Stage – Stress Test Summary",
                     "metrics": robustness_metrics if robustness_metrics else None,
                     "dataframe": perturbation_df,
                     "messages": [
@@ -2088,7 +2088,7 @@ def create_case_study_plot(
         secondary_y=True,
     )
     fig.update_layout(
-        title=f"{scenario.name}  Risk vs Market Drawdown",
+        title=f"{scenario.name} – Risk vs Market Drawdown",
         hovermode="x unified",
         template="plotly_white",
         legend=dict(orientation="h", y=-0.2, x=0),
@@ -2102,12 +2102,12 @@ def main():
 
     # Header
     st.markdown(
-        '<h1 class="main-header"> Market Risk Early Warning System</h1>',
+        '<h1 class="main-header">📊 Market Risk Early Warning System</h1>',
         unsafe_allow_html=True,
     )
 
     # System Status
-    st.info(" Market Risk Analysis System - Real-time sentiment integration")
+    st.info("📊 Market Risk Analysis System - Real-time sentiment integration")
 
     # Sidebar
     st.sidebar.title("Configuration")
@@ -2120,13 +2120,13 @@ def main():
         st.sidebar.code("python main.py --full-pipeline")
 
         st.error(
-            " No data available. Please run the analysis first using the command line tool."
+            "❌ No data available. Please run the analysis first using the command line tool."
         )
         st.info("Run: `python main.py --full-pipeline` to generate data")
         return
 
     # Data summary
-    st.sidebar.success(f" Data loaded: {len(df)} samples")
+    st.sidebar.success(f"✅ Data loaded: {len(df)} samples")
     st.sidebar.info(f"Features: {len(df.columns)}")
     st.sidebar.info(
         f"Symbols: {df['Symbol'].nunique() if 'Symbol' in df.columns else 'N/A'}"
@@ -2151,7 +2151,7 @@ def main():
         ),
     )
     _sidebar_recommendation(
-        "Start with 35 highly traded tickers to balance speed and context."
+        "Start with 3–5 highly traded tickers to balance speed and context."
     )
 
     sentiment_choice = st.sidebar.selectbox(
@@ -2188,7 +2188,7 @@ def main():
         ),
     )
     _sidebar_recommendation(
-        "Track the full suite when benchmarking the ensembles uplift."
+        "Track the full suite when benchmarking the ensemble’s uplift."
     )
 
     fusion_options = ["concat", "cross_attention", "gated"]
@@ -2339,20 +2339,20 @@ def main():
         tab_research,
     ) = st.tabs(
         [
-            " Pipeline Lab",
-            " Case Studies",
-            " Model Results",
-            " Results Explorer",
-            " Experiment Tracker",
-            " Explainability",
-            " Multimodal + CEWS",
-            " Feature Analysis",
-            " Risk Timeline",
-            " Sentiment Analysis",
-            " Data Explorer",
-            " Explanations",
-            " Model Details",
-            " Research Addendum",
+            "🧪 Pipeline Lab",
+            "📼 Case Studies",
+            "📊 Model Results",
+            "🗂️ Results Explorer",
+            "🧾 Experiment Tracker",
+            "🧠 Explainability",
+            "🧬 Multimodal + CEWS",
+            "📈 Feature Analysis",
+            "📊 Risk Timeline",
+            "📰 Sentiment Analysis",
+            "🔍 Data Explorer",
+            "❓ Explanations",
+            "⚙️ Model Details",
+            "📚 Research Addendum",
         ]
     )
 
@@ -2400,7 +2400,7 @@ def main():
             ):
                 progress_bar = st.progress(0.0)
                 progress_status = st.empty()
-                progress_status.info("Initializing pipeline run")
+                progress_status.info("Initializing pipeline run…")
 
                 def _on_stage_complete(
                     stage_name: str, completed: int, total: int
@@ -2439,7 +2439,7 @@ def main():
                 st.session_state["pipeline_refresh_notice"] = True
                 progress_bar.progress(1.0)
                 progress_status.success(
-                    "Pipeline run complete! Refreshing downstream tabs"
+                    "Pipeline run complete! Refreshing downstream tabs…"
                 )
 
                 st.experimental_rerun()
@@ -2448,7 +2448,7 @@ def main():
             if pipeline_results and pipeline_results.get("stage_outputs"):
                 if st.session_state.pop("pipeline_refresh_notice", False):
                     st.caption(
-                        " Downstream tabs refreshed with the latest pipeline artifacts."
+                        "✅ Downstream tabs refreshed with the latest pipeline artifacts."
                     )
 
                 summary = pipeline_results.get("run_summary", {})
@@ -2465,8 +2465,8 @@ def main():
                 subtitle_parts.append(
                     f"Risk Threshold: {summary.get('risk_threshold', risk_threshold):.2f}"
                 )
-                subtitle = "  ".join(subtitle_parts)
-                st.success(f"Last run {timestamp}  {subtitle}")
+                subtitle = " • ".join(subtitle_parts)
+                st.success(f"Last run {timestamp} — {subtitle}")
                 render_stage_outputs(pipeline_results["stage_outputs"])
             else:
                 st.info(
@@ -2479,7 +2479,7 @@ def main():
 
         with col_left:
             if st.button("Run Benchmark Suite", key="run_benchmarks_button"):
-                with st.spinner("Running baseline comparisons on a sampled dataset"):
+                with st.spinner("Running baseline comparisons on a sampled dataset…"):
                     st.session_state["benchmark_results"] = run_benchmarks(
                         filtered_df, ensemble_choice
                     )
@@ -2498,7 +2498,7 @@ def main():
                     name for name in queued_case_names if name in case_study_map
                 ]
                 if valid_case_names:
-                    with st.spinner("Refreshing case studies with latest results"):
+                    with st.spinner("Refreshing case studies with latest results…"):
                         slugs = [case_study_map[name] for name in valid_case_names]
                         st.session_state["case_study_results"] = run_case_studies(slugs)
 
@@ -2509,7 +2509,7 @@ def main():
                     )
                 else:
                     slugs = [case_study_map[name] for name in selected_case_names]
-                    with st.spinner("Replaying selected scenarios"):
+                    with st.spinner("Replaying selected scenarios…"):
                         st.session_state["case_study_results"] = run_case_studies(slugs)
 
         benchmark_container = st.container()
@@ -2754,7 +2754,7 @@ def main():
                     )
         else:
             st.info(
-                "CEWS inputs not available yetgenerate probability forecasts to unlock backtesting analytics."
+                "CEWS inputs not available yet—generate probability forecasts to unlock backtesting analytics."
             )
 
     with tab_results_explorer:
@@ -3176,7 +3176,7 @@ def main():
                             if isinstance(meta.get("start"), pd.Timestamp)
                             else "N/A"
                         )
-                        label = f"{meta['name']}  {start_label}"
+                        label = f"{meta['name']} • {start_label}"
                         option_labels.append(label)
                         run_label_map[label] = run_id
 
@@ -3210,18 +3210,18 @@ def main():
                         start_display = (
                             start_time.strftime("%Y-%m-%d %H:%M")
                             if isinstance(start_time, pd.Timestamp)
-                            else ""
+                            else "—"
                         )
                         end_display = (
                             end_time.strftime("%Y-%m-%d %H:%M")
                             if isinstance(end_time, pd.Timestamp)
-                            else ""
+                            else "—"
                         )
                         duration_seconds = run_meta.get("duration_seconds")
                         duration_display = (
                             f"{duration_seconds / 60:.1f} min"
                             if isinstance(duration_seconds, (int, float))
-                            else ""
+                            else "—"
                         )
                         status_display = (
                             run_meta.get("status", "N/A").title()
@@ -3239,7 +3239,7 @@ def main():
                             _format_metric_value(ensemble_metrics.get("test_accuracy")),
                         )
                         metric_cols[2].metric(
-                            "F Score",
+                            "Fβ Score",
                             _format_metric_value(ensemble_metrics.get("fbeta_score")),
                         )
                         metric_cols[3].metric(
@@ -3294,14 +3294,14 @@ def main():
                                     "Model": model_name.replace("_", " ").title(),
                                     "AUC": model_metrics.get("auc_score"),
                                     "Accuracy": model_metrics.get("test_accuracy"),
-                                    "F": model_metrics.get("fbeta_score"),
+                                    "Fβ": model_metrics.get("fbeta_score"),
                                 }
                             )
 
                         if model_rows:
                             models_df = pd.DataFrame(model_rows)
                             models_display = models_df.copy()
-                            for col in ["AUC", "Accuracy", "F"]:
+                            for col in ["AUC", "Accuracy", "Fβ"]:
                                 models_display[col] = models_display[col].apply(
                                     _format_metric_value
                                 )
@@ -3361,7 +3361,7 @@ def main():
                                     )
                                 )
                                 shap_fig.update_layout(
-                                    title=f"Global SHAP Impact  {shap_selected_label}",
+                                    title=f"Global SHAP Impact — {shap_selected_label}",
                                     height=480,
                                     margin=dict(l=160, r=40, t=60, b=40),
                                 )
@@ -3400,13 +3400,13 @@ def main():
                                         "Run": run_lookup[run_id]["name"],
                                         "AUC": ensemble.get("auc_score"),
                                         "Accuracy": ensemble.get("test_accuracy"),
-                                        "F": ensemble.get("fbeta_score"),
+                                        "Fβ": ensemble.get("fbeta_score"),
                                     }
                                 )
                             comparison_df = pd.DataFrame(comparison_records)
                             if not comparison_df.empty:
                                 comparison_display = comparison_df.copy()
-                                for col in ["AUC", "Accuracy", "F"]:
+                                for col in ["AUC", "Accuracy", "Fβ"]:
                                     comparison_display[col] = comparison_display[
                                         col
                                     ].apply(_format_metric_value)
@@ -3414,7 +3414,7 @@ def main():
 
                                 melted = comparison_df.melt(
                                     id_vars="Run",
-                                    value_vars=["AUC", "Accuracy", "F"],
+                                    value_vars=["AUC", "Accuracy", "Fβ"],
                                     var_name="Metric",
                                     value_name="Value",
                                 ).dropna(subset=["Value"])
@@ -3447,7 +3447,7 @@ def main():
         st.info(
             "This area breaks down WHY the model thinks conditions are risky. "
             "The big blue chart summarizes the top ingredients driving the model across your sample, "
-            "while the two smaller bar charts explain a single day for a single tickershowing which signals pushed the call toward risk (blue/green) or toward stability (red). "
+            "while the two smaller bar charts explain a single day for a single ticker—showing which signals pushed the call toward risk (blue/green) or toward stability (red). "
             "Use the sample-size slider to choose how much history to summarize: larger samples smooth noise, smaller ones highlight the latest moves."
         )
         model = load_latest_model()
@@ -3475,7 +3475,7 @@ def main():
             if sample_cap <= 10:
                 sample_size = sample_cap
                 st.caption(
-                    "Using all available rows (10) for the global SHAP summary. Collect more data for richer explanations."
+                    "Using all available rows (≤10) for the global SHAP summary. Collect more data for richer explanations."
                 )
             else:
                 sample_min = min(sample_cap - 1, max(10, sample_cap // 2))
@@ -3528,9 +3528,9 @@ def main():
                     """
                     **How to read it:** Each bar shows the average absolute SHAP impact for a feature across the sampled rows. Longer bars mean the feature consistently nudged the model's risk score up or down. A flat bar implies the model rarely relied on that input. Look for clusters of related features (e.g., different volatility measures) to understand combined pressure on the prediction.
 
-                     Values are always positive because we take the average magnitude of the push.  
-                     If two features are close in height, they contributed nearly the same amount of influence.  
-                     Use this chart to spot which signals dominate the model so you can monitor or stress-test them directly.
+                    • Values are always positive because we take the average magnitude of the push.  
+                    • If two features are close in height, they contributed nearly the same amount of influence.  
+                    • Use this chart to spot which signals dominate the model so you can monitor or stress-test them directly.
                     """
                 )
             elif SHAP_AVAILABLE:
@@ -3613,9 +3613,9 @@ def main():
                     """
                     **Understanding the bars:** Positive (green) bars pushed the prediction toward **Risk**, while negative (red) bars pulled it toward **Stable**. The bar length equals that feature's SHAP value for the selected date/ticker. Compare these against the global chart to see whether today's drivers match the long-term leaders.
 
-                     SHAP values add up to the model's risk score once you include the baseline probability.  
-                     Large positive + large negative bars can offset each other; the mix tells you whether the day was borderline or clearly risky.  
-                     Hover each bar to see the exact contribution in probability points.
+                    • SHAP values add up to the model's risk score once you include the baseline probability.  
+                    • Large positive + large negative bars can offset each other; the mix tells you whether the day was borderline or clearly risky.  
+                    • Hover each bar to see the exact contribution in probability points.
                     """
                 )
             elif SHAP_AVAILABLE:
@@ -3652,7 +3652,7 @@ def main():
                 st.info("LIME explanation unavailable for the selected sample.")
             else:
                 st.info(
-                    "LIME explanation unavailableinstall the `lime` package to enable this view."
+                    "LIME explanation unavailable—install the `lime` package to enable this view."
                 )
 
     with tab_multimodal:
@@ -3664,10 +3664,10 @@ def main():
             """
             **In plain terms:** we blend classic market stats, news mood, and network-style signals into a single early-warning dashboard.
 
-             **CEWS Score (01)**  your headline risk gauge; values above ~0.7 mean high alert.  
-             **Early Detection Reward**  higher is better; shows how often we caught danger before it hit.  
-             **False Alarm Penalty**  lower is better; tells you if were crying wolf.  
-             Watch the three lines on the timeline: when the blue CEWS line climbs and stays above the green reward line while the red penalty line remains low, the system is confident about rising risk.
+            • **CEWS Score (0→1)** – your headline risk gauge; values above ~0.7 mean “high alert.”  
+            • **Early Detection Reward** – higher is better; shows how often we caught danger before it hit.  
+            • **False Alarm Penalty** – lower is better; tells you if we’re crying wolf.  
+            • Watch the three lines on the timeline: when the blue CEWS line climbs and stays above the green reward line while the red penalty line remains low, the system is confident about rising risk.
             """
         )
 
@@ -3791,10 +3791,10 @@ def main():
             )
 
     with tab_feature_analysis:
-        st.subheader(" What Drives Market Risk? (Plain English)")
+        st.subheader("📈 What Drives Market Risk? (Plain English)")
 
         st.info(
-            " This shows which market factors are most important for predicting risk. Think of it like a recipe - these are the main ingredients that create market risk!"
+            "💡 This shows which market factors are most important for predicting risk. Think of it like a recipe - these are the main ingredients that create market risk!"
         )
 
         # Feature importance chart
@@ -3804,29 +3804,29 @@ def main():
             _render_plotly(importance_fig, config=config)
 
             # Add explanations
-            st.subheader(" What Do These Factors Mean?")
+            st.subheader("🧠 What Do These Factors Mean?")
             explanations = explain_features()
 
             # Show explanations in an expandable format
-            with st.expander(" Click to understand what each factor means"):
+            with st.expander("📚 Click to understand what each factor means"):
                 for factor, explanation in explanations.items():
                     st.write(f"**{factor}**: {explanation}")
 
             # Key insights
-            st.subheader(" Key Insights")
+            st.subheader("🎯 Key Insights")
             col1, col2 = st.columns(2)
 
             with col1:
-                st.success(" **What This Tells Us:**")
-                st.write(" Higher bars = more important for risk prediction")
-                st.write(" Red bars = most critical factors to watch")
-                st.write(" These factors work together to signal risk")
+                st.success("✅ **What This Tells Us:**")
+                st.write("• Higher bars = more important for risk prediction")
+                st.write("• Red bars = most critical factors to watch")
+                st.write("• These factors work together to signal risk")
 
             with col2:
-                st.warning(" **For Investors:**")
-                st.write(" Watch the top 3-5 factors closely")
-                st.write(" When multiple factors align, risk increases")
-                st.write(" Technical indicators often lead fundamental news")
+                st.warning("⚠️ **For Investors:**")
+                st.write("• Watch the top 3-5 factors closely")
+                st.write("• When multiple factors align, risk increases")
+                st.write("• Technical indicators often lead fundamental news")
         else:
             st.warning(
                 "Feature importance data not available - please run the models first"
@@ -3834,9 +3834,9 @@ def main():
 
         # Feature correlation heatmap
         if len(df.select_dtypes(include=[np.number]).columns) > 1:
-            st.subheader(" How Market Factors Relate to Each Other")
+            st.subheader("🔗 How Market Factors Relate to Each Other")
             st.info(
-                " This heatmap shows which factors move together. Dark red = they move in the same direction, dark blue = they move opposite to each other."
+                "💡 This heatmap shows which factors move together. Dark red = they move in the same direction, dark blue = they move opposite to each other."
             )
 
             numeric_cols = df.select_dtypes(include=[np.number]).columns[
@@ -3851,24 +3851,24 @@ def main():
                 labels=dict(color="Correlation"),
             )
 
-            fig.update_layout(title=" Market Factor Relationships", height=600)
+            fig.update_layout(title="🔗 Market Factor Relationships", height=600)
 
             _render_plotly(fig)
 
-            with st.expander(" How to Read This Chart"):
-                st.write(" **Dark Red (+1.0)**: Factors move perfectly together")
-                st.write(" **White (0.0)**: No relationship between factors")
-                st.write(" **Dark Blue (-1.0)**: Factors move in opposite directions")
-                st.write(" **Light colors**: Weak relationships")
+            with st.expander("❓ How to Read This Chart"):
+                st.write("• **Dark Red (+1.0)**: Factors move perfectly together")
+                st.write("• **White (0.0)**: No relationship between factors")
+                st.write("• **Dark Blue (-1.0)**: Factors move in opposite directions")
+                st.write("• **Light colors**: Weak relationships")
                 st.write(
-                    " **Tip**: Look for clusters of red or blue to find factor groups"
+                    "• **Tip**: Look for clusters of red or blue to find factor groups"
                 )
 
     with tab_risk_timeline:
-        st.subheader(" Market Risk Timeline - Your Risk Radar")
+        st.subheader("📊 Market Risk Timeline - Your Risk Radar")
 
         st.info(
-            " **What am I looking at?** This shows how risky the market was on different days. Think of it like a weather forecast - but for your investments!"
+            "💡 **What am I looking at?** This shows how risky the market was on different days. Think of it like a weather forecast - but for your investments!"
         )
 
         # Risk timeline
@@ -3879,40 +3879,40 @@ def main():
             _render_plotly(timeline_fig, config=config)
 
             # Add explanations
-            with st.expander(" How to Read This Chart"):
+            with st.expander("🧠 How to Read This Chart"):
                 st.markdown(
                     """
-                ** Green Zone (0.0-0.3)**: **Safe to Invest**
+                **🟢 Green Zone (0.0-0.3)**: **Safe to Invest**
                 - Low risk period
                 - Good time for conservative investors
                 - Market conditions are stable
                 
-                ** Yellow Zone (0.3-0.7)**: **Be Cautious**
+                **🟡 Yellow Zone (0.3-0.7)**: **Be Cautious**
                 - Medium risk period  
                 - Watch the market closely
                 - Consider taking some profits
                 
-                ** Red Zone (0.7-1.0)**: **High Alert!**
+                **🔴 Red Zone (0.7-1.0)**: **High Alert!**
                 - High risk period
                 - Consider reducing positions
                 - Market may be volatile or declining
                 
-                ** The Line Shows**: Daily risk level based on our AI models
-                ** Thresholds**: Dotted lines show when risk changes from lowmediumhigh
+                **📈 The Line Shows**: Daily risk level based on our AI models
+                **🎯 Thresholds**: Dotted lines show when risk changes from low→medium→high
                 """
                 )
         else:
             st.error(
-                " Could not create risk timeline. Please ensure the data has been processed correctly."
+                "❌ Could not create risk timeline. Please ensure the data has been processed correctly."
             )
 
         # Enhanced Risk Timeline Option
         if ENHANCED_FEATURES_AVAILABLE:
             st.markdown("---")
-            st.subheader(" Enhanced Risk Timeline (New!)")
+            st.subheader("🚀 Enhanced Risk Timeline (New!)")
 
-            if st.button(" Generate Enhanced Risk Analysis", type="primary"):
-                with st.spinner(" Creating enhanced risk features and timeline..."):
+            if st.button("🎯 Generate Enhanced Risk Analysis", type="primary"):
+                with st.spinner("🔄 Creating enhanced risk features and timeline..."):
                     try:
                         # Get selected symbols from sidebar
                         available_symbols = (
@@ -3936,19 +3936,19 @@ def main():
 
                             if "enhanced_dataset" in enhanced_results:
                                 st.success(
-                                    f" Enhanced analysis complete! Added {enhanced_results.get('feature_count', 0)} new features"
+                                    f"✅ Enhanced analysis complete! Added {enhanced_results.get('feature_count', 0)} new features"
                                 )
 
                                 # Show enhanced timeline link
                                 if enhanced_results.get("timeline_path"):
                                     st.markdown(
-                                        f" **Enhanced Interactive Timeline**: [View Enhanced Dashboard]({enhanced_results['timeline_path']})"
+                                        f"📊 **Enhanced Interactive Timeline**: [View Enhanced Dashboard]({enhanced_results['timeline_path']})"
                                     )
 
                                 # Show summary dashboard link
                                 if enhanced_results.get("summary_dashboard_path"):
                                     st.markdown(
-                                        f" **Risk Summary Dashboard**: [View Summary]({enhanced_results['summary_dashboard_path']})"
+                                        f"📋 **Risk Summary Dashboard**: [View Summary]({enhanced_results['summary_dashboard_path']})"
                                     )
 
                                 # Show key metrics
@@ -3970,18 +3970,18 @@ def main():
                                         )
                                     with col3:
                                         risk_level = (
-                                            " LOW"
+                                            "🟢 LOW"
                                             if avg_risk < 0.3
                                             else (
-                                                " MEDIUM"
+                                                "🟡 MEDIUM"
                                                 if avg_risk < 0.7
-                                                else " HIGH"
+                                                else "🔴 HIGH"
                                             )
                                         )
                                         st.metric("Risk Level", risk_level)
                             else:
                                 st.error(
-                                    " Enhanced analysis failed. Check the logs for details."
+                                    "❌ Enhanced analysis failed. Check the logs for details."
                                 )
                         else:
                             st.warning(
@@ -3989,10 +3989,10 @@ def main():
                             )
 
                     except Exception as e:
-                        st.error(f" Enhanced analysis error: {str(e)}")
+                        st.error(f"❌ Enhanced analysis error: {str(e)}")
 
             st.info(
-                " **Enhanced Features Include**: Advanced sentiment analysis, market regime detection, volatility scoring, and composite risk indicators!"
+                "💡 **Enhanced Features Include**: Advanced sentiment analysis, market regime detection, volatility scoring, and composite risk indicators!"
             )
 
         # Risk distribution and insights
@@ -4000,50 +4000,50 @@ def main():
             col1, col2 = st.columns(2)
 
             with col1:
-                st.subheader(" Risk Distribution")
+                st.subheader("🥧 Risk Distribution")
                 risk_counts = df["Risk_Label"].value_counts()
                 total_days = len(df)
 
                 fig = px.pie(
                     values=risk_counts.values,
                     names=[
-                        "Safe Days " if x == 0 else "Risky Days "
+                        "Safe Days 🟢" if x == 0 else "Risky Days 🔴"
                         for x in risk_counts.index
                     ],
                     title="How Often Was the Market Risky?",
                     color_discrete_map={
-                        "Safe Days ": "#28a745",
-                        "Risky Days ": "#dc3545",
+                        "Safe Days 🟢": "#28a745",
+                        "Risky Days 🔴": "#dc3545",
                     },
                 )
                 _render_plotly(fig)
 
             with col2:
-                st.subheader(" Risk Statistics")
+                st.subheader("📊 Risk Statistics")
                 safe_days = risk_counts.get(0, 0)
                 risky_days = risk_counts.get(1, 0)
                 safe_pct = (safe_days / total_days) * 100
                 risky_pct = (risky_days / total_days) * 100
 
                 st.metric("Total Days Analyzed", f"{total_days:,}")
-                st.metric("Safe Days ", f"{safe_days:,} ({safe_pct:.1f}%)")
-                st.metric("Risky Days ", f"{risky_days:,} ({risky_pct:.1f}%)")
+                st.metric("Safe Days 🟢", f"{safe_days:,} ({safe_pct:.1f}%)")
+                st.metric("Risky Days 🔴", f"{risky_days:,} ({risky_pct:.1f}%)")
 
                 # Risk insights
                 if risky_pct > 30:
                     st.error(
-                        " **High Risk Period**: More than 30% of days were risky!"
+                        "⚠️ **High Risk Period**: More than 30% of days were risky!"
                     )
                 elif risky_pct > 20:
-                    st.warning(" **Moderate Risk**: About 1 in 5 days were risky")
+                    st.warning("🔶 **Moderate Risk**: About 1 in 5 days were risky")
                 else:
                     st.success(
-                        " **Low Risk Period**: Most days were safe for investing"
+                        "✅ **Low Risk Period**: Most days were safe for investing"
                     )
 
         # Recent risk analysis
         if "Risk_Label" in df.columns and "Date" in df.columns:
-            st.subheader(" Recent Risk Trends")
+            st.subheader("🕐 Recent Risk Trends")
 
             # Convert dates and get recent data
             df_recent = _normalize_datetime_column(df.copy(), "Date")
@@ -4063,17 +4063,17 @@ def main():
                 st.metric("Recent Risky Days", f"{recent_risky_days}/30")
             with col3:
                 if recent_risk > 0.5:
-                    st.error(" Currently High Risk")
+                    st.error("🔴 Currently High Risk")
                 elif recent_risk > 0.3:
-                    st.warning(" Currently Medium Risk")
+                    st.warning("🟡 Currently Medium Risk")
                 else:
-                    st.success(" Currently Low Risk")
+                    st.success("🟢 Currently Low Risk")
 
     with tab_sentiment:
         st.subheader("Real-time Sentiment Analysis")
 
         # API Key input
-        st.info(" Enter your GNews API key to fetch real-time news sentiment")
+        st.info("📰 Enter your GNews API key to fetch real-time news sentiment")
         gnews_api_key = st.text_input(
             "GNews API Key",
             type="password",
@@ -4095,7 +4095,7 @@ def main():
         # Time range
         days_back = st.slider("Days of news to analyze", 1, 30, 7)
 
-        if st.button(" Fetch & Analyze News Sentiment", type="primary"):
+        if st.button("🔍 Fetch & Analyze News Sentiment", type="primary"):
             if not gnews_api_key:
                 st.error("Please enter your GNews API key")
             elif not selected_symbols:
@@ -4108,7 +4108,7 @@ def main():
                     )
 
                     if news_df is not None and not news_df.empty:
-                        st.success(f" Fetched {len(news_df)} news articles")
+                        st.success(f"✅ Fetched {len(news_df)} news articles")
 
                         # Analyze sentiment
                         news_with_sentiment = analyze_news_sentiment(news_df)
@@ -4116,7 +4116,7 @@ def main():
                         if news_with_sentiment is not None:
                             # Display sentiment summary with explanations
                             st.success(
-                                f" Analyzed {len(news_with_sentiment)} news articles"
+                                f"✅ Analyzed {len(news_with_sentiment)} news articles"
                             )
 
                             col1, col2, col3, col4 = st.columns(4)
@@ -4135,62 +4135,62 @@ def main():
                             with col1:
                                 st.metric("Overall Mood", f"{avg_sentiment:.3f}")
                                 if avg_sentiment > 0.1:
-                                    st.success(" Positive")
+                                    st.success("😊 Positive")
                                 elif avg_sentiment < -0.1:
-                                    st.error(" Negative")
+                                    st.error("😟 Negative")
                                 else:
-                                    st.info(" Neutral")
+                                    st.info("😐 Neutral")
 
                             with col2:
-                                st.metric("Good News ", f"{positive_pct:.1f}%")
+                                st.metric("Good News 📈", f"{positive_pct:.1f}%")
                             with col3:
-                                st.metric("Bad News ", f"{negative_pct:.1f}%")
+                                st.metric("Bad News 📉", f"{negative_pct:.1f}%")
                             with col4:
-                                st.metric("Neutral News ", f"{neutral_pct:.1f}%")
+                                st.metric("Neutral News ➡️", f"{neutral_pct:.1f}%")
 
                             # Sentiment interpretation
-                            st.subheader(" What Does This Mean?")
+                            st.subheader("🧠 What Does This Mean?")
 
                             if avg_sentiment > 0.2:
                                 st.success(
-                                    " **Very Positive Sentiment**: News is overwhelmingly good! This often leads to price increases."
+                                    "🚀 **Very Positive Sentiment**: News is overwhelmingly good! This often leads to price increases."
                                 )
                             elif avg_sentiment > 0.05:
                                 st.info(
-                                    " **Positive Sentiment**: More good news than bad. Generally bullish for prices."
+                                    "📈 **Positive Sentiment**: More good news than bad. Generally bullish for prices."
                                 )
                             elif avg_sentiment < -0.2:
                                 st.error(
-                                    " **Very Negative Sentiment**: Lots of bad news. Prices may decline."
+                                    "📉 **Very Negative Sentiment**: Lots of bad news. Prices may decline."
                                 )
                             elif avg_sentiment < -0.05:
                                 st.warning(
-                                    " **Negative Sentiment**: More bad news than good. Be cautious."
+                                    "📊 **Negative Sentiment**: More bad news than good. Be cautious."
                                 )
                             else:
                                 st.info(
-                                    " **Neutral Sentiment**: News is balanced. Market may be stable."
+                                    "⚖️ **Neutral Sentiment**: News is balanced. Market may be stable."
                                 )
 
                             # Sentiment scoring explanation
-                            with st.expander(" How Are Sentiment Scores Calculated?"):
+                            with st.expander("❓ How Are Sentiment Scores Calculated?"):
                                 st.markdown(
                                     """
                                 **Sentiment Score Range**: -1.0 (Very Negative) to +1.0 (Very Positive)
                                 
-                                ** Negative (-1.0 to -0.05)**:
+                                **🔴 Negative (-1.0 to -0.05)**:
                                 - Words like: "crash", "decline", "loss", "warning", "risk"
                                 - Example: "Apple stock crashes due to poor earnings"
                                 
-                                ** Neutral (-0.05 to +0.05)**:
+                                **🟡 Neutral (-0.05 to +0.05)**:
                                 - Factual reporting without emotional language
                                 - Example: "Apple reports quarterly earnings results"
                                 
-                                ** Positive (+0.05 to +1.0)**:
+                                **🟢 Positive (+0.05 to +1.0)**:
                                 - Words like: "growth", "profit", "success", "strong", "excellent"
                                 - Example: "Apple shows strong growth and exceeds expectations"
                                 
-                                ** Important**: Sentiment analysis looks at the language used, not just the topic!
+                                **💡 Important**: Sentiment analysis looks at the language used, not just the topic!
                                 """
                                 )
 
@@ -4202,7 +4202,7 @@ def main():
                                 _render_plotly(sentiment_chart)
 
                             # Sentiment by symbol with explanations
-                            st.subheader(" Sentiment Breakdown by Company")
+                            st.subheader("📊 Sentiment Breakdown by Company")
 
                             symbol_sentiment = (
                                 news_with_sentiment.groupby("symbol")
@@ -4227,15 +4227,15 @@ def main():
                             # Add interpretation column
                             def interpret_sentiment(score):
                                 if score > 0.2:
-                                    return "Very Positive "
+                                    return "Very Positive 🚀"
                                 elif score > 0.05:
-                                    return "Positive "
+                                    return "Positive 📈"
                                 elif score < -0.2:
-                                    return "Very Negative "
+                                    return "Very Negative 📉"
                                 elif score < -0.05:
-                                    return "Negative "
+                                    return "Negative 📊"
                                 else:
-                                    return "Neutral "
+                                    return "Neutral ⚖️"
 
                             symbol_sentiment["Interpretation"] = symbol_sentiment[
                                 "Avg_Sentiment"
@@ -4244,7 +4244,7 @@ def main():
                             _render_dataframe(symbol_sentiment)
 
                             # Investment implications
-                            st.subheader(" What This Means for Your Investments")
+                            st.subheader("💡 What This Means for Your Investments")
                             for symbol in selected_symbols:
                                 if symbol in symbol_sentiment.index:
                                     score = symbol_sentiment.loc[
@@ -4256,19 +4256,19 @@ def main():
 
                                     if score > 0.1:
                                         st.success(
-                                            f" **{symbol}**: Positive news trend ({count} articles). Good time to consider buying."
+                                            f"📈 **{symbol}**: Positive news trend ({count} articles). Good time to consider buying."
                                         )
                                     elif score < -0.1:
                                         st.error(
-                                            f" **{symbol}**: Negative news trend ({count} articles). Consider waiting or selling."
+                                            f"📉 **{symbol}**: Negative news trend ({count} articles). Consider waiting or selling."
                                         )
                                     else:
                                         st.info(
-                                            f" **{symbol}**: Neutral news ({count} articles). No strong signal either way."
+                                            f"⚖️ **{symbol}**: Neutral news ({count} articles). No strong signal either way."
                                         )
 
                             # Recent news headlines with better formatting
-                            st.subheader(" Recent Headlines & Their Sentiment")
+                            st.subheader("📰 Recent Headlines & Their Sentiment")
 
                             for symbol in selected_symbols:
                                 symbol_news = news_with_sentiment[
@@ -4285,15 +4285,15 @@ def main():
                                         # Color and emoji based on sentiment
                                         if sentiment_score > 0.1:
                                             color = "success"
-                                            emoji = ""
+                                            emoji = "�"
                                             interpretation = "Bullish news"
                                         elif sentiment_score < -0.1:
                                             color = "error"
-                                            emoji = ""
+                                            emoji = "�"
                                             interpretation = "Bearish news"
                                         else:
                                             color = "info"
-                                            emoji = ""
+                                            emoji = "➡️"
                                             interpretation = "Neutral news"
 
                                         # Format with better styling
@@ -4310,7 +4310,7 @@ def main():
                                             # Add link if available
                                             if pd.notna(article["url"]):
                                                 st.markdown(
-                                                    f"[ Read full article]({article['url']})"
+                                                    f"[📖 Read full article]({article['url']})"
                                                 )
 
                                             st.divider()
@@ -4371,9 +4371,9 @@ def main():
                 **MEWS** stands for *Market Risk Early Warning System*. It combines several data feeds so we can spot rising market stress early instead of reacting late.
 
                 ```text
-                Market Prices              > Machine-Learning Models > Risk Alerts
-                               > Cleaning 
-                News & Filings              > Research Reports & Dashboards
+                Market Prices ┐             ┌─> Machine-Learning Models ──> Risk Alerts
+                               ├─> Cleaning ─┤
+                News & Filings ┘             └─> Research Reports & Dashboards
                 ```
 
                 **Key idea:** by monitoring prices *and* language in news/filings, MEWS hears the warning whispers before the crash.
@@ -4388,10 +4388,10 @@ def main():
                 **CEWS** measures how timely and trustworthy the alerts are. It rewards warnings that fire before a downturn and penalises false alarms.
 
                 ```text
-                Timeline   [ Alert ]====(lead time)====[ Downturn ]
-                                               
-                                                Reward: early, correct warning
-                                   Penalty if alert happens without any drop
+                Timeline ───►  [ Alert ]====(lead time)====[ Downturn ]
+                                  ▲             ▲
+                                  │             └─ Reward: early, correct warning
+                                  └─ Penalty if alert happens without any drop
                 ```
 
                 A higher CEWS score means "MEWS usually speaks up early and rarely cries wolf."
@@ -4404,13 +4404,13 @@ def main():
                 **Multimodal fusion** is the glue that lines up numbers and words so the model sees one coherent table.
 
                 ```text
-                      
-                 Prices  +  News sentiment +  SEC signals
-                      
-                            align by ticker & date 
-                        
-                         Unified feature matrix     
-                        
+                ┌────────┐   ┌──────────────┐   ┌────────────┐
+                │ Prices │ + │ News sentiment│ + │ SEC signals│
+                └────────┘   └──────────────┘   └────────────┘
+                           ↓ align by ticker & date ↓
+                        ┌───────────────────────────┐
+                        │ Unified feature matrix     │
+                        └───────────────────────────┘
                 ```
 
                 Once fused, the model can learn patterns that exist only when you look across all data types together.
@@ -4429,7 +4429,7 @@ def main():
                 Choppy market:   20% Logistic  + 40% GradientBoost + 40% XGBoost
                 ```
 
-                This way no single model has to be perfect everywhereMEWS leans on whichever model works best for the current regime.
+                This way no single model has to be perfect everywhere—MEWS leans on whichever model works best for the current regime.
                 """
             )
 
@@ -4454,13 +4454,13 @@ def main():
         with st.expander("What do the robustness tests mean?", expanded=False):
             st.markdown(
                 """
-                **Robustness tests** shake the data slightlyadding noise or delaying labelsto see if MEWS still raises similar alerts.
+                **Robustness tests** shake the data slightly—adding noise or delaying labels—to see if MEWS still raises similar alerts.
 
                 ```text
-                Original data  Predict  Baseline metrics
-                   
-                    add noise (+5%)  Predict  Compare change?
-                    shift labels (+1 day)  Predict  Still alert on time?
+                Original data ──► Predict ──► Baseline metrics
+                   │
+                   ├─ add noise (+5%) ──► Predict ──► Compare change?
+                   └─ shift labels (+1 day) ──► Predict ──► Still alert on time?
                 ```
 
                 If the metrics barely move, the system is sturdy. Big drops tell us where to harden the pipeline.
