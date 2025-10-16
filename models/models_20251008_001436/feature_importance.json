@@ -1,0 +1,14 @@
+{
+  "random_forest": {
+    "Returns": 1.0
+  },
+  "logistic_regression": {
+    "Returns": 0.2776460342101749
+  },
+  "xgboost": {
+    "Returns": 1.0
+  },
+  "svm": {
+    "Returns": 0.0
+  }
+}

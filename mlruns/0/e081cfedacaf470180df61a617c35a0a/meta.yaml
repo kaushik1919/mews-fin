@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/I7/Projects/mews-fin/mlruns/0/e081cfedacaf470180df61a617c35a0a/artifacts
+end_time: 1760096555387
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: e081cfedacaf470180df61a617c35a0a
+run_name: RiskPredictor_20251010_114231
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1760096554959
+status: 3
+tags: []
+user_id: I7
