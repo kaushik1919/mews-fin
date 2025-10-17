@@ -262,10 +262,10 @@ class MultiModalFeatureFusion:
             raise RuntimeError("transformers library is required for embeddings")
 
         LOGGER.info("Loading embedding model %s", self.embedding_model_name)
-        self._tokenizer = AutoTokenizer.from_pretrained(
+        self._tokenizer = AutoTokenizer.from_pretrained(  # nosec B615
             self.embedding_model_name, revision=Config.HF_MODEL_REVISION
         )
-        self._model = AutoModel.from_pretrained(
+        self._model = AutoModel.from_pretrained(  # nosec B615
             self.embedding_model_name, revision=Config.HF_MODEL_REVISION
         )
         self._model.to(self.device)  # type: ignore[union-attr]
