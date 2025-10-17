@@ -32,7 +32,6 @@ warnings.filterwarnings("ignore")
 import sys
 
 sys.path.append(".")
-from datetime import datetime, timedelta
 
 import requests
 
@@ -608,7 +607,7 @@ def analyze_news_sentiment(news_df):
                         sentiments.append(sentiment)
                     else:
                         sentiments.append({"compound": 0, "pos": 0, "neu": 1, "neg": 0})
-                except:
+                except Exception:
                     # Fallback to neutral if analysis fails
                     sentiments.append({"compound": 0, "pos": 0, "neu": 1, "neg": 0})
             else:
@@ -4275,17 +4274,14 @@ def main():
                                     ):
                                         sentiment_score = article["sentiment_compound"]
 
-                                        # Color and emoji based on sentiment
+                                        # Emoji based on sentiment
                                         if sentiment_score > 0.1:
-                                            color = "success"
                                             emoji = ""
                                             interpretation = "Bullish news"
                                         elif sentiment_score < -0.1:
-                                            color = "error"
                                             emoji = ""
                                             interpretation = "Bearish news"
                                         else:
-                                            color = "info"
                                             emoji = ""
                                             interpretation = "Neutral news"
 
@@ -4341,7 +4337,7 @@ def main():
                     )["Date"]
                     date_range = date_col.dt.date
                     st.metric("Date Range", f"{date_range.min()} to {date_range.max()}")
-                except:
+                except Exception:
                     st.metric("Date Range", "Available")
 
         # Data preview

@@ -402,7 +402,7 @@ class RiskBacktester:
 
             auc_score = roc_auc_score(y_true, y_prob)
             accuracy_results["auc_score"] = float(auc_score)
-        except:
+        except Exception:
             accuracy_results["auc_score"] = None
 
         return accuracy_results

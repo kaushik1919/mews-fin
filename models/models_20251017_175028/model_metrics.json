@@ -651,19 +651,5 @@
       0.2835542566378895,
       0.29020754412095834
     ]
-  },
-  "metadata": {
-    "generated_at": "2025-10-17T12:20:28.261548Z",
-    "gpu": {
-      "available": true,
-      "device": "cuda",
-      "name": "NVIDIA GeForce RTX 5060"
-    },
-    "models": [
-      "logistic_regression",
-      "random_forest",
-      "svm",
-      "xgboost"
-    ]
   }
 }
