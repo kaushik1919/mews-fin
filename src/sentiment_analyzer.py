@@ -46,10 +46,10 @@ class SentimentAnalyzer:
 
             # Use ProsusAI FinBERT model (free and good for financial text)
             model_name = "ProsusAI/finbert"
-            self.finbert_tokenizer = AutoTokenizer.from_pretrained(
+            self.finbert_tokenizer = AutoTokenizer.from_pretrained(  # nosec B615
                 model_name, revision=Config.HF_MODEL_REVISION
             )
-            self.finbert_model = AutoModelForSequenceClassification.from_pretrained(
+            self.finbert_model = AutoModelForSequenceClassification.from_pretrained(  # nosec B615
                 model_name, revision=Config.HF_MODEL_REVISION
             )
 
